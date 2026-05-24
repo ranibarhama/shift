@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light theme tokens */
+  --bg: 244 246 251;
+  --canvas: 251 252 253;
+  --card: 255 255 255;
+  --line: 224 228 238;
+  --muted: 91 100 137;
+  --fg: 20 24 43;
+
+  --grid-dot: #d6dbe7;
+  --handle: #7c5cff;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 11 16 32;
+  --canvas: 15 21 42;
+  --card: 22 29 54;
+  --line: 42 51 88;
+  --muted: 136 146 184;
+  --fg: 230 233 245;
+
+  --grid-dot: #2a3358;
+  --handle: #7c5cff;
+
+  color-scheme: dark;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+}
+
+html:not(.dark) body {
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(124, 92, 255, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.07), transparent 60%),
+    rgb(var(--bg));
+}
+
+html.dark body {
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.12), transparent 60%),
+    rgb(var(--bg));
+}
+
+/* React Flow theme integration */
+.react-flow__background { background: transparent; }
+.react-flow__edge-path {
+  stroke: rgb(var(--line));
+  stroke-width: 2;
+}
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: var(--handle);
+}
+.react-flow__handle {
+  background: var(--handle);
+  border: 2px solid rgb(var(--bg));
+  width: 10px;
+  height: 10px;
+}
+.react-flow__controls {
+  background: rgb(var(--card));
+  border: 1px solid rgb(var(--line));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: rgb(var(--card));
+  color: rgb(var(--fg));
+  border-bottom: 1px solid rgb(var(--line));
+  fill: rgb(var(--fg));
+}
+.react-flow__controls-button:hover {
+  background: rgb(var(--line) / 0.5);
+}
+.react-flow__minimap {
+  background: rgb(var(--card)) !important;
+  border: 1px solid rgb(var(--line));
+  border-radius: 8px;
+}
+.react-flow__attribution { display: none; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--line)); border-radius: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
