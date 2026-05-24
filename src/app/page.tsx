@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { ROLES, ROLE_COLOR_HEX } from "@/lib/roles";
-import { getCurrentRole } from "@/lib/session";
 import { TAGS } from "@/lib/tags";
 import { TrashIcon, BotIcon, MergeIcon, BrainIcon } from "@/components/DecisionIcons";
 import ThemeToggle from "@/components/ThemeToggle";
 import { getCurrentTheme } from "@/lib/theme";
 
 export default async function Home() {
-  const signedIn = !!(await getCurrentRole());
   const theme = await getCurrentTheme();
 
   return (
@@ -126,7 +124,7 @@ export default async function Home() {
       {/* Role picker */}
       <section className="w-full">
         <div className="mb-3 text-center text-xs uppercase tracking-wider text-muted">
-          {signedIn ? "Switch role" : "Pick your role to enter"}
+          Pick your role to enter
         </div>
         <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ROLES.map((r) => (
