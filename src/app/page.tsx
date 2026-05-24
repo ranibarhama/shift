@@ -3,12 +3,18 @@ import { ROLES, ROLE_COLOR_HEX } from "@/lib/roles";
 import { getCurrentRole } from "@/lib/session";
 import { TAGS } from "@/lib/tags";
 import { TrashIcon, BotIcon, MergeIcon, BrainIcon } from "@/components/DecisionIcons";
+import ThemeToggle from "@/components/ThemeToggle";
+import { getCurrentTheme } from "@/lib/theme";
 
 export default async function Home() {
   const signedIn = !!(await getCurrentRole());
+  const theme = await getCurrentTheme();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center px-6 pb-20 pt-16 sm:pt-24">
+    <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center px-6 pb-20 pt-16 sm:pt-24">
+      <div className="absolute right-6 top-6">
+        <ThemeToggle initial={theme} />
+      </div>
       {/* Hero */}
       <div className="mb-14 text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-line bg-card/60 px-3 py-1 text-xs text-muted">
