@@ -20,6 +20,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const process = createDepartmentProcess(targetRole, name);
+  const process = await createDepartmentProcess(targetRole, name);
   return NextResponse.json({ process });
 }

@@ -12,23 +12,22 @@ import { getCurrentRole } from "@/lib/session";
 import { canEditDepartment } from "@/lib/roles";
 
 async function loadProcess(id: string) {
-  // Backwards-compat: also accept "main" or a role key
-  return getProcessById(id) ?? getProcessByKey(id);
+  return (await getProcessById(id)) ?? (await getProcessByKey(id));
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const process = await loadProcess(id);
   if (!process) return NextResponse.json({ error: "not found" }, { status: 404 });
-  const stages = getStagesForProcess(process.id);
-  const edges = getEdgesForProcess(process.id);
-  const items = getItemsForStages(stages.map((s) => s.id));
+  const stages = await getStagesForProcess(process.id);
+  const edges = await getEdgesForProcess(process.id);
+  const items = await getItemsForStages(stages.map((s) => s.id));
   return NextResponse.json({ process, stages, edges, items });
 }
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const proc = getProcessById(id);
+  const proc = await getProcessById(id);
   if (!proc) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (proc.type !== "department" || !proc.department_role) {
     return NextResponse.json({ error: "only department workflows can be edited" }, { status: 400 });
@@ -43,13 +42,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const name = String(body.name ?? "").trim();
   if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-  const updated = updateProcessName(id, name);
+  const updated = await updateProcessName(id, name);
   return NextResponse.json({ process: updated });
 }
 
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const proc = getProcessById(id);
+  const proc = await getProcessById(id);
   if (!proc) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (proc.type !== "department" || !proc.department_role) {
     return NextResponse.json({ error: "main process cannot be deleted" }, { status: 400 });
@@ -60,6 +59,6 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  deleteProcess(id);
+  await deleteProcess(id);
   return NextResponse.json({ ok: true });
 }

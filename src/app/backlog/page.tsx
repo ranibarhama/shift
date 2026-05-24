@@ -10,7 +10,7 @@ export default async function BacklogPage() {
   const role = await getCurrentRole();
   if (!role) redirect("/");
 
-  const items = getAllMissingItems();
+  const items = await getAllMissingItems();
 
   return (
     <div className="flex min-h-screen flex-col">

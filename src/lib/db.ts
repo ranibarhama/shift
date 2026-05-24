@@ -1,26 +1,84 @@
-import Database from "better-sqlite3";
+import { createClient, type Client, type InValue } from "@libsql/client";
 import fs from "node:fs";
 import path from "node:path";
 
+/**
+ * Database client.
+ *
+ * In production (Vercel) we use a remote Turso database via:
+ *   - TURSO_DATABASE_URL (libsql://…)
+ *   - TURSO_AUTH_TOKEN
+ *
+ * In local dev (no env vars) we fall back to a local libsql file at data/shift.db
+ * so devs can hack without touching production data.
+ */
+
 const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "shift.db");
+const LOCAL_DB_PATH = path.join(DATA_DIR, "shift.db");
 
-let _db: Database.Database | null = null;
+let _client: Client | null = null;
+let _initPromise: Promise<void> | null = null;
 
-export function getDb(): Database.Database {
-  if (_db) return _db;
+function buildClient(): Client {
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (url && url.trim()) {
+    return createClient({ url, authToken });
+  }
+
+  // Local fallback — file-backed libsql
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  const db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
-  ensureSchema(db);
-  seedIfEmpty(db);
-  _db = db;
-  return db;
+  return createClient({ url: `file:${LOCAL_DB_PATH}` });
 }
 
-function ensureSchema(db: Database.Database) {
-  db.exec(`
+/** Returns the libsql client and ensures schema + seed have run (once per process). */
+export async function getDb(): Promise<Client> {
+  if (!_client) _client = buildClient();
+  if (!_initPromise) {
+    _initPromise = ensureSchema(_client).then(() => seedIfEmpty(_client!));
+  }
+  await _initPromise;
+  return _client;
+}
+
+/* -------------------- query helpers -------------------- */
+
+/**
+ * Convert a libsql Row (which has a custom prototype) into a plain JS object
+ * so it can safely cross Server → Client component boundaries in Next 15.
+ */
+function plain<T>(r: unknown): T {
+  return Object.fromEntries(Object.entries(r as Record<string, unknown>)) as T;
+}
+
+export async function row<T = Record<string, unknown>>(
+  sql: string,
+  args: InValue[] = []
+): Promise<T | null> {
+  const db = await getDb();
+  const r = await db.execute({ sql, args });
+  return r.rows[0] ? plain<T>(r.rows[0]) : null;
+}
+
+export async function rows<T = Record<string, unknown>>(
+  sql: string,
+  args: InValue[] = []
+): Promise<T[]> {
+  const db = await getDb();
+  const r = await db.execute({ sql, args });
+  return r.rows.map((row) => plain<T>(row));
+}
+
+export async function run(sql: string, args: InValue[] = []): Promise<void> {
+  const db = await getDb();
+  await db.execute({ sql, args });
+}
+
+/* -------------------- schema + seed -------------------- */
+
+async function ensureSchema(db: Client) {
+  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS processes (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL CHECK (type IN ('main','department')),
@@ -64,12 +122,13 @@ function ensureSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_items_stage ON items(stage_id);
   `);
 
-  // Migration: if items table was created with the old CHECK constraint, rebuild it
-  const tableSql = db
-    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='items'")
-    .get() as { sql: string } | undefined;
-  if (tableSql && !tableSql.sql.includes("'missing'")) {
-    db.exec(`
+  // Migration: if items.kind CHECK is the old 3-value version, rebuild the table.
+  const tableSql = await db.execute(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='items'"
+  );
+  const sql = (tableSql.rows[0]?.sql as string | undefined) ?? "";
+  if (sql && !sql.includes("'missing'")) {
+    await db.executeMultiple(`
       BEGIN;
       CREATE TABLE items_new (
         id TEXT PRIMARY KEY,
@@ -91,17 +150,19 @@ function ensureSchema(db: Database.Database) {
   }
 }
 
-function seedIfEmpty(db: Database.Database) {
-  const count = db.prepare("SELECT COUNT(*) AS c FROM processes").get() as { c: number };
-  if (count.c > 0) return;
+async function seedIfEmpty(db: Client) {
+  const countR = await db.execute("SELECT COUNT(*) AS c FROM processes");
+  const c = Number(countR.rows[0]?.c ?? 0);
+  if (c > 0) return;
 
   const now = Date.now();
   const mainId = "main";
-  db.prepare(
-    "INSERT INTO processes (id, type, department_role, name, created_at) VALUES (?, 'main', NULL, ?, ?)"
-  ).run(mainId, "Main B2C Workflow", now);
 
-  // Seed main stages as a starting skeleton — the user will edit these
+  await db.execute({
+    sql: "INSERT INTO processes (id, type, department_role, name, created_at) VALUES (?, 'main', NULL, ?, ?)",
+    args: [mainId, "Main B2C Workflow", now],
+  });
+
   const mainStages = [
     { id: "s_discover", name: "Discover", desc: "Identify the user / market opportunity", x: 80, y: 200 },
     { id: "s_define", name: "Define", desc: "Frame the problem & success metrics", x: 380, y: 200 },
@@ -111,19 +172,21 @@ function seedIfEmpty(db: Database.Database) {
     { id: "s_measure", name: "Measure & Iterate", desc: "Analytics, learn, adjust", x: 1580, y: 200 },
   ];
 
-  const insertStage = db.prepare(
-    "INSERT INTO stages (id, process_id, name, description, x, y, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  );
-  mainStages.forEach((s, i) => insertStage.run(s.id, mainId, s.name, s.desc, s.x, s.y, i));
-
-  const insertEdge = db.prepare(
-    "INSERT INTO edges (id, process_id, source_stage_id, target_stage_id) VALUES (?, ?, ?, ?)"
-  );
-  for (let i = 0; i < mainStages.length - 1; i++) {
-    insertEdge.run(`e_${i}`, mainId, mainStages[i].id, mainStages[i + 1].id);
+  for (let i = 0; i < mainStages.length; i++) {
+    const s = mainStages[i];
+    await db.execute({
+      sql: "INSERT INTO stages (id, process_id, name, description, x, y, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      args: [s.id, mainId, s.name, s.desc, s.x, s.y, i],
+    });
   }
 
-  // Create one process per department, empty
+  for (let i = 0; i < mainStages.length - 1; i++) {
+    await db.execute({
+      sql: "INSERT INTO edges (id, process_id, source_stage_id, target_stage_id) VALUES (?, ?, ?, ?)",
+      args: [`e_${i}`, mainId, mainStages[i].id, mainStages[i + 1].id],
+    });
+  }
+
   const depts: Array<{ role: string; name: string }> = [
     { role: "ux", name: "UX Workflow" },
     { role: "marketing", name: "Marketing Workflow" },
@@ -131,8 +194,10 @@ function seedIfEmpty(db: Database.Database) {
     { role: "ops", name: "Ops Workflow" },
     { role: "analyst", name: "Analytics Workflow" },
   ];
-  const insertProc = db.prepare(
-    "INSERT INTO processes (id, type, department_role, name, created_at) VALUES (?, 'department', ?, ?, ?)"
-  );
-  depts.forEach((d) => insertProc.run(`dept_${d.role}`, d.role, d.name, now));
+  for (const d of depts) {
+    await db.execute({
+      sql: "INSERT INTO processes (id, type, department_role, name, created_at) VALUES (?, 'department', ?, ?, ?)",
+      args: [`dept_${d.role}`, d.role, d.name, now],
+    });
+  }
 }

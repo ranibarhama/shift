@@ -32,19 +32,20 @@ export default async function DepartmentPage({
   if (!deptRoleDef) notFound();
   const deptRole = deptRoleDef.key as RoleKey;
 
-  const workflows = getProcessesForRole(deptRole);
+  const workflows = await getProcessesForRole(deptRole);
   const canEdit = canEditDepartment(currentRole, deptRole);
   const theme = await getCurrentTheme();
-  const mainStages = getMainStages().map((s) => ({ id: s.id, name: s.name }));
+  const mainStagesRaw = await getMainStages();
+  const mainStages = mainStagesRaw.map((s) => ({ id: s.id, name: s.name }));
 
   const selectedId =
     sp.w && workflows.find((w) => w.id === sp.w)
       ? sp.w
       : workflows[0]?.id ?? null;
-  const selected = selectedId ? getProcessById(selectedId) : null;
-  const stages = selected ? getStagesForProcess(selected.id) : [];
-  const edges = selected ? getEdgesForProcess(selected.id) : [];
-  const items = selected ? getItemsForStages(stages.map((s) => s.id)) : [];
+  const selected = selectedId ? await getProcessById(selectedId) : null;
+  const stages = selected ? await getStagesForProcess(selected.id) : [];
+  const edges = selected ? await getEdgesForProcess(selected.id) : [];
+  const items = selected ? await getItemsForStages(stages.map((s) => s.id)) : [];
 
   return (
     <div className="flex h-screen flex-col">

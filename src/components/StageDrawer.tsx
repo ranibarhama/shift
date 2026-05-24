@@ -91,7 +91,7 @@ export default function StageDrawer({
           <div className="mb-1.5 text-xs uppercase tracking-wider text-muted">Stage-level decision</div>
           <TagPicker
             value={stage.tag}
-            onChange={(t) => onUpdateStage({ tag: t })}
+            onChange={(t) => onUpdateStage({ tag: t as StageRow["tag"] })}
             disabled={!canEdit}
           />
         </div>
@@ -467,11 +467,11 @@ function MissingItemRow({
       </div>
       <div className="mt-1.5 flex items-center gap-1.5">
         {MISSING_CATEGORIES.map((c) => {
-          const active = item.tag === c.key;
+          const active = (item.tag as string | null) === c.key;
           return (
             <button
               key={c.key}
-              onClick={() => canEdit && onUpdate({ tag: c.key as any })}
+              onClick={() => canEdit && onUpdate({ tag: c.key as unknown as ItemRow["tag"] })}
               disabled={!canEdit}
               className="rounded-full px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-60"
               style={{

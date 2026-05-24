@@ -15,11 +15,10 @@ export async function POST(req: Request) {
     x: number;
     y: number;
   };
-  const proc = processId
-    ? getProcessById(processId) ?? (processKey ? getProcessByKey(processKey) : null)
-    : processKey
-    ? getProcessByKey(processKey)
-    : null;
+
+  const proc =
+    (processId ? await getProcessById(processId) : null) ??
+    (processKey ? await getProcessByKey(processKey) : null);
   if (!proc) return NextResponse.json({ error: "no process" }, { status: 404 });
 
   if (proc.type === "main" && !canEditMain(role)) {
@@ -29,6 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const stage = createStage(proc.id, name || "New stage", x ?? 200, y ?? 200);
+  const stage = await createStage(proc.id, name || "New stage", x ?? 200, y ?? 200);
   return NextResponse.json({ stage });
 }

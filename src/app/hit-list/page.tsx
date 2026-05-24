@@ -10,7 +10,7 @@ export default async function HitListPage() {
   const role = await getCurrentRole();
   if (!role) redirect("/");
 
-  const rows = getAllDropItems();
+  const rows = await getAllDropItems();
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -17,11 +17,11 @@ export default async function MainProcessPage() {
   const role = await getCurrentRole();
   if (!role) redirect("/");
 
-  const process = getProcessByKey("main");
+  const process = await getProcessByKey("main");
   if (!process) throw new Error("Main process missing");
-  const stages = getStagesForProcess(process.id);
-  const edges = getEdgesForProcess(process.id);
-  const items = getItemsForStages(stages.map((s) => s.id));
+  const stages = await getStagesForProcess(process.id);
+  const edges = await getEdgesForProcess(process.id);
+  const items = await getItemsForStages(stages.map((s) => s.id));
   const theme = await getCurrentTheme();
 
   return (

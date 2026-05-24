@@ -6,6 +6,6 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   const role = await getCurrentRole();
   if (!role) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
-  deleteEdge(id);
+  await deleteEdge(id);
   return NextResponse.json({ ok: true });
 }

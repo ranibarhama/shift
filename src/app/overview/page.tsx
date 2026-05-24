@@ -6,7 +6,7 @@ import { getCurrentTheme } from "@/lib/theme";
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const data = loadOverview();
+  const data = await loadOverview();
   const theme = await getCurrentTheme();
   return (
     <div className="flex h-screen flex-col">

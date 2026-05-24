@@ -7,4 +7,6 @@ data/*.db-wal
 data/*.db-shm
 .DS_Store
 .claude/settings.local.json
+tsconfig.tsbuildinfo
+
 
