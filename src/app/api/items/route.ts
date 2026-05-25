@@ -9,11 +9,13 @@ export async function POST(req: Request) {
   if (!role) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { stageId, kind, content, tag } = body as {
+  const { stageId, kind, content, tag, roi, horizon } = body as {
     stageId: string;
     kind: ItemKind;
     content: string;
     tag?: string | null;
+    roi?: string | null;
+    horizon?: string | null;
   };
   const stage = await getStage(stageId);
   if (!stage) return NextResponse.json({ error: "no stage" }, { status: 404 });
@@ -26,5 +28,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const item = await createItem(stageId, kind, content, role, tag ?? null);
+  // For missing-kind items, optionally set roi/horizon in a follow-up update
+  if (kind === "missing" && (roi || horizon)) {
+    const { updateItem } = await import("@/lib/queries");
+    const patched = await updateItem(item.id, { roi: roi ?? null, horizon: horizon ?? null });
+    return NextResponse.json({ item: patched ?? item });
+  }
   return NextResponse.json({ item });
 }

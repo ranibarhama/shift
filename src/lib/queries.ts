@@ -46,8 +46,22 @@ export type ItemRow = {
   kind: ItemKind;
   content: string;
   tag: TagKey | null;
+  roi: string | null; // 'high' | 'mid' | 'low' — only meaningful for missing items
+  horizon: string | null; // 'short' | 'mid' | 'long' — only meaningful for missing items
   author_role: RoleKey | null;
   order_index: number;
+  created_at: number;
+};
+
+export type ParticipantRow = {
+  id: string;
+  label: string;
+  created_at: number;
+};
+
+export type StageParticipantRow = {
+  stage_id: string;
+  participant_id: string;
   created_at: number;
 };
 
@@ -238,7 +252,7 @@ export async function createItem(
 
 export async function updateItem(
   id: string,
-  patch: Partial<Pick<ItemRow, "content" | "tag">>
+  patch: Partial<Pick<ItemRow, "content" | "tag" | "roi" | "horizon">>
 ): Promise<ItemRow | null> {
   const fields: string[] = [];
   const vals: (string | number | null)[] = [];
@@ -254,6 +268,58 @@ export async function updateItem(
 
 export async function deleteItem(id: string): Promise<void> {
   await run("DELETE FROM items WHERE id = ?", [id]);
+}
+
+/* ---------- Participants (global dictionary) ---------- */
+
+export async function listParticipants(): Promise<ParticipantRow[]> {
+  return rows<ParticipantRow>("SELECT * FROM participants ORDER BY label COLLATE NOCASE ASC");
+}
+
+export async function createParticipant(label: string): Promise<ParticipantRow> {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error("Empty label");
+  // Idempotent: if a participant with this label already exists, return it
+  const existing = await row<ParticipantRow>(
+    "SELECT * FROM participants WHERE label = ? COLLATE NOCASE",
+    [trimmed]
+  );
+  if (existing) return existing;
+  const id = `prt_${nanoid(8)}`;
+  await run(
+    "INSERT INTO participants (id, label, created_at) VALUES (?, ?, ?)",
+    [id, trimmed, Date.now()]
+  );
+  const created = await row<ParticipantRow>("SELECT * FROM participants WHERE id = ?", [id]);
+  if (!created) throw new Error("Failed to create participant");
+  return created;
+}
+
+export async function deleteParticipant(id: string): Promise<void> {
+  await run("DELETE FROM participants WHERE id = ?", [id]);
+}
+
+export async function getStageParticipants(stageIds: string[]): Promise<StageParticipantRow[]> {
+  if (stageIds.length === 0) return [];
+  const placeholders = stageIds.map(() => "?").join(",");
+  return rows<StageParticipantRow>(
+    `SELECT * FROM stage_participants WHERE stage_id IN (${placeholders})`,
+    stageIds
+  );
+}
+
+export async function linkParticipant(stageId: string, participantId: string): Promise<void> {
+  await run(
+    "INSERT OR IGNORE INTO stage_participants (stage_id, participant_id, created_at) VALUES (?, ?, ?)",
+    [stageId, participantId, Date.now()]
+  );
+}
+
+export async function unlinkParticipant(stageId: string, participantId: string): Promise<void> {
+  await run(
+    "DELETE FROM stage_participants WHERE stage_id = ? AND participant_id = ?",
+    [stageId, participantId]
+  );
 }
 
 export async function getStage(id: string): Promise<StageRow | null> {
@@ -272,6 +338,8 @@ export type MissingItemRow = {
   id: string;
   content: string;
   category: string | null;
+  roi: string | null;
+  horizon: string | null;
   author_role: string | null;
   created_at: number;
   stage_id: string;
@@ -288,6 +356,8 @@ export async function getAllMissingItems(): Promise<MissingItemRow[]> {
        i.id            AS id,
        i.content       AS content,
        i.tag           AS category,
+       i.roi           AS roi,
+       i.horizon       AS horizon,
        i.author_role   AS author_role,
        i.created_at    AS created_at,
        s.id            AS stage_id,

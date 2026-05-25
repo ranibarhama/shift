@@ -31,3 +31,27 @@ export type MissingCategory = (typeof MISSING_CATEGORIES)[number]["key"];
 export function getMissingCategory(key: string | null | undefined) {
   return MISSING_CATEGORIES.find((c) => c.key === key);
 }
+
+export const ROI_LEVELS = [
+  { key: "high", label: "High", hex: "#16a34a" },
+  { key: "mid", label: "Mid", hex: "#f59e0b" },
+  { key: "low", label: "Low", hex: "#ef4444" },
+] as const;
+
+export type RoiLevel = (typeof ROI_LEVELS)[number]["key"];
+
+export function getRoi(key: string | null | undefined) {
+  return ROI_LEVELS.find((r) => r.key === key);
+}
+
+export const HORIZON_LEVELS = [
+  { key: "short", label: "Short term", hex: "#38bdf8" },
+  { key: "mid", label: "Mid term", hex: "#818cf8" },
+  { key: "long", label: "Long term", hex: "#6366f1" },
+] as const;
+
+export type HorizonLevel = (typeof HORIZON_LEVELS)[number]["key"];
+
+export function getHorizon(key: string | null | undefined) {
+  return HORIZON_LEVELS.find((h) => h.key === key);
+}

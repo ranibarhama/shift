@@ -5,6 +5,7 @@ export const ROLES = [
   { key: "product", label: "Director of Product", color: "product", initials: "PR" },
   { key: "ops", label: "Director of Ops", color: "ops", initials: "OP" },
   { key: "analyst", label: "Director of Analyst", color: "analyst", initials: "AN" },
+  { key: "dev", label: "DEV Lead", color: "dev", initials: "DL" },
 ] as const;
 
 export type RoleKey = (typeof ROLES)[number]["key"];
@@ -30,4 +31,5 @@ export const ROLE_COLOR_HEX: Record<RoleKey, string> = {
   product: "#a78bfa",
   ops: "#34d399",
   analyst: "#60a5fa",
+  dev: "#06b6d4",
 };

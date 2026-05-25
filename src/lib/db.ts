@@ -110,6 +110,23 @@ async function ensureSchema(db: Client) {
     );
     CREATE INDEX IF NOT EXISTS idx_comments_stage ON comments(stage_id);
 
+    /* Global participant dictionary — shared across every workflow */
+    CREATE TABLE IF NOT EXISTS participants (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL
+    );
+
+    /* Link between stages and participants (m2m) */
+    CREATE TABLE IF NOT EXISTS stage_participants (
+      stage_id TEXT NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
+      participant_id TEXT NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (stage_id, participant_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_stage_participants_stage ON stage_participants(stage_id);
+    CREATE INDEX IF NOT EXISTS idx_stage_participants_participant ON stage_participants(participant_id);
+
     CREATE TABLE IF NOT EXISTS edges (
       id TEXT PRIMARY KEY,
       process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
@@ -141,6 +158,65 @@ async function ensureSchema(db: Client) {
   }
   if (!colNames.includes("goal")) {
     await db.execute("ALTER TABLE stages ADD COLUMN goal TEXT NOT NULL DEFAULT ''");
+  }
+
+  // Migration: add roi / horizon columns on items
+  const itemCols = await db.execute("PRAGMA table_info(items)");
+  const itemColNames = itemCols.rows.map((r) => (r as unknown as { name: string }).name);
+  if (!itemColNames.includes("roi")) {
+    await db.execute("ALTER TABLE items ADD COLUMN roi TEXT");
+  }
+  if (!itemColNames.includes("horizon")) {
+    await db.execute("ALTER TABLE items ADD COLUMN horizon TEXT");
+  }
+
+  // Migration: move free-text participant items into the new participants
+  // dictionary + stage_participants link table. Idempotent — once the source
+  // rows are gone, this block does nothing.
+  const oldParts = await db.execute(
+    "SELECT DISTINCT content FROM items WHERE kind = 'participant' AND content != ''"
+  );
+  if (oldParts.rows.length > 0) {
+    const now = Date.now();
+    // Make a participant row for every distinct label (skip duplicates)
+    for (const r of oldParts.rows) {
+      const label = ((r as unknown as { content: string }).content || "").trim();
+      if (!label) continue;
+      const existing = await db.execute({
+        sql: "SELECT id FROM participants WHERE label = ?",
+        args: [label],
+      });
+      if (existing.rows.length === 0) {
+        const id = `prt_${Math.random().toString(36).slice(2, 10)}`;
+        await db.execute({
+          sql: "INSERT INTO participants (id, label, created_at) VALUES (?, ?, ?)",
+          args: [id, label, now],
+        });
+      }
+    }
+    // Link every item to its stage via the new join table, then drop the items
+    const all = await db.execute(
+      "SELECT id, stage_id, content FROM items WHERE kind = 'participant'"
+    );
+    for (const r of all.rows) {
+      const row = r as unknown as { id: string; stage_id: string; content: string };
+      const label = (row.content || "").trim();
+      if (!label) continue;
+      const p = await db.execute({
+        sql: "SELECT id FROM participants WHERE label = ?",
+        args: [label],
+      });
+      const participantId = p.rows[0]
+        ? ((p.rows[0] as unknown as { id: string }).id)
+        : null;
+      if (participantId) {
+        await db.execute({
+          sql: "INSERT OR IGNORE INTO stage_participants (stage_id, participant_id, created_at) VALUES (?, ?, ?)",
+          args: [row.stage_id, participantId, now],
+        });
+      }
+    }
+    await db.execute("DELETE FROM items WHERE kind = 'participant'");
   }
 
   // Migration: if items.kind CHECK is the old 3-value version, rebuild the table.

@@ -5,18 +5,24 @@ import {
   ITEM_KINDS,
   TAGS,
   MISSING_CATEGORIES,
+  ROI_LEVELS,
+  HORIZON_LEVELS,
   getTag,
   getMissingCategory,
+  getRoi,
+  getHorizon,
   type ItemKind,
   type MissingCategory,
 } from "@/lib/tags";
-import type { CommentRow, ItemRow, StageRow } from "@/lib/queries";
+import type { CommentRow, ItemRow, ParticipantRow, StageRow } from "@/lib/queries";
 import { ROLES, ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
 
 type Props = {
   stage: StageRow | null;
   items: ItemRow[];
   comments: CommentRow[];
+  participants: ParticipantRow[];
+  selectedParticipantIds: string[];
   mainStages?: { id: string; name: string }[];
   isDepartmentProcess: boolean;
   canEdit: boolean;
@@ -28,12 +34,17 @@ type Props = {
   onDeleteItem: (id: string) => Promise<void>;
   onAddComment: (content: string) => Promise<void>;
   onDeleteComment: (id: string) => Promise<void>;
+  onLinkParticipant: (participantId: string) => Promise<void>;
+  onUnlinkParticipant: (participantId: string) => Promise<void>;
+  onCreateParticipant: (label: string) => Promise<void>;
 };
 
 export default function StageDrawer({
   stage,
   items,
   comments,
+  participants,
+  selectedParticipantIds,
   mainStages,
   isDepartmentProcess,
   canEdit,
@@ -45,6 +56,9 @@ export default function StageDrawer({
   onDeleteItem,
   onAddComment,
   onDeleteComment,
+  onLinkParticipant,
+  onUnlinkParticipant,
+  onCreateParticipant,
 }: Props) {
   const [draftName, setDraftName] = useState(stage?.name ?? "");
   const [draftDesc, setDraftDesc] = useState(stage?.description ?? "");
@@ -151,7 +165,16 @@ export default function StageDrawer({
 
         <div className="my-5 h-px bg-line/60" />
 
-        {ITEM_KINDS.filter((k) => k.key !== "missing").map((k) => (
+        <WhoSection
+          allParticipants={participants}
+          selectedIds={selectedParticipantIds}
+          canEdit={canEdit}
+          onLink={onLinkParticipant}
+          onUnlink={onUnlinkParticipant}
+          onCreate={onCreateParticipant}
+        />
+
+        {ITEM_KINDS.filter((k) => k.key !== "missing" && k.key !== "participant").map((k) => (
           <ItemSection
             key={k.key}
             kind={k.key}
@@ -580,6 +603,50 @@ function MissingItemRow({
           </span>
         )}
       </div>
+
+      {/* ROI + Horizon pickers, only meaningful for missing items */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <span className="text-[9px] uppercase tracking-wider text-muted">ROI</span>
+        {ROI_LEVELS.map((lvl) => {
+          const active = item.roi === lvl.key;
+          return (
+            <button
+              key={lvl.key}
+              onClick={() => canEdit && onUpdate({ roi: active ? null : lvl.key })}
+              disabled={!canEdit}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-60"
+              style={{
+                background: active ? `${lvl.hex}22` : "transparent",
+                color: active ? lvl.hex : "#5b6489",
+                border: `1px solid ${active ? lvl.hex : "#2a3358"}`,
+              }}
+            >
+              {lvl.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <span className="text-[9px] uppercase tracking-wider text-muted">Horizon</span>
+        {HORIZON_LEVELS.map((lvl) => {
+          const active = item.horizon === lvl.key;
+          return (
+            <button
+              key={lvl.key}
+              onClick={() => canEdit && onUpdate({ horizon: active ? null : lvl.key })}
+              disabled={!canEdit}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-60"
+              style={{
+                background: active ? `${lvl.hex}22` : "transparent",
+                color: active ? lvl.hex : "#5b6489",
+                border: `1px solid ${active ? lvl.hex : "#2a3358"}`,
+              }}
+            >
+              {lvl.label}
+            </button>
+          );
+        })}
+      </div>
     </li>
   );
 }
@@ -691,4 +758,92 @@ function relativeTime(ts: number): string {
   const d = Math.floor(h / 24);
   if (d < 30) return `${d}d ago`;
   return new Date(ts).toLocaleDateString();
+}
+
+/* ---------- Who's involved (closed-tag picker over global participants) ---------- */
+
+function WhoSection({
+  allParticipants,
+  selectedIds,
+  canEdit,
+  onLink,
+  onUnlink,
+  onCreate,
+}: {
+  allParticipants: ParticipantRow[];
+  selectedIds: string[];
+  canEdit: boolean;
+  onLink: (id: string) => Promise<void>;
+  onUnlink: (id: string) => Promise<void>;
+  onCreate: (label: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState("");
+  const selectedSet = new Set(selectedIds);
+  const sorted = [...allParticipants].sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+  );
+
+  return (
+    <section className="mb-5">
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-fg">Who&apos;s involved</h3>
+        <span className="text-xs text-muted">{selectedIds.length}</span>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="mb-2 text-[11px] text-muted">
+          No tags yet. Add the first one below — it&apos;ll be available on every stage.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {sorted.map((p) => {
+            const active = selectedSet.has(p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() => canEdit && (active ? onUnlink(p.id) : onLink(p.id))}
+                disabled={!canEdit}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide transition disabled:opacity-60"
+                style={{
+                  background: active ? "rgb(124 92 255 / 0.18)" : "transparent",
+                  borderColor: active ? "#7c5cff" : "#2a3358",
+                  color: active ? "#7c5cff" : "#8892b8",
+                }}
+                aria-pressed={active}
+                title={active ? "Click to remove from this stage" : "Click to add to this stage"}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {canEdit && (
+        <form
+          className="mt-2 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = draft.trim();
+            if (!v) return;
+            onCreate(v);
+            setDraft("");
+          }}
+        >
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="+ Add new participant"
+            className="flex-1 rounded-md border border-dashed border-line/70 bg-line/20 px-3 py-1.5 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-accent/20 px-3 py-1.5 text-sm text-accent hover:bg-accent/30"
+          >
+            Add
+          </button>
+        </form>
+      )}
+    </section>
+  );
 }

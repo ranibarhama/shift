@@ -78,11 +78,28 @@ async function main() {
       target_stage_id TEXT NOT NULL REFERENCES stages(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS participants (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS stage_participants (
+      stage_id TEXT NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
+      participant_id TEXT NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (stage_id, participant_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_stage_participants_stage ON stage_participants(stage_id);
+    CREATE INDEX IF NOT EXISTS idx_stage_participants_participant ON stage_participants(participant_id);
+
     CREATE TABLE IF NOT EXISTS items (
       id TEXT PRIMARY KEY,
       stage_id TEXT NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
       kind TEXT NOT NULL CHECK (kind IN ('participant','task','pain_point','missing')),
       content TEXT NOT NULL,
+      roi TEXT,
+      horizon TEXT,
       tag TEXT,
       author_role TEXT,
       order_index INTEGER NOT NULL DEFAULT 0,

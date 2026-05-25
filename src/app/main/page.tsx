@@ -10,6 +10,8 @@ import {
   getEdgesForProcess,
   getItemsForStages,
   getCommentsForStages,
+  listParticipants,
+  getStageParticipants,
 } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,8 @@ export default async function MainProcessPage() {
   const edges = await getEdgesForProcess(process.id);
   const items = await getItemsForStages(stages.map((s) => s.id));
   const comments = await getCommentsForStages(stages.map((s) => s.id));
+  const participants = await listParticipants();
+  const stageParticipants = await getStageParticipants(stages.map((s) => s.id));
   const theme = await getCurrentTheme();
 
   return (
@@ -31,7 +35,7 @@ export default async function MainProcessPage() {
       <Topbar />
       <ProcessCanvas
         processId={process.id}
-        initial={{ process, stages, edges, items, comments }}
+        initial={{ process, stages, edges, items, comments, participants, stageParticipants }}
         canEdit={canEditMain(role)}
         initialTheme={theme}
       />

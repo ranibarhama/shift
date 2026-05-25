@@ -23,7 +23,15 @@ import {
 import StageNode, { type StageNodeData } from "./StageNode";
 import StageDrawer from "./StageDrawer";
 import CanvasTip from "./CanvasTip";
-import type { CommentRow, EdgeRow, ItemRow, ProcessRow, StageRow } from "@/lib/queries";
+import type {
+  CommentRow,
+  EdgeRow,
+  ItemRow,
+  ParticipantRow,
+  ProcessRow,
+  StageParticipantRow,
+  StageRow,
+} from "@/lib/queries";
 import type { ItemKind } from "@/lib/tags";
 import { ROLE_COLOR_HEX } from "@/lib/roles";
 import { useTheme, CANVAS_PALETTE } from "@/lib/useTheme";
@@ -37,6 +45,8 @@ type Props = {
     edges: EdgeRow[];
     items: ItemRow[];
     comments: CommentRow[];
+    participants: ParticipantRow[];
+    stageParticipants: StageParticipantRow[];
   };
   canEdit: boolean;
   mainStages?: { id: string; name: string }[];
@@ -61,6 +71,10 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
   const [edges, setEdges] = useState<EdgeRow[]>(initial.edges);
   const [items, setItems] = useState<ItemRow[]>(initial.items);
   const [comments, setComments] = useState<CommentRow[]>(initial.comments);
+  const [participants, setParticipants] = useState<ParticipantRow[]>(initial.participants);
+  const [stageParticipants, setStageParticipants] = useState<StageParticipantRow[]>(
+    initial.stageParticipants
+  );
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
 
   // Refit to screen whenever the set of stages changes (initial mount, board
@@ -97,16 +111,31 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
     return m;
   }, [comments]);
 
+  const participantIdsByStage = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const sp of stageParticipants) {
+      if (!m.has(sp.stage_id)) m.set(sp.stage_id, new Set());
+      m.get(sp.stage_id)!.add(sp.participant_id);
+    }
+    return m;
+  }, [stageParticipants]);
+
   const rfNodes: Node<StageNodeData>[] = useMemo(
     () =>
       stages.map((s) => {
         const its = itemsByStage.get(s.id) ?? [];
-        const counts = { participant: 0, task: 0, pain_point: 0, missing: 0 };
+        const counts = {
+          participant: participantIdsByStage.get(s.id)?.size ?? 0,
+          task: 0,
+          pain_point: 0,
+          missing: 0,
+        };
         const tagCounts = { drop: 0, automate: 0, hybrid: 0, own: 0 };
         let decisionTagged = 0;
         let decisionTotal = 0;
         for (const it of its) {
-          if (it.kind in counts) {
+          // participants are now counted from the join table above
+          if (it.kind !== "participant" && it.kind in counts) {
             counts[it.kind as keyof typeof counts] += 1;
           }
           if (it.kind !== "missing") {
@@ -138,7 +167,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
           } as StageNodeData,
         };
       }),
-    [stages, itemsByStage, commentsByStage, accentColor, initial.process.department_role]
+    [stages, itemsByStage, commentsByStage, participantIdsByStage, accentColor, initial.process.department_role]
   );
 
   const rfEdges: Edge[] = useMemo(
@@ -257,6 +286,9 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
   const selectedStage = stages.find((s) => s.id === selectedStageId) ?? null;
   const selectedItems = selectedStage ? itemsByStage.get(selectedStage.id) ?? [] : [];
   const selectedComments = selectedStage ? commentsByStage.get(selectedStage.id) ?? [] : [];
+  const selectedParticipantIds = selectedStage
+    ? Array.from(participantIdsByStage.get(selectedStage.id) ?? [])
+    : [];
 
   const updateStage = useCallback(
     async (patch: Partial<StageRow>) => {
@@ -356,6 +388,73 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
     }
   }, []);
 
+  /* ---------- Participant link / create / unlink ---------- */
+
+  const linkParticipantToSelected = useCallback(
+    async (participantId: string) => {
+      if (!selectedStage) return;
+      const stageId = selectedStage.id;
+      setStageParticipants((arr) =>
+        arr.some((sp) => sp.stage_id === stageId && sp.participant_id === participantId)
+          ? arr
+          : [...arr, { stage_id: stageId, participant_id: participantId, created_at: Date.now() }]
+      );
+      try {
+        await fetch("/api/stage-participants", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ stageId, participantId }),
+        });
+      } catch (err) {
+        console.warn("[Shift] link participant failed", err);
+      }
+    },
+    [selectedStage]
+  );
+
+  const unlinkParticipantFromSelected = useCallback(
+    async (participantId: string) => {
+      if (!selectedStage) return;
+      const stageId = selectedStage.id;
+      setStageParticipants((arr) =>
+        arr.filter((sp) => !(sp.stage_id === stageId && sp.participant_id === participantId))
+      );
+      try {
+        await fetch(
+          `/api/stage-participants?stageId=${encodeURIComponent(stageId)}&participantId=${encodeURIComponent(participantId)}`,
+          { method: "DELETE" }
+        );
+      } catch (err) {
+        console.warn("[Shift] unlink participant failed", err);
+      }
+    },
+    [selectedStage]
+  );
+
+  const createAndLinkParticipant = useCallback(
+    async (label: string) => {
+      if (!selectedStage) return;
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      try {
+        const res = await fetch("/api/participants", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ label: trimmed }),
+        });
+        const json = await res.json();
+        const p: ParticipantRow | undefined = json.participant;
+        if (p) {
+          setParticipants((arr) => (arr.some((x) => x.id === p.id) ? arr : [...arr, p]));
+          await linkParticipantToSelected(p.id);
+        }
+      } catch (err) {
+        console.warn("[Shift] create+link participant failed", err);
+      }
+    },
+    [selectedStage, linkParticipantToSelected]
+  );
+
   return (
     <div className="relative h-[calc(100vh-3.5rem)] w-full">
       <ReactFlow
@@ -418,6 +517,8 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
           stage={selectedStage}
           items={selectedItems}
           comments={selectedComments}
+          participants={participants}
+          selectedParticipantIds={selectedParticipantIds}
           mainStages={mainStages}
           isDepartmentProcess={initial.process.type === "department"}
           canEdit={canEdit}
@@ -429,6 +530,9 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
           onDeleteItem={deleteItem}
           onAddComment={addComment}
           onDeleteComment={deleteComment}
+          onLinkParticipant={linkParticipantToSelected}
+          onUnlinkParticipant={unlinkParticipantFromSelected}
+          onCreateParticipant={createAndLinkParticipant}
         />
       )}
     </div>

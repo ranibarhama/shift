@@ -2,12 +2,25 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { MISSING_CATEGORIES, type MissingCategory, getMissingCategory } from "@/lib/tags";
+import {
+  MISSING_CATEGORIES,
+  ROI_LEVELS,
+  HORIZON_LEVELS,
+  type MissingCategory,
+  type RoiLevel,
+  type HorizonLevel,
+  getMissingCategory,
+  getRoi,
+  getHorizon,
+} from "@/lib/tags";
 import { ROLES, ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
 import type { MissingItemRow } from "@/lib/queries";
 
-type SortKey = "content" | "category" | "context" | "author" | "created";
+type SortKey = "content" | "category" | "roi" | "horizon" | "context" | "author" | "created";
 type SortDir = "asc" | "desc";
+
+const ROI_ORDER: Record<string, number> = { high: 0, mid: 1, low: 2, "": 3 };
+const HORIZON_ORDER: Record<string, number> = { short: 0, mid: 1, long: 2, "": 3 };
 
 type Props = {
   items: MissingItemRow[];
@@ -16,6 +29,8 @@ type Props = {
 export default function BacklogTable({ items }: Props) {
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<MissingCategory | "all">("all");
+  const [roiFilter, setRoiFilter] = useState<RoiLevel | "all">("all");
+  const [horizonFilter, setHorizonFilter] = useState<HorizonLevel | "all">("all");
   const [scopeFilter, setScopeFilter] = useState<"all" | "main" | RoleKey>("all");
   const [sortKey, setSortKey] = useState<SortKey>("created");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -23,6 +38,8 @@ export default function BacklogTable({ items }: Props) {
   const filtered = useMemo(() => {
     let list = items;
     if (catFilter !== "all") list = list.filter((i) => i.category === catFilter);
+    if (roiFilter !== "all") list = list.filter((i) => i.roi === roiFilter);
+    if (horizonFilter !== "all") list = list.filter((i) => i.horizon === horizonFilter);
     if (scopeFilter === "main") list = list.filter((i) => i.process_type === "main");
     else if (scopeFilter !== "all")
       list = list.filter((i) => i.department_role === scopeFilter);
@@ -44,6 +61,12 @@ export default function BacklogTable({ items }: Props) {
         case "category":
           r = (a.category ?? "").localeCompare(b.category ?? "");
           break;
+        case "roi":
+          r = (ROI_ORDER[a.roi ?? ""] ?? 3) - (ROI_ORDER[b.roi ?? ""] ?? 3);
+          break;
+        case "horizon":
+          r = (HORIZON_ORDER[a.horizon ?? ""] ?? 3) - (HORIZON_ORDER[b.horizon ?? ""] ?? 3);
+          break;
         case "context":
           r =
             a.process_name.localeCompare(b.process_name) ||
@@ -59,7 +82,7 @@ export default function BacklogTable({ items }: Props) {
       return sortDir === "asc" ? r : -r;
     };
     return [...list].sort(cmp);
-  }, [items, search, catFilter, scopeFilter, sortKey, sortDir]);
+  }, [items, search, catFilter, roiFilter, horizonFilter, scopeFilter, sortKey, sortDir]);
 
   const byCat = useMemo(() => {
     const m: Record<string, number> = { tool: 0, infrastructure: 0, workflow: 0, _untagged: 0 };
@@ -133,12 +156,40 @@ export default function BacklogTable({ items }: Props) {
             </option>
           ))}
         </select>
-        {(search || catFilter !== "all" || scopeFilter !== "all") && (
+        <select
+          value={roiFilter}
+          onChange={(e) => setRoiFilter(e.target.value as typeof roiFilter)}
+          className="rounded-md border border-line bg-card px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
+          title="Filter by ROI"
+        >
+          <option value="all">Any ROI</option>
+          {ROI_LEVELS.map((r) => (
+            <option key={r.key} value={r.key}>
+              ROI: {r.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={horizonFilter}
+          onChange={(e) => setHorizonFilter(e.target.value as typeof horizonFilter)}
+          className="rounded-md border border-line bg-card px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
+          title="Filter by horizon"
+        >
+          <option value="all">Any horizon</option>
+          {HORIZON_LEVELS.map((h) => (
+            <option key={h.key} value={h.key}>
+              {h.label}
+            </option>
+          ))}
+        </select>
+        {(search || catFilter !== "all" || scopeFilter !== "all" || roiFilter !== "all" || horizonFilter !== "all") && (
           <button
             onClick={() => {
               setSearch("");
               setCatFilter("all");
               setScopeFilter("all");
+              setRoiFilter("all");
+              setHorizonFilter("all");
             }}
             className="rounded-md border border-line px-3 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
           >
@@ -157,6 +208,8 @@ export default function BacklogTable({ items }: Props) {
             <tr>
               <Th sortKey="content" current={sortKey} dir={sortDir} onClick={toggleSort}>Item</Th>
               <Th sortKey="category" current={sortKey} dir={sortDir} onClick={toggleSort}>Type</Th>
+              <Th sortKey="roi" current={sortKey} dir={sortDir} onClick={toggleSort}>ROI</Th>
+              <Th sortKey="horizon" current={sortKey} dir={sortDir} onClick={toggleSort}>Horizon</Th>
               <Th sortKey="context" current={sortKey} dir={sortDir} onClick={toggleSort}>Stage · Workflow</Th>
               <Th sortKey="author" current={sortKey} dir={sortDir} onClick={toggleSort}>Created by</Th>
               <Th sortKey="created" current={sortKey} dir={sortDir} onClick={toggleSort}>Added</Th>
@@ -165,7 +218,7 @@ export default function BacklogTable({ items }: Props) {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted">
+                <td colSpan={7} className="px-4 py-12 text-center text-sm text-muted">
                   {items.length === 0
                     ? "No backlog items yet. Open a stage and add something under \"What's missing\"."
                     : "No items match these filters."}
@@ -201,6 +254,36 @@ export default function BacklogTable({ items }: Props) {
                     ) : (
                       <span className="text-[11px] text-muted">— uncategorized —</span>
                     )}
+                  </td>
+                  <td className="px-4 py-2.5 align-top">
+                    {(() => {
+                      const r = getRoi(it.roi);
+                      return r ? (
+                        <span
+                          className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                          style={{ background: `${r.hex}22`, color: r.hex, border: `1px solid ${r.hex}55` }}
+                        >
+                          {r.label}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted">—</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-4 py-2.5 align-top">
+                    {(() => {
+                      const h = getHorizon(it.horizon);
+                      return h ? (
+                        <span
+                          className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                          style={{ background: `${h.hex}22`, color: h.hex, border: `1px solid ${h.hex}55` }}
+                        >
+                          {h.label}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted">—</span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-2.5 align-top">
                     <Link href={linkHref} className="text-fg hover:text-accent">
