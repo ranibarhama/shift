@@ -3,6 +3,7 @@ import { ROLES, ROLE_COLOR_HEX } from "@/lib/roles";
 import { TAGS } from "@/lib/tags";
 import { TrashIcon, BotIcon, MergeIcon, BrainIcon } from "@/components/DecisionIcons";
 import ThemeToggle from "@/components/ThemeToggle";
+import DecideTooltip from "@/components/DecideTooltip";
 import { getCurrentTheme } from "@/lib/theme";
 
 export default async function Home() {
@@ -77,8 +78,11 @@ export default async function Home() {
       {/* The four decisions */}
       <section className="mb-20 w-full">
         <div className="mb-8 text-center">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-line bg-card/60 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-            The main Decision Point to Make
+          <div className="mb-2 inline-flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-line bg-card/60 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+              The main Decision Point to Make
+            </div>
+            <DecideTooltip />
           </div>
           <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
             For every stage & task, decide
@@ -117,48 +121,6 @@ export default async function Home() {
             desc="Only humans can do this"
             hex={tagHex("own")}
             icon={<BrainIcon size={44} />}
-          />
-        </div>
-      </section>
-
-      {/* Use this to decide — self-discovery prompts */}
-      <section className="mb-20 w-full">
-        <div className="mb-8 text-center">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-line bg-card/60 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-            Use this to decide
-          </div>
-          <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
-            Four prompts to figure out where AI goes first
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-muted">
-            Ask these in every stage. The answers tell you what to{" "}
-            <span className="text-drop">drop</span>,{" "}
-            <span className="text-automate">automate</span>,{" "}
-            <span className="text-hybrid">blend</span>, or{" "}
-            <span className="text-own">own</span>.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <PromptCard
-            number="01"
-            title="Where are you losing time?"
-            desc="What takes way longer than it should?"
-          />
-          <PromptCard
-            number="02"
-            title="What feels repetitive?"
-            desc="Work you do manually that could be systematic."
-          />
-          <PromptCard
-            number="03"
-            title="What blocks the next person?"
-            desc="Hand-offs and dependencies that slow others down."
-          />
-          <PromptCard
-            number="04"
-            title="What's the worst-ROI work?"
-            desc="Time-consuming tasks with low real impact."
           />
         </div>
       </section>
@@ -204,35 +166,6 @@ export default async function Home() {
 
 function tagHex(key: string) {
   return TAGS.find((t) => t.key === key)?.hex ?? "#7c5cff";
-}
-
-function PromptCard({
-  number,
-  title,
-  desc,
-}: {
-  number: string;
-  title: string;
-  desc: string;
-}) {
-  const hex = "#ef4444"; // drop accent — matches the screenshot reference
-  return (
-    <div
-      className="relative overflow-hidden rounded-2xl border border-line bg-card p-6 sm:p-8"
-      style={{ boxShadow: `inset 4px 0 0 0 ${hex}` }}
-    >
-      <div
-        className="font-mono text-xs font-semibold tracking-[0.15em]"
-        style={{ color: hex }}
-      >
-        {number}
-      </div>
-      <h3 className="mt-4 text-2xl font-bold leading-tight text-fg sm:text-3xl">
-        {title}
-      </h3>
-      <p className="mt-3 text-sm text-muted">{desc}</p>
-    </div>
-  );
 }
 
 function StepCard({ num, title, desc }: { num: string; title: string; desc: string }) {
