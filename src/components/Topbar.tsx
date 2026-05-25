@@ -98,45 +98,53 @@ function HomeIcon() {
 
 /**
  * Stylized Shift mark.
- * Rounded-square tile with a purple → cyan gradient and two stacked bars —
- * top bar is shorter and offset to the right, suggesting movement / shift.
- * Hover slightly nudges the top bar further to underline the metaphor.
+ * Dark rounded-square tile with a double chevron in purple → blue → cyan,
+ * motion trails on the left and a sparkle bottom-right.
+ * Matches the favicon at /public/icon.svg.
  */
 function ShiftMark() {
   return (
     <span
       className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-[10px] shadow-card"
-      style={{
-        background:
-          "linear-gradient(135deg, #7c5cff 0%, #6d8cff 45%, #38bdf8 100%)",
-      }}
+      style={{ background: "linear-gradient(180deg, #0e1638 0%, #04081a 100%)" }}
     >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        className="relative drop-shadow-sm"
-        aria-hidden
-      >
-        {/* dot trail — three little dots tracing the motion */}
-        <circle cx="3" cy="20" r="1" fill="rgba(255,255,255,0.5)" />
-        <circle cx="6" cy="17" r="1" fill="rgba(255,255,255,0.6)" />
-        <circle cx="9" cy="14" r="1" fill="rgba(255,255,255,0.75)" />
-        {/* arrow shaft */}
+      <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden>
+        <defs>
+          <linearGradient id="topbar-chev" x1="0%" y1="15%" x2="100%" y2="85%">
+            <stop offset="0%" stopColor="#a855f7" />
+            <stop offset="55%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#22d3ee" />
+          </linearGradient>
+        </defs>
+        {/* motion trails */}
+        <g fill="url(#topbar-chev)">
+          <rect x="4" y="28" width="13" height="3" rx="1.5" opacity="0.55" />
+          <rect x="2" y="34" width="20" height="3" rx="1.5" opacity="0.9" />
+          <rect x="6" y="40" width="11" height="3" rx="1.5" opacity="0.55" />
+        </g>
+        {/* back chevron */}
         <path
-          d="M 8 16 L 18 6"
-          stroke="white"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        />
-        {/* arrow head */}
-        <path
-          d="M 13 6 L 18 6 L 18 11"
-          stroke="white"
-          strokeWidth="2.4"
+          d="M 20 14 L 40 32 L 20 50"
+          stroke="url(#topbar-chev)"
+          strokeWidth="6"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
+          opacity="0.55"
+        />
+        {/* front chevron */}
+        <path
+          d="M 30 14 L 50 32 L 30 50"
+          stroke="url(#topbar-chev)"
+          strokeWidth="6.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* sparkle */}
+        <path
+          d="M 53 47 L 54.6 50.4 L 58 52 L 54.6 53.6 L 53 57 L 51.4 53.6 L 48 52 L 51.4 50.4 Z"
+          fill="white"
         />
       </svg>
     </span>

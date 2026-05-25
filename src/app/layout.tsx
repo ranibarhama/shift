@@ -6,6 +6,10 @@ import { getCurrentTheme } from "@/lib/theme";
 export const metadata: Metadata = {
   title: "Shift — B2C AI Implementation Playbook",
   description: "Map how we work today, define how we want to work tomorrow, and decide where AI fits.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

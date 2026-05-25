@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Shift">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1638" />
+      <stop offset="100%" stop-color="#04081a" />
+    </linearGradient>
+    <linearGradient id="chev" x1="0%" y1="15%" x2="100%" y2="85%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="55%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#bg)" />
+  <!-- motion trails -->
+  <g fill="url(#chev)">
+    <rect x="4" y="28" width="13" height="3" rx="1.5" opacity="0.55" />
+    <rect x="2" y="34" width="20" height="3" rx="1.5" opacity="0.9" />
+    <rect x="6" y="40" width="11" height="3" rx="1.5" opacity="0.55" />
+  </g>
+  <!-- back chevron (slightly behind) -->
+  <path d="M 20 14 L 40 32 L 20 50" stroke="url(#chev)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.55" />
+  <!-- front chevron -->
+  <path d="M 30 14 L 50 32 L 30 50" stroke="url(#chev)" stroke-width="6.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- sparkle bottom-right -->
+  <path d="M 53 47 L 54.6 50.4 L 58 52 L 54.6 53.6 L 53 57 L 51.4 53.6 L 48 52 L 51.4 50.4 Z" fill="white" />
+</svg>
