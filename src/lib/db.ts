@@ -95,6 +95,7 @@ async function ensureSchema(db: Client) {
       x REAL NOT NULL DEFAULT 0,
       y REAL NOT NULL DEFAULT 0,
       tag TEXT,
+      owner_role TEXT,
       connected_main_stage_id TEXT REFERENCES stages(id) ON DELETE SET NULL,
       order_index INTEGER NOT NULL DEFAULT 0
     );
@@ -121,6 +122,15 @@ async function ensureSchema(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_edges_process ON edges(process_id);
     CREATE INDEX IF NOT EXISTS idx_items_stage ON items(stage_id);
   `);
+
+  // Migration: add owner_role to stages if it doesn't exist yet
+  const stageCols = await db.execute("PRAGMA table_info(stages)");
+  const hasOwner = stageCols.rows.some(
+    (r) => (r as unknown as { name: string }).name === "owner_role"
+  );
+  if (!hasOwner) {
+    await db.execute("ALTER TABLE stages ADD COLUMN owner_role TEXT");
+  }
 
   // Migration: if items.kind CHECK is the old 3-value version, rebuild the table.
   const tableSql = await db.execute(

@@ -19,6 +19,7 @@ export type StageRow = {
   x: number;
   y: number;
   tag: TagKey | null;
+  owner_role: RoleKey | null;
   connected_main_stage_id: string | null;
   order_index: number;
 };
@@ -129,7 +130,7 @@ export async function createStage(
 
 export async function updateStage(
   id: string,
-  patch: Partial<Pick<StageRow, "name" | "description" | "x" | "y" | "tag" | "connected_main_stage_id">>
+  patch: Partial<Pick<StageRow, "name" | "description" | "x" | "y" | "tag" | "owner_role" | "connected_main_stage_id">>
 ): Promise<StageRow | null> {
   const fields: string[] = [];
   const vals: (string | number | null)[] = [];

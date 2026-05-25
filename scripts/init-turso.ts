@@ -56,6 +56,7 @@ async function main() {
       x REAL NOT NULL DEFAULT 0,
       y REAL NOT NULL DEFAULT 0,
       tag TEXT,
+      owner_role TEXT,
       connected_main_stage_id TEXT REFERENCES stages(id) ON DELETE SET NULL,
       order_index INTEGER NOT NULL DEFAULT 0
     );

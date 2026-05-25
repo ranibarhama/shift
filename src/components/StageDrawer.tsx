@@ -11,7 +11,7 @@ import {
   type MissingCategory,
 } from "@/lib/tags";
 import type { ItemRow, StageRow } from "@/lib/queries";
-import { ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
+import { ROLES, ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
 
 type Props = {
   stage: StageRow | null;
@@ -96,6 +96,15 @@ export default function StageDrawer({
           />
         </div>
 
+        <div className="mt-4">
+          <div className="mb-1.5 text-xs uppercase tracking-wider text-muted">Step owner</div>
+          <OwnerPicker
+            value={stage.owner_role}
+            onChange={(r) => onUpdateStage({ owner_role: r })}
+            disabled={!canEdit}
+          />
+        </div>
+
         {isDepartmentProcess && mainStages && (
           <div className="mt-4">
             <div className="mb-1.5 text-xs uppercase tracking-wider text-muted">
@@ -155,6 +164,49 @@ export default function StageDrawer({
         )}
       </div>
     </aside>
+  );
+}
+
+function OwnerPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: RoleKey | null;
+  onChange: (r: RoleKey | null) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ROLES.map((r) => {
+        const active = value === r.key;
+        const hex = ROLE_COLOR_HEX[r.key as RoleKey];
+        return (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => onChange(active ? null : (r.key as RoleKey))}
+            disabled={disabled}
+            className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium tracking-wide transition disabled:opacity-60"
+            style={{
+              background: active ? `${hex}22` : "transparent",
+              borderColor: active ? hex : "#2a3358",
+              color: active ? hex : "#8892b8",
+            }}
+            aria-pressed={active}
+            title={r.label}
+          >
+            <span
+              className="grid h-4 w-4 place-items-center rounded-full text-[8px] font-bold text-ink"
+              style={{ background: hex }}
+            >
+              {r.initials}
+            </span>
+            {r.key === "gm" ? "GM" : r.label.replace(/^Director of\s+/i, "")}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

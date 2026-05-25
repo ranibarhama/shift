@@ -116,6 +116,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
             name: s.name,
             description: s.description,
             tag: s.tag,
+            ownerRole: s.owner_role,
             itemCounts: counts,
             tagCounts,
             taggedCount: decisionTagged,

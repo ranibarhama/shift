@@ -1,7 +1,7 @@
 "use client";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { TAGS, getTag, ITEM_KINDS, type TagKey } from "@/lib/tags";
-import { ROLE_COLOR_HEX } from "@/lib/roles";
+import { ROLES, ROLE_COLOR_HEX } from "@/lib/roles";
 import type { RoleKey } from "@/lib/roles";
 import { DecisionIcon } from "./DecisionIcons";
 
@@ -9,6 +9,7 @@ export type StageNodeData = {
   name: string;
   description: string;
   tag: string | null;
+  ownerRole: RoleKey | null;
   itemCounts: { participant: number; task: number; pain_point: number; missing: number };
   tagCounts: Record<TagKey, number>;
   taggedCount: number;
@@ -62,6 +63,27 @@ export default function StageNode({ data, selected }: NodeProps) {
       {d.description && (
         <p className="line-clamp-2 px-4 pt-1 text-xs text-muted">{d.description}</p>
       )}
+
+      {d.ownerRole && (() => {
+        const role = ROLES.find((r) => r.key === d.ownerRole);
+        if (!role) return null;
+        const hex = ROLE_COLOR_HEX[d.ownerRole];
+        return (
+          <div className="flex items-center gap-1.5 px-4 pt-2 text-[10px]">
+            <span className="uppercase tracking-wider text-muted">Owner</span>
+            <span
+              className="grid h-4 w-4 place-items-center rounded-full text-[8px] font-bold text-ink"
+              style={{ background: hex }}
+              title={role.label}
+            >
+              {role.initials}
+            </span>
+            <span className="font-medium" style={{ color: hex }}>
+              {d.ownerRole === "gm" ? "GM" : role.label.replace(/^Director of\s+/i, "")}
+            </span>
+          </div>
+        );
+      })()}
 
       <div className="mt-3 grid grid-cols-3 gap-1 px-3 pb-3">
         {ITEM_KINDS.filter((k) => k.key !== "missing").map((k) => (
