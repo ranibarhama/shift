@@ -10,6 +10,7 @@ import {
   getStagesForProcess,
   getEdgesForProcess,
   getItemsForStages,
+  getCommentsForStages,
   getMainStages,
 } from "@/lib/queries";
 import { getCurrentTheme } from "@/lib/theme";
@@ -46,6 +47,7 @@ export default async function DepartmentPage({
   const stages = selected ? await getStagesForProcess(selected.id) : [];
   const edges = selected ? await getEdgesForProcess(selected.id) : [];
   const items = selected ? await getItemsForStages(stages.map((s) => s.id)) : [];
+  const comments = selected ? await getCommentsForStages(stages.map((s) => s.id)) : [];
 
   return (
     <div className="flex h-screen flex-col">
@@ -61,7 +63,7 @@ export default async function DepartmentPage({
         <ProcessCanvas
           key={selected.id}
           processId={selected.id}
-          initial={{ process: selected, stages, edges, items }}
+          initial={{ process: selected, stages, edges, items, comments }}
           canEdit={canEdit}
           mainStages={mainStages}
           initialTheme={theme}

@@ -53,6 +53,7 @@ async function main() {
       process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
+      goal TEXT NOT NULL DEFAULT '',
       x REAL NOT NULL DEFAULT 0,
       y REAL NOT NULL DEFAULT 0,
       tag TEXT,
@@ -60,6 +61,15 @@ async function main() {
       connected_main_stage_id TEXT REFERENCES stages(id) ON DELETE SET NULL,
       order_index INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      stage_id TEXT NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
+      author_role TEXT,
+      content TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_comments_stage ON comments(stage_id);
 
     CREATE TABLE IF NOT EXISTS edges (
       id TEXT PRIMARY KEY,

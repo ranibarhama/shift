@@ -16,12 +16,21 @@ export type StageRow = {
   process_id: string;
   name: string;
   description: string;
+  goal: string;
   x: number;
   y: number;
   tag: TagKey | null;
   owner_role: RoleKey | null;
   connected_main_stage_id: string | null;
   order_index: number;
+};
+
+export type CommentRow = {
+  id: string;
+  stage_id: string;
+  author_role: RoleKey | null;
+  content: string;
+  created_at: number;
 };
 
 export type EdgeRow = {
@@ -107,6 +116,39 @@ export async function getItemsForStages(stageIds: string[]): Promise<ItemRow[]> 
   );
 }
 
+export async function getCommentsForStages(stageIds: string[]): Promise<CommentRow[]> {
+  if (stageIds.length === 0) return [];
+  const placeholders = stageIds.map(() => "?").join(",");
+  return rows<CommentRow>(
+    `SELECT * FROM comments WHERE stage_id IN (${placeholders}) ORDER BY created_at ASC`,
+    stageIds
+  );
+}
+
+export async function createComment(
+  stageId: string,
+  content: string,
+  authorRole: RoleKey
+): Promise<CommentRow> {
+  const id = `cmt_${nanoid(8)}`;
+  const now = Date.now();
+  await run(
+    "INSERT INTO comments (id, stage_id, author_role, content, created_at) VALUES (?, ?, ?, ?, ?)",
+    [id, stageId, authorRole, content, now]
+  );
+  const created = await row<CommentRow>("SELECT * FROM comments WHERE id = ?", [id]);
+  if (!created) throw new Error("Failed to create comment");
+  return created;
+}
+
+export async function getComment(id: string): Promise<CommentRow | null> {
+  return row<CommentRow>("SELECT * FROM comments WHERE id = ?", [id]);
+}
+
+export async function deleteComment(id: string): Promise<void> {
+  await run("DELETE FROM comments WHERE id = ?", [id]);
+}
+
 export async function createStage(
   processId: string,
   name: string,
@@ -130,7 +172,7 @@ export async function createStage(
 
 export async function updateStage(
   id: string,
-  patch: Partial<Pick<StageRow, "name" | "description" | "x" | "y" | "tag" | "owner_role" | "connected_main_stage_id">>
+  patch: Partial<Pick<StageRow, "name" | "description" | "goal" | "x" | "y" | "tag" | "owner_role" | "connected_main_stage_id">>
 ): Promise<StageRow | null> {
   const fields: string[] = [];
   const vals: (string | number | null)[] = [];

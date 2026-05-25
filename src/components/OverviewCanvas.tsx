@@ -214,6 +214,7 @@ function makeNode(
       tagCounts,
       taggedCount: decisionTagged,
       totalItems: decisionTotal,
+      commentCount: 0,
       accentColor: accent,
       departmentRole: deptRole,
       badge,

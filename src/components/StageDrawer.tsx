@@ -10,12 +10,13 @@ import {
   type ItemKind,
   type MissingCategory,
 } from "@/lib/tags";
-import type { ItemRow, StageRow } from "@/lib/queries";
+import type { CommentRow, ItemRow, StageRow } from "@/lib/queries";
 import { ROLES, ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
 
 type Props = {
   stage: StageRow | null;
   items: ItemRow[];
+  comments: CommentRow[];
   mainStages?: { id: string; name: string }[];
   isDepartmentProcess: boolean;
   canEdit: boolean;
@@ -25,11 +26,14 @@ type Props = {
   onAddItem: (kind: ItemKind, content: string, initialTag?: string | null) => Promise<void>;
   onUpdateItem: (id: string, patch: Partial<ItemRow>) => Promise<void>;
   onDeleteItem: (id: string) => Promise<void>;
+  onAddComment: (content: string) => Promise<void>;
+  onDeleteComment: (id: string) => Promise<void>;
 };
 
 export default function StageDrawer({
   stage,
   items,
+  comments,
   mainStages,
   isDepartmentProcess,
   canEdit,
@@ -39,18 +43,22 @@ export default function StageDrawer({
   onAddItem,
   onUpdateItem,
   onDeleteItem,
+  onAddComment,
+  onDeleteComment,
 }: Props) {
   const [draftName, setDraftName] = useState(stage?.name ?? "");
   const [draftDesc, setDraftDesc] = useState(stage?.description ?? "");
+  const [draftGoal, setDraftGoal] = useState(stage?.goal ?? "");
 
   useEffect(() => {
     setDraftName(stage?.name ?? "");
     setDraftDesc(stage?.description ?? "");
+    setDraftGoal(stage?.goal ?? "");
   }, [stage?.id]);
 
   if (!stage) return null;
 
-  const blur = (field: "name" | "description", val: string) => {
+  const blur = (field: "name" | "description" | "goal", val: string) => {
     if ((stage as any)[field] === val) return;
     onUpdateStage({ [field]: val } as Partial<StageRow>);
   };
@@ -86,6 +94,21 @@ export default function StageDrawer({
           rows={3}
           className="mt-2 w-full resize-none rounded-md border border-line/70 bg-line/20 px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none disabled:opacity-70"
         />
+
+        <div className="mt-4">
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted">
+            <span className="text-accent">🎯</span> Stage goal
+          </div>
+          <textarea
+            value={draftGoal}
+            onChange={(e) => setDraftGoal(e.target.value)}
+            onBlur={() => blur("goal", draftGoal)}
+            disabled={!canEdit}
+            placeholder="What does success look like for this stage?"
+            rows={2}
+            className="w-full resize-none rounded-md border border-line/70 bg-line/20 px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none disabled:opacity-70"
+          />
+        </div>
 
         <div className="mt-4">
           <div className="mb-1.5 text-xs uppercase tracking-wider text-muted">Stage-level decision</div>
@@ -150,6 +173,14 @@ export default function StageDrawer({
           onAdd={(content, category) => onAddItem("missing", content, category)}
           onUpdate={onUpdateItem}
           onDelete={onDeleteItem}
+        />
+
+        <div className="my-5 h-px bg-line/60" />
+
+        <CommentsSection
+          comments={comments}
+          onAdd={onAddComment}
+          onDelete={onDeleteComment}
         />
 
         {canEdit && (
@@ -551,4 +582,113 @@ function MissingItemRow({
       </div>
     </li>
   );
+}
+
+/* ---------- Comments section ---------- */
+
+function CommentsSection({
+  comments,
+  onAdd,
+  onDelete,
+}: {
+  comments: CommentRow[];
+  onAdd: (content: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState("");
+  const sorted = [...comments].sort((a, b) => a.created_at - b.created_at);
+
+  return (
+    <section className="mb-5">
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-fg">Comments</h3>
+        <span className="text-xs text-muted">{comments.length}</span>
+      </div>
+
+      <ul className="space-y-2">
+        {sorted.length === 0 && (
+          <li className="rounded-md border border-line/40 bg-line/10 p-3 text-center text-xs text-muted">
+            No comments yet. Start the conversation.
+          </li>
+        )}
+        {sorted.map((c) => {
+          const author = c.author_role ? getRole(c.author_role) : null;
+          const hex = author ? ROLE_COLOR_HEX[author.key as RoleKey] : "#7c5cff";
+          return (
+            <li
+              key={c.id}
+              className="group rounded-md border border-line/50 bg-line/20 p-2.5"
+            >
+              <div className="mb-1 flex items-center gap-2 text-[10px]">
+                {author && (
+                  <>
+                    <span
+                      className="grid h-4 w-4 place-items-center rounded-full text-[8px] font-bold text-ink"
+                      style={{ background: hex }}
+                    >
+                      {author.initials}
+                    </span>
+                    <span className="font-medium" style={{ color: hex }}>
+                      {author.label}
+                    </span>
+                  </>
+                )}
+                <span className="text-muted" title={new Date(c.created_at).toLocaleString()}>
+                  · {relativeTime(c.created_at)}
+                </span>
+                <button
+                  onClick={() => {
+                    if (confirm("Delete this comment?")) onDelete(c.id);
+                  }}
+                  className="invisible ml-auto text-xs text-muted hover:text-drop group-hover:visible"
+                  aria-label="Delete comment"
+                  title="Delete (only the author or GM can delete)"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="whitespace-pre-wrap text-sm text-fg">{c.content}</div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <form
+        className="mt-2 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = draft.trim();
+          if (!v) return;
+          onAdd(v);
+          setDraft("");
+        }}
+      >
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Write a comment…"
+          className="flex-1 rounded-md border border-line/70 bg-line/20 px-3 py-1.5 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="rounded-md bg-accent/20 px-3 py-1.5 text-sm text-accent hover:bg-accent/30"
+        >
+          Post
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function relativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(ts).toLocaleDateString();
 }

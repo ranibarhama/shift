@@ -92,6 +92,7 @@ async function ensureSchema(db: Client) {
       process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
+      goal TEXT NOT NULL DEFAULT '',
       x REAL NOT NULL DEFAULT 0,
       y REAL NOT NULL DEFAULT 0,
       tag TEXT,
@@ -99,6 +100,15 @@ async function ensureSchema(db: Client) {
       connected_main_stage_id TEXT REFERENCES stages(id) ON DELETE SET NULL,
       order_index INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      stage_id TEXT NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
+      author_role TEXT,
+      content TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_comments_stage ON comments(stage_id);
 
     CREATE TABLE IF NOT EXISTS edges (
       id TEXT PRIMARY KEY,
@@ -123,13 +133,14 @@ async function ensureSchema(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_items_stage ON items(stage_id);
   `);
 
-  // Migration: add owner_role to stages if it doesn't exist yet
+  // Migration: add owner_role / goal columns to stages if they don't exist yet
   const stageCols = await db.execute("PRAGMA table_info(stages)");
-  const hasOwner = stageCols.rows.some(
-    (r) => (r as unknown as { name: string }).name === "owner_role"
-  );
-  if (!hasOwner) {
+  const colNames = stageCols.rows.map((r) => (r as unknown as { name: string }).name);
+  if (!colNames.includes("owner_role")) {
     await db.execute("ALTER TABLE stages ADD COLUMN owner_role TEXT");
+  }
+  if (!colNames.includes("goal")) {
+    await db.execute("ALTER TABLE stages ADD COLUMN goal TEXT NOT NULL DEFAULT ''");
   }
 
   // Migration: if items.kind CHECK is the old 3-value version, rebuild the table.

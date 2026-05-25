@@ -26,7 +26,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const body = await req.json();
-  const allowed = ["name", "description", "x", "y", "tag", "owner_role", "connected_main_stage_id"] as const;
+  const allowed = ["name", "description", "goal", "x", "y", "tag", "owner_role", "connected_main_stage_id"] as const;
   const patch: Partial<Pick<StageRow, (typeof allowed)[number]>> = {};
   for (const k of allowed) if (k in body) (patch as Record<string, unknown>)[k] = body[k];
   const updated = await updateStage(id, patch);

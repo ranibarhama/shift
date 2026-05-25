@@ -23,7 +23,7 @@ import {
 import StageNode, { type StageNodeData } from "./StageNode";
 import StageDrawer from "./StageDrawer";
 import CanvasTip from "./CanvasTip";
-import type { EdgeRow, ItemRow, ProcessRow, StageRow } from "@/lib/queries";
+import type { CommentRow, EdgeRow, ItemRow, ProcessRow, StageRow } from "@/lib/queries";
 import type { ItemKind } from "@/lib/tags";
 import { ROLE_COLOR_HEX } from "@/lib/roles";
 import { useTheme, CANVAS_PALETTE } from "@/lib/useTheme";
@@ -36,6 +36,7 @@ type Props = {
     stages: StageRow[];
     edges: EdgeRow[];
     items: ItemRow[];
+    comments: CommentRow[];
   };
   canEdit: boolean;
   mainStages?: { id: string; name: string }[];
@@ -59,6 +60,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
   const [stages, setStages] = useState<StageRow[]>(initial.stages);
   const [edges, setEdges] = useState<EdgeRow[]>(initial.edges);
   const [items, setItems] = useState<ItemRow[]>(initial.items);
+  const [comments, setComments] = useState<CommentRow[]>(initial.comments);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
 
   // Refit to screen whenever the set of stages changes (initial mount, board
@@ -85,6 +87,15 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
     }
     return m;
   }, [items]);
+
+  const commentsByStage = useMemo(() => {
+    const m = new Map<string, CommentRow[]>();
+    for (const c of comments) {
+      if (!m.has(c.stage_id)) m.set(c.stage_id, []);
+      m.get(c.stage_id)!.push(c);
+    }
+    return m;
+  }, [comments]);
 
   const rfNodes: Node<StageNodeData>[] = useMemo(
     () =>
@@ -121,12 +132,13 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
             tagCounts,
             taggedCount: decisionTagged,
             totalItems: decisionTotal,
+            commentCount: (commentsByStage.get(s.id) ?? []).length,
             accentColor,
             departmentRole: initial.process.department_role ?? undefined,
           } as StageNodeData,
         };
       }),
-    [stages, itemsByStage, accentColor, initial.process.department_role]
+    [stages, itemsByStage, commentsByStage, accentColor, initial.process.department_role]
   );
 
   const rfEdges: Edge[] = useMemo(
@@ -244,6 +256,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
 
   const selectedStage = stages.find((s) => s.id === selectedStageId) ?? null;
   const selectedItems = selectedStage ? itemsByStage.get(selectedStage.id) ?? [] : [];
+  const selectedComments = selectedStage ? commentsByStage.get(selectedStage.id) ?? [] : [];
 
   const updateStage = useCallback(
     async (patch: Partial<StageRow>) => {
@@ -316,6 +329,33 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
     }
   }, []);
 
+  const addComment = useCallback(
+    async (content: string) => {
+      if (!selectedStage) return;
+      try {
+        const res = await fetch("/api/comments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ stageId: selectedStage.id, content }),
+        });
+        const json = await res.json();
+        if (json.comment) setComments((arr) => [...arr, json.comment]);
+      } catch (err) {
+        console.warn("[Shift] add comment failed", err);
+      }
+    },
+    [selectedStage]
+  );
+
+  const deleteComment = useCallback(async (id: string) => {
+    setComments((arr) => arr.filter((c) => c.id !== id));
+    try {
+      await fetch(`/api/comments/${id}`, { method: "DELETE" });
+    } catch (err) {
+      console.warn("[Shift] delete comment failed", err);
+    }
+  }, []);
+
   return (
     <div className="relative h-[calc(100vh-3.5rem)] w-full">
       <ReactFlow
@@ -377,6 +417,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
         <StageDrawer
           stage={selectedStage}
           items={selectedItems}
+          comments={selectedComments}
           mainStages={mainStages}
           isDepartmentProcess={initial.process.type === "department"}
           canEdit={canEdit}
@@ -386,6 +427,8 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
           onAddItem={addItem}
           onUpdateItem={updateItem}
           onDeleteItem={deleteItem}
+          onAddComment={addComment}
+          onDeleteComment={deleteComment}
         />
       )}
     </div>
