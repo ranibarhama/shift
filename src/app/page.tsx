@@ -99,28 +99,28 @@ export default async function Home() {
             title="Drop it"
             desc="Outdated or no-longer-useful steps"
             hex={tagHex("drop")}
-            icon={<TrashIcon size={44} />}
+            icon={<TrashIcon size={14} strokeWidth={2.2} />}
           />
           <DecisionCard
             number="02"
             title="Automate it"
             desc="AI handles it end-to-end"
             hex={tagHex("automate")}
-            icon={<BotIcon size={44} />}
+            icon={<BotIcon size={14} strokeWidth={2.2} />}
           />
           <DecisionCard
             number="03"
             title="Hybrid"
             desc="Human + AI together"
             hex={tagHex("hybrid")}
-            icon={<MergeIcon size={44} />}
+            icon={<MergeIcon size={14} strokeWidth={2.2} />}
           />
           <DecisionCard
             number="04"
             title="Own it"
             desc="Only humans can do this"
             hex={tagHex("own")}
-            icon={<BrainIcon size={44} />}
+            icon={<BrainIcon size={14} strokeWidth={2.2} />}
           />
         </div>
       </section>
@@ -198,27 +198,26 @@ function DecisionCard({
 }) {
   return (
     <div
-      className="group relative flex min-h-[260px] flex-col items-center overflow-hidden rounded-2xl border border-line bg-card p-6 pl-7 text-center shadow-card transition hover:-translate-y-0.5"
+      className="relative flex flex-col rounded-2xl border border-line bg-card/60 p-4"
       style={{ boxShadow: `inset 4px 0 0 0 ${hex}` }}
     >
-      <div
-        className="absolute left-4 top-4 font-mono text-xs font-semibold tracking-[0.15em]"
-        style={{ color: hex }}
-      >
-        {number}
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className="grid h-7 w-7 place-items-center rounded-full text-xs font-semibold"
+          style={{ background: `${hex}22`, color: hex }}
+          aria-hidden
+        >
+          {icon}
+        </span>
+        <span
+          className="font-mono text-[10px] font-semibold tracking-[0.15em]"
+          style={{ color: hex }}
+        >
+          {number}
+        </span>
       </div>
-      <div
-        className="mt-6 grid h-16 w-16 place-items-center"
-        style={{ color: hex }}
-        aria-hidden
-      >
-        {icon}
-      </div>
-      <h3 className="mt-4 text-xl font-bold uppercase tracking-wide text-fg">{title}</h3>
-      <p
-        className="mt-2 text-xs font-medium leading-snug"
-        style={{ color: hex }}
-      >
+      <div className="text-base font-semibold uppercase tracking-wide text-fg">{title}</div>
+      <p className="mt-1 text-xs leading-snug" style={{ color: hex }}>
         {desc}
       </p>
     </div>
