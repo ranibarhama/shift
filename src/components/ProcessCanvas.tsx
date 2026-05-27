@@ -23,6 +23,7 @@ import {
 import StageNode, { type StageNodeData } from "./StageNode";
 import StageDrawer from "./StageDrawer";
 import CanvasTip from "./CanvasTip";
+import { useConfirm } from "./ConfirmProvider";
 import type {
   CommentRow,
   EdgeRow,
@@ -67,6 +68,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
   const theme = useTheme(initialTheme);
   const palette = CANVAS_PALETTE[theme];
   const rf = useReactFlow();
+  const confirm = useConfirm();
   const [stages, setStages] = useState<StageRow[]>(initial.stages);
   const [edges, setEdges] = useState<EdgeRow[]>(initial.edges);
   const [items, setItems] = useState<ItemRow[]>(initial.items);
@@ -250,7 +252,15 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
   const onEdgeClick: EdgeMouseHandler = useCallback(
     async (e, edge) => {
       if (!canEdit) return;
-      if (e.altKey || confirm("Remove this connection?")) {
+      const skipConfirm = e.altKey;
+      const ok =
+        skipConfirm ||
+        (await confirm({
+          message: "Remove this connection?",
+          confirmLabel: "Remove",
+          danger: true,
+        }));
+      if (ok) {
         try {
           await fetch(`/api/edges/${edge.id}`, { method: "DELETE" });
           setEdges((es) => es.filter((x) => x.id !== edge.id));
@@ -259,7 +269,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
         }
       }
     },
-    [canEdit]
+    [canEdit, confirm]
   );
 
   const onAddStage = useCallback(async () => {

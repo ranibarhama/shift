@@ -16,6 +16,7 @@ import {
 } from "@/lib/tags";
 import type { CommentRow, ItemRow, ParticipantRow, StageRow } from "@/lib/queries";
 import { ROLES, ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
+import { useConfirm } from "./ConfirmProvider";
 
 type Props = {
   stage: StageRow | null;
@@ -62,6 +63,7 @@ export default function StageDrawer({
   onCreateParticipant,
   onDeleteParticipant,
 }: Props) {
+  const confirm = useConfirm();
   const [draftName, setDraftName] = useState(stage?.name ?? "");
   const [draftDesc, setDraftDesc] = useState(stage?.description ?? "");
   const [draftGoal, setDraftGoal] = useState(stage?.goal ?? "");
@@ -211,8 +213,14 @@ export default function StageDrawer({
 
         {canEdit && (
           <button
-            onClick={() => {
-              if (confirm("Delete this stage?")) onDeleteStage();
+            onClick={async () => {
+              const ok = await confirm({
+                title: "Delete this stage?",
+                message: "Removing the stage also removes all its tasks, pain points, missing items, and comments.",
+                confirmLabel: "Delete",
+                danger: true,
+              });
+              if (ok) onDeleteStage();
             }}
             className="mt-6 w-full rounded-md border border-drop/40 px-3 py-2 text-sm text-drop hover:bg-drop/10"
           >
@@ -665,6 +673,7 @@ function CommentsSection({
   onAdd: (content: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [draft, setDraft] = useState("");
   const sorted = [...comments].sort((a, b) => a.created_at - b.created_at);
 
@@ -707,8 +716,13 @@ function CommentsSection({
                   · {relativeTime(c.created_at)}
                 </span>
                 <button
-                  onClick={() => {
-                    if (confirm("Delete this comment?")) onDelete(c.id);
+                  onClick={async () => {
+                    const ok = await confirm({
+                      message: "Delete this comment?",
+                      confirmLabel: "Delete",
+                      danger: true,
+                    });
+                    if (ok) onDelete(c.id);
                   }}
                   className="invisible ml-auto text-xs text-muted hover:text-drop group-hover:visible"
                   aria-label="Delete comment"
@@ -782,6 +796,7 @@ function WhoSection({
   onCreate: (label: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [draft, setDraft] = useState("");
   const selectedSet = new Set(selectedIds);
   const sorted = [...allParticipants].sort((a, b) =>
@@ -831,13 +846,15 @@ function WhoSection({
                 {canEdit && (
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      if (
-                        confirm(
-                          `Delete "${p.label}" from every stage in every workflow? This cannot be undone.`
-                        )
-                      ) {
+                      const ok = await confirm({
+                        title: "Delete tag everywhere?",
+                        message: `Remove "${p.label}" from every stage in every workflow. This cannot be undone.`,
+                        confirmLabel: "Delete",
+                        danger: true,
+                      });
+                      if (ok) {
                         onDelete(p.id);
                       }
                     }}

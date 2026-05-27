@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { getCurrentTheme } from "@/lib/theme";
+import ConfirmProvider from "@/components/ConfirmProvider";
 
 export const metadata: Metadata = {
   title: "Shift — B2C AI Implementation Playbook",
@@ -16,7 +17,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = await getCurrentTheme();
   return (
     <html lang="en" className={theme === "dark" ? "dark" : ""} style={{ colorScheme: theme }}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <ConfirmProvider>{children}</ConfirmProvider>
+      </body>
     </html>
   );
 }

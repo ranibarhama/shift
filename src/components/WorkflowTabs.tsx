@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ROLE_COLOR_HEX, type RoleKey } from "@/lib/roles";
+import { useConfirm } from "./ConfirmProvider";
 
 type Workflow = { id: string; name: string };
 
@@ -16,6 +17,7 @@ type Props = {
 export default function WorkflowTabs({ role, workflows, selectedId, canEdit }: Props) {
   const router = useRouter();
   const accent = ROLE_COLOR_HEX[role];
+  const confirm = useConfirm();
 
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState("");
@@ -53,7 +55,13 @@ export default function WorkflowTabs({ role, workflows, selectedId, canEdit }: P
   }
 
   async function deleteWorkflow(id: string) {
-    if (!confirm("Delete this workflow and all its stages? This cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Delete workflow?",
+      message: "This will remove the workflow and every stage in it. This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/processes/${id}`, { method: "DELETE" });
     if (!res.ok) return;
     const remaining = workflows.filter((w) => w.id !== id);
