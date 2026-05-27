@@ -37,6 +37,7 @@ type Props = {
   onLinkParticipant: (participantId: string) => Promise<void>;
   onUnlinkParticipant: (participantId: string) => Promise<void>;
   onCreateParticipant: (label: string) => Promise<void>;
+  onDeleteParticipant: (participantId: string) => Promise<void>;
 };
 
 export default function StageDrawer({
@@ -59,6 +60,7 @@ export default function StageDrawer({
   onLinkParticipant,
   onUnlinkParticipant,
   onCreateParticipant,
+  onDeleteParticipant,
 }: Props) {
   const [draftName, setDraftName] = useState(stage?.name ?? "");
   const [draftDesc, setDraftDesc] = useState(stage?.description ?? "");
@@ -172,6 +174,7 @@ export default function StageDrawer({
           onLink={onLinkParticipant}
           onUnlink={onUnlinkParticipant}
           onCreate={onCreateParticipant}
+          onDelete={onDeleteParticipant}
         />
 
         {ITEM_KINDS.filter((k) => k.key !== "missing" && k.key !== "participant").map((k) => (
@@ -769,6 +772,7 @@ function WhoSection({
   onLink,
   onUnlink,
   onCreate,
+  onDelete,
 }: {
   allParticipants: ParticipantRow[];
   selectedIds: string[];
@@ -776,6 +780,7 @@ function WhoSection({
   onLink: (id: string) => Promise<void>;
   onUnlink: (id: string) => Promise<void>;
   onCreate: (label: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
   const [draft, setDraft] = useState("");
   const selectedSet = new Set(selectedIds);
@@ -789,6 +794,12 @@ function WhoSection({
         <h3 className="text-sm font-semibold text-fg">Who&apos;s involved</h3>
         <span className="text-xs text-muted">{selectedIds.length}</span>
       </div>
+      {sorted.length > 0 && (
+        <p className="mb-2 text-[11px] text-muted">
+          Click a tag to toggle it on this stage. Hover and press ✕ to remove the tag
+          everywhere.
+        </p>
+      )}
 
       {sorted.length === 0 ? (
         <p className="mb-2 text-[11px] text-muted">
@@ -799,21 +810,45 @@ function WhoSection({
           {sorted.map((p) => {
             const active = selectedSet.has(p.id);
             return (
-              <button
+              <span
                 key={p.id}
-                onClick={() => canEdit && (active ? onUnlink(p.id) : onLink(p.id))}
-                disabled={!canEdit}
-                className="rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide transition disabled:opacity-60"
-                style={{
-                  background: active ? "rgb(124 92 255 / 0.18)" : "transparent",
-                  borderColor: active ? "#7c5cff" : "#2a3358",
-                  color: active ? "#7c5cff" : "#8892b8",
-                }}
-                aria-pressed={active}
-                title={active ? "Click to remove from this stage" : "Click to add to this stage"}
+                className="group/tag relative inline-flex items-center"
               >
-                {p.label}
-              </button>
+                <button
+                  onClick={() => canEdit && (active ? onUnlink(p.id) : onLink(p.id))}
+                  disabled={!canEdit}
+                  className="rounded-full border py-1 pl-2.5 pr-2.5 text-[11px] font-medium tracking-wide transition disabled:opacity-60"
+                  style={{
+                    background: active ? "rgb(124 92 255 / 0.18)" : "transparent",
+                    borderColor: active ? "#7c5cff" : "#2a3358",
+                    color: active ? "#7c5cff" : "#8892b8",
+                  }}
+                  aria-pressed={active}
+                  title={active ? "Click to remove from this stage" : "Click to add to this stage"}
+                >
+                  {p.label}
+                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (
+                        confirm(
+                          `Delete "${p.label}" from every stage in every workflow? This cannot be undone.`
+                        )
+                      ) {
+                        onDelete(p.id);
+                      }
+                    }}
+                    aria-label={`Delete tag ${p.label}`}
+                    title="Delete tag everywhere"
+                    className="invisible absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full border border-drop/40 bg-card text-[9px] font-bold text-drop shadow-sm transition hover:bg-drop hover:text-card group-hover/tag:visible focus-within:visible"
+                  >
+                    ✕
+                  </button>
+                )}
+              </span>
             );
           })}
         </div>

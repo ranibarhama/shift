@@ -455,6 +455,18 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
     [selectedStage, linkParticipantToSelected]
   );
 
+  // Delete a participant from the GLOBAL dictionary — cascades to every stage
+  // they were linked to via the stage_participants FK ON DELETE CASCADE.
+  const deleteParticipantGlobally = useCallback(async (participantId: string) => {
+    setParticipants((arr) => arr.filter((p) => p.id !== participantId));
+    setStageParticipants((arr) => arr.filter((sp) => sp.participant_id !== participantId));
+    try {
+      await fetch(`/api/participants/${participantId}`, { method: "DELETE" });
+    } catch (err) {
+      console.warn("[Shift] delete participant failed", err);
+    }
+  }, []);
+
   return (
     <div className="relative h-[calc(100vh-3.5rem)] w-full">
       <ReactFlow
@@ -533,6 +545,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
           onLinkParticipant={linkParticipantToSelected}
           onUnlinkParticipant={unlinkParticipantFromSelected}
           onCreateParticipant={createAndLinkParticipant}
+          onDeleteParticipant={deleteParticipantGlobally}
         />
       )}
     </div>
