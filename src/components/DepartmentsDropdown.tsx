@@ -26,22 +26,25 @@ export default function DepartmentsDropdown({ ownRole }: Props) {
       >
         Departments ▾
       </button>
-      <div className="invisible absolute left-0 top-full z-30 mt-1 w-64 rounded-md border border-line bg-card p-1 opacity-0 shadow-card transition group-hover:visible group-hover:opacity-100">
-        {ownRole && (
-          <>
-            <DeptItem
-              role={ownRole}
-              pathname={pathname}
-              badge="Yours"
-            />
-            <div className="mx-2 my-1 h-px bg-line/60" />
-          </>
-        )}
-        {otherRoles
-          .filter((r) => !ownRole || r.key !== ownRole)
-          .map((r) => (
-            <DeptItem key={r.key} role={r.key as RoleKey} pathname={pathname} />
-          ))}
+      {/*
+        The wrapper sits flush against the button's bottom (no margin) so the
+        cursor never crosses an unhovered gap on its way from the button into
+        the menu. The visible gap is created by pt-1 on the wrapper instead.
+      */}
+      <div className="invisible absolute left-0 top-full z-30 w-64 pt-1 opacity-0 transition group-hover:visible group-hover:opacity-100">
+        <div className="rounded-md border border-line bg-card p-1 shadow-card">
+          {ownRole && (
+            <>
+              <DeptItem role={ownRole} pathname={pathname} badge="Yours" />
+              <div className="mx-2 my-1 h-px bg-line/60" />
+            </>
+          )}
+          {otherRoles
+            .filter((r) => !ownRole || r.key !== ownRole)
+            .map((r) => (
+              <DeptItem key={r.key} role={r.key as RoleKey} pathname={pathname} />
+            ))}
+        </div>
       </div>
     </div>
   );
