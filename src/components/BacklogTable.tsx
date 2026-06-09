@@ -160,12 +160,12 @@ export default function BacklogTable({ items }: Props) {
           value={roiFilter}
           onChange={(e) => setRoiFilter(e.target.value as typeof roiFilter)}
           className="rounded-md border border-line bg-card px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
-          title="Filter by ROI"
+          title="Filter by impact"
         >
-          <option value="all">Any ROI</option>
+          <option value="all">Any impact</option>
           {ROI_LEVELS.map((r) => (
             <option key={r.key} value={r.key}>
-              ROI: {r.label}
+              Impact: {r.label}
             </option>
           ))}
         </select>
@@ -208,7 +208,7 @@ export default function BacklogTable({ items }: Props) {
             <tr>
               <Th sortKey="content" current={sortKey} dir={sortDir} onClick={toggleSort}>Item</Th>
               <Th sortKey="category" current={sortKey} dir={sortDir} onClick={toggleSort}>Type</Th>
-              <Th sortKey="roi" current={sortKey} dir={sortDir} onClick={toggleSort}>ROI</Th>
+              <Th sortKey="roi" current={sortKey} dir={sortDir} onClick={toggleSort}>Impact</Th>
               <Th sortKey="horizon" current={sortKey} dir={sortDir} onClick={toggleSort}>Horizon</Th>
               <Th sortKey="context" current={sortKey} dir={sortDir} onClick={toggleSort}>Stage · Workflow</Th>
               <Th sortKey="author" current={sortKey} dir={sortDir} onClick={toggleSort}>Created by</Th>

@@ -615,9 +615,9 @@ function MissingItemRow({
         )}
       </div>
 
-      {/* ROI + Horizon pickers, only meaningful for missing items */}
+      {/* Impact + Horizon pickers, only meaningful for missing items */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-[9px] uppercase tracking-wider text-muted">ROI</span>
+        <span className="text-[9px] uppercase tracking-wider text-muted">Impact</span>
         {ROI_LEVELS.map((lvl) => {
           const active = item.roi === lvl.key;
           return (
