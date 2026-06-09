@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Topbar from "@/components/Topbar";
 import ProcessCanvas from "@/components/ProcessCanvas";
-import WorkflowTabs from "@/components/WorkflowTabs";
+import WorkflowSidebar from "@/components/WorkflowSidebar";
 import { getCurrentRole } from "@/lib/session";
 import { ROLES, ROLE_COLOR_HEX, canEditDepartment, type RoleKey } from "@/lib/roles";
 import {
@@ -56,25 +56,36 @@ export default async function DepartmentPage({
   return (
     <div className="flex h-screen flex-col">
       <Topbar />
-      <WorkflowTabs
-        role={deptRole}
-        workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}
-        selectedId={selectedId}
-        canEdit={canEdit}
-      />
-
-      {selected ? (
-        <ProcessCanvas
-          key={selected.id}
-          processId={selected.id}
-          initial={{ process: selected, stages, edges, items, comments, participants, stageParticipants }}
+      <div className="flex flex-1 overflow-hidden">
+        <WorkflowSidebar
+          role={deptRole}
+          workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}
+          selectedId={selectedId}
           canEdit={canEdit}
-          mainStages={mainStages}
-          initialTheme={theme}
         />
-      ) : (
-        <EmptyState role={deptRole} canEdit={canEdit} />
-      )}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {selected ? (
+            <ProcessCanvas
+              key={selected.id}
+              processId={selected.id}
+              initial={{
+                process: selected,
+                stages,
+                edges,
+                items,
+                comments,
+                participants,
+                stageParticipants,
+              }}
+              canEdit={canEdit}
+              mainStages={mainStages}
+              initialTheme={theme}
+            />
+          ) : (
+            <EmptyState role={deptRole} canEdit={canEdit} />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -93,7 +104,7 @@ function EmptyState({ role, canEdit }: { role: RoleKey; canEdit: boolean }) {
         <h2 className="text-lg font-semibold text-fg">No workflows yet</h2>
         <p className="mt-1 text-sm text-muted">
           {canEdit
-            ? "Use the “+ Add workflow” button above to map your first workflow."
+            ? "Use the “+ Add workflow” button in the left sidebar to map your first workflow."
             : "Nothing has been mapped here yet."}
         </p>
       </div>

@@ -45,6 +45,7 @@ async function main() {
       type TEXT NOT NULL CHECK (type IN ('main','department')),
       department_role TEXT,
       name TEXT NOT NULL,
+      order_index INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL
     );
 

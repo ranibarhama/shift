@@ -8,6 +8,7 @@ export type ProcessRow = {
   type: "main" | "department";
   department_role: RoleKey | null;
   name: string;
+  order_index: number;
   created_at: number;
 };
 
@@ -81,20 +82,38 @@ export async function getProcessById(id: string): Promise<ProcessRow | null> {
 
 export async function getProcessesForRole(role: string): Promise<ProcessRow[]> {
   return rows<ProcessRow>(
-    "SELECT * FROM processes WHERE type = 'department' AND department_role = ? ORDER BY created_at ASC",
+    "SELECT * FROM processes WHERE type = 'department' AND department_role = ? ORDER BY order_index ASC, created_at ASC",
     [role]
   );
 }
 
 export async function createDepartmentProcess(role: RoleKey, name: string): Promise<ProcessRow> {
   const id = `dept_${nanoid(8)}`;
+  // New workflows go to the bottom of the list within this department
+  const next = await row<{ next: number }>(
+    "SELECT COALESCE(MAX(order_index), -1) + 1 AS next FROM processes WHERE type = 'department' AND department_role = ?",
+    [role]
+  );
+  const orderIdx = Number(next?.next ?? 0);
   await run(
-    "INSERT INTO processes (id, type, department_role, name, created_at) VALUES (?, 'department', ?, ?, ?)",
-    [id, role, name, Date.now()]
+    "INSERT INTO processes (id, type, department_role, name, order_index, created_at) VALUES (?, 'department', ?, ?, ?, ?)",
+    [id, role, name, orderIdx, Date.now()]
   );
   const created = await getProcessById(id);
   if (!created) throw new Error("Failed to create process");
   return created;
+}
+
+export async function reorderProcessesForRole(
+  role: RoleKey,
+  orderedIds: string[]
+): Promise<void> {
+  for (let i = 0; i < orderedIds.length; i++) {
+    await run(
+      "UPDATE processes SET order_index = ? WHERE id = ? AND type = 'department' AND department_role = ?",
+      [i, orderedIds[i], role]
+    );
+  }
 }
 
 export async function updateProcessName(id: string, name: string): Promise<ProcessRow | null> {

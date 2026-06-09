@@ -150,6 +150,33 @@ async function ensureSchema(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_items_stage ON items(stage_id);
   `);
 
+  // Migration: add order_index to processes if it doesn't exist yet
+  const procCols = await db.execute("PRAGMA table_info(processes)");
+  const procColNames = procCols.rows.map(
+    (r) => (r as unknown as { name: string }).name
+  );
+  if (!procColNames.includes("order_index")) {
+    await db.execute(
+      "ALTER TABLE processes ADD COLUMN order_index INTEGER NOT NULL DEFAULT 0"
+    );
+    // Backfill: within each department, order by created_at so existing
+    // workflows keep their effective order. Uses window functions (SQLite 3.25+).
+    await db.execute(`
+      UPDATE processes
+      SET order_index = (
+        SELECT row_num - 1 FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY department_role ORDER BY created_at ASC
+          ) AS row_num
+          FROM processes
+          WHERE type = 'department'
+        ) AS t
+        WHERE t.id = processes.id
+      )
+      WHERE type = 'department'
+    `);
+  }
+
   // Migration: add owner_role / goal columns to stages if they don't exist yet
   const stageCols = await db.execute("PRAGMA table_info(stages)");
   const colNames = stageCols.rows.map((r) => (r as unknown as { name: string }).name);
