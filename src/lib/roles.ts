@@ -27,8 +27,8 @@ export function canEditDepartment(role: RoleKey | null | undefined, deptRole: Ro
 export const ROLE_COLOR_HEX: Record<RoleKey, string> = {
   gm: "#e879f9",
   ux: "#f472b6",
-  marketing: "#f59e0b",
-  product: "#a78bfa",
+  marketing: "#a78bfa",
+  product: "#f59e0b",
   ops: "#34d399",
   analyst: "#60a5fa",
   dev: "#06b6d4",
