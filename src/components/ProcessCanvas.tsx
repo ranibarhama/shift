@@ -522,7 +522,7 @@ function Canvas({ processId, initial, canEdit, mainStages, initialTheme }: Props
             onClick={onAddStage}
             className="pointer-events-auto inline-flex w-fit items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-ink shadow-card hover:brightness-110"
           >
-            + Add stage
+            + Add Stage / Task
           </button>
         )}
         {!canEdit && (
