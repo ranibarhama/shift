@@ -13,8 +13,8 @@ export function getTag(key: string | null | undefined) {
 
 export const ITEM_KINDS = [
   { key: "participant", label: "Who's involved", verb: "Add person / role" },
-  { key: "task", label: "Tasks", verb: "Add task" },
-  { key: "pain_point", label: "Pain points", verb: "Add pain point" },
+  { key: "task", label: "Current Tasks", verb: "Add task" },
+  { key: "pain_point", label: "Current Pain Points", verb: "Add pain point" },
   { key: "missing", label: "What's missing", verb: "Add missing thing" },
 ] as const;
 
