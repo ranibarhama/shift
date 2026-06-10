@@ -11,6 +11,8 @@ import {
   getMissingCategory,
   getRoi,
   getHorizon,
+  parseMissingCategories,
+  serializeMissingCategories,
   type ItemKind,
   type MissingCategory,
 } from "@/lib/tags";
@@ -460,12 +462,22 @@ function MissingSection({
 }: {
   items: ItemRow[];
   canEdit: boolean;
-  onAdd: (content: string, category: MissingCategory) => void;
+  /** `categories` is a CSV of one or more MissingCategory keys. */
+  onAdd: (content: string, categories: string) => void;
   onUpdate: (id: string, patch: Partial<ItemRow>) => void;
   onDelete: (id: string) => void;
 }) {
   const [draft, setDraft] = useState("");
-  const [category, setCategory] = useState<MissingCategory>("tool");
+  const [selected, setSelected] = useState<Set<MissingCategory>>(new Set(["tool"]));
+
+  function toggle(key: MissingCategory) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   return (
     <section className="mb-5">
@@ -475,7 +487,8 @@ function MissingSection({
       </div>
       <p className="mb-2 text-[11px] text-muted">
         Gaps to close — tools, infrastructure, or workflow pieces we don't have yet.
-        Items here also appear in the <span className="text-fg">Todo Backlog</span>.
+        Pick one or more categories. Items here also appear in the{" "}
+        <span className="text-fg">Todo Backlog</span>.
       </p>
 
       <ul className="space-y-1.5">
@@ -497,18 +510,18 @@ function MissingSection({
             e.preventDefault();
             const v = draft.trim();
             if (!v) return;
-            onAdd(v, category);
+            onAdd(v, serializeMissingCategories(selected));
             setDraft("");
           }}
         >
           <div className="flex flex-wrap gap-1.5">
             {MISSING_CATEGORIES.map((c) => {
-              const active = category === c.key;
+              const active = selected.has(c.key);
               return (
                 <button
                   type="button"
                   key={c.key}
-                  onClick={() => setCategory(c.key)}
+                  onClick={() => toggle(c.key)}
                   className="rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide transition"
                   style={{
                     background: active ? `${c.hex}22` : "transparent",
@@ -526,7 +539,7 @@ function MissingSection({
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder={`What ${getMissingCategory(category)?.label.toLowerCase()} is missing?`}
+              placeholder="What's missing? (Tool / Infrastructure / Workflow)"
               className="flex-1 rounded-md border border-line/70 bg-line/20 px-3 py-1.5 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
             />
             <button
@@ -555,14 +568,23 @@ function MissingItemRow({
 }) {
   const [content, setContent] = useState(item.content);
   const author = item.author_role ? getRole(item.author_role) : null;
-  const cat = getMissingCategory(item.tag);
+  const selectedCats = new Set(parseMissingCategories(item.tag));
+  const firstCat = MISSING_CATEGORIES.find((c) => selectedCats.has(c.key));
 
   useEffect(() => setContent(item.content), [item.id, item.content]);
+
+  function toggleCategory(key: MissingCategory) {
+    if (!canEdit) return;
+    const next = new Set(selectedCats);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onUpdate({ tag: serializeMissingCategories(next) as unknown as ItemRow["tag"] });
+  }
 
   return (
     <li
       className="group rounded-md border bg-line/20 p-2"
-      style={{ borderColor: cat ? `${cat.hex}55` : "var(--tw-line, #2a3358)" }}
+      style={{ borderColor: firstCat ? `${firstCat.hex}55` : "var(--tw-line, #2a3358)" }}
     >
       <div className="flex items-start gap-2">
         <input
@@ -584,11 +606,11 @@ function MissingItemRow({
       </div>
       <div className="mt-1.5 flex items-center gap-1.5">
         {MISSING_CATEGORIES.map((c) => {
-          const active = (item.tag as string | null) === c.key;
+          const active = selectedCats.has(c.key);
           return (
             <button
               key={c.key}
-              onClick={() => canEdit && onUpdate({ tag: c.key as unknown as ItemRow["tag"] })}
+              onClick={() => toggleCategory(c.key)}
               disabled={!canEdit}
               className="rounded-full px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-60"
               style={{
@@ -596,6 +618,7 @@ function MissingItemRow({
                 color: active ? c.hex : "#5b6489",
                 border: `1px solid ${active ? c.hex : "#2a3358"}`,
               }}
+              aria-pressed={active}
             >
               {c.label}
             </button>

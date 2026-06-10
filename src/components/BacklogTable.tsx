@@ -10,6 +10,7 @@ import {
   type RoiLevel,
   type HorizonLevel,
   getMissingCategory,
+  parseMissingCategories,
   getRoi,
   getHorizon,
 } from "@/lib/tags";
@@ -37,7 +38,9 @@ export default function BacklogTable({ items }: Props) {
 
   const filtered = useMemo(() => {
     let list = items;
-    if (catFilter !== "all") list = list.filter((i) => i.category === catFilter);
+    if (catFilter !== "all") {
+      list = list.filter((i) => parseMissingCategories(i.category).includes(catFilter));
+    }
     if (roiFilter !== "all") list = list.filter((i) => i.roi === roiFilter);
     if (horizonFilter !== "all") list = list.filter((i) => i.horizon === horizonFilter);
     if (scopeFilter === "main") list = list.filter((i) => i.process_type === "main");
@@ -58,9 +61,13 @@ export default function BacklogTable({ items }: Props) {
         case "content":
           r = a.content.localeCompare(b.content);
           break;
-        case "category":
-          r = (a.category ?? "").localeCompare(b.category ?? "");
+        case "category": {
+          // Sort by the first canonical category each item has
+          const aFirst = parseMissingCategories(a.category)[0] ?? "";
+          const bFirst = parseMissingCategories(b.category)[0] ?? "";
+          r = aFirst.localeCompare(bFirst);
           break;
+        }
         case "roi":
           r = (ROI_ORDER[a.roi ?? ""] ?? 3) - (ROI_ORDER[b.roi ?? ""] ?? 3);
           break;
@@ -86,9 +93,15 @@ export default function BacklogTable({ items }: Props) {
 
   const byCat = useMemo(() => {
     const m: Record<string, number> = { tool: 0, infrastructure: 0, workflow: 0, _untagged: 0 };
+    // An item with multiple categories counts under each of them — so a "Tool +
+    // Workflow" item is included in both the Tool and Workflow chip counts.
     for (const i of items) {
-      const k = i.category && m[i.category] !== undefined ? i.category : "_untagged";
-      m[k] = (m[k] ?? 0) + 1;
+      const cats = parseMissingCategories(i.category);
+      if (cats.length === 0) {
+        m._untagged += 1;
+      } else {
+        for (const c of cats) m[c] = (m[c] ?? 0) + 1;
+      }
     }
     return m;
   }, [items]);
@@ -226,7 +239,9 @@ export default function BacklogTable({ items }: Props) {
               </tr>
             )}
             {filtered.map((it) => {
-              const cat = getMissingCategory(it.category);
+              const cats = parseMissingCategories(it.category)
+                .map((key) => getMissingCategory(key))
+                .filter((c): c is NonNullable<ReturnType<typeof getMissingCategory>> => !!c);
               const author = it.author_role ? getRole(it.author_role) : null;
               const linkHref =
                 it.process_type === "main"
@@ -236,20 +251,25 @@ export default function BacklogTable({ items }: Props) {
                 <tr key={it.id} className="border-t border-line/60 hover:bg-line/15">
                   <td className="px-4 py-2.5 align-top text-fg">{it.content}</td>
                   <td className="px-4 py-2.5 align-top">
-                    {cat ? (
-                      <span
-                        className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        style={{
-                          background: `${cat.hex}22`,
-                          color: cat.hex,
-                          border: `1px solid ${cat.hex}55`,
-                        }}
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ background: cat.hex }}
-                        />
-                        {cat.label}
+                    {cats.length > 0 ? (
+                      <span className="flex flex-wrap gap-1">
+                        {cats.map((c) => (
+                          <span
+                            key={c.key}
+                            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                            style={{
+                              background: `${c.hex}22`,
+                              color: c.hex,
+                              border: `1px solid ${c.hex}55`,
+                            }}
+                          >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ background: c.hex }}
+                            />
+                            {c.label}
+                          </span>
+                        ))}
                       </span>
                     ) : (
                       <span className="text-[11px] text-muted">— uncategorized —</span>

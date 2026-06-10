@@ -32,6 +32,34 @@ export function getMissingCategory(key: string | null | undefined) {
   return MISSING_CATEGORIES.find((c) => c.key === key);
 }
 
+/**
+ * A missing item's `tag` column stores one or more category keys as a comma
+ * separated string ("tool,infrastructure"). This parses it into a deduped,
+ * order-preserving array of valid categories.
+ */
+export function parseMissingCategories(tag: string | null | undefined): MissingCategory[] {
+  if (!tag) return [];
+  const valid = new Set(MISSING_CATEGORIES.map((c) => c.key as string));
+  const seen = new Set<string>();
+  const out: MissingCategory[] = [];
+  for (const raw of tag.split(",")) {
+    const v = raw.trim();
+    if (!v || !valid.has(v) || seen.has(v)) continue;
+    seen.add(v);
+    out.push(v as MissingCategory);
+  }
+  return out;
+}
+
+export function serializeMissingCategories(cats: Iterable<string>): string {
+  // Preserve the canonical order from MISSING_CATEGORIES so the stored value
+  // is stable regardless of click order.
+  const set = new Set(cats);
+  return MISSING_CATEGORIES.filter((c) => set.has(c.key))
+    .map((c) => c.key)
+    .join(",");
+}
+
 export const ROI_LEVELS = [
   { key: "high", label: "High", hex: "#16a34a" },
   { key: "mid", label: "Mid", hex: "#f59e0b" },
