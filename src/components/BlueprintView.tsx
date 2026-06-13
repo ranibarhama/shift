@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 /* -----------------------------------------------------------------------------
@@ -412,32 +411,6 @@ export default function BlueprintView() {
 
       {tab === "layers" && <LayersTab />}
       {tab === "transform" && <TransformTab />}
-
-      {/* Footer CTA */}
-      <section className="mb-4 mt-10 rounded-2xl border border-accent/40 bg-accent/10 p-5">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-accent">
-          Use this in the workshop
-        </div>
-        <h3 className="mb-1 text-lg font-semibold text-fg">
-          Map today against this target. Decide where the gaps are.
-        </h3>
-        <p className="text-sm text-muted">
-          For every layer, ask: which parts already exist? Which are missing? Capture the
-          gaps on the relevant stage in the{" "}
-          <Link href="/main" className="text-accent hover:underline">
-            main process
-          </Link>{" "}
-          or your{" "}
-          <Link href="/overview" className="text-accent hover:underline">
-            department workflow
-          </Link>{" "}
-          under "What's missing", then prioritize them on the{" "}
-          <Link href="/backlog" className="text-accent hover:underline">
-            backlog with Smart Sort
-          </Link>
-          .
-        </p>
-      </section>
     </div>
   );
 }
@@ -517,27 +490,14 @@ function TransformTab() {
   const [view, setView] = useState<"current" | "future">("current");
 
   return (
-    <section className="space-y-6">
-      {/* Intro + toggle */}
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-line bg-card/60 p-5">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted">
-            B2C work-progress, side by side
-          </div>
-          <h2 className="mt-1 text-xl font-semibold text-fg">
-            How the work progresses, today vs. how good looks like
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            Toggle to swap each stage of the current main B2C workflow with the
-            corresponding part of the target model. Layers 7 and 8 sit across all stages,
-            not inside any single one.
-          </p>
-        </div>
+    <section className="space-y-4">
+      {/* Toggle on its own */}
+      <div className="flex justify-end">
         <ToggleSwitch view={view} onChange={setView} />
       </div>
 
-      {/* Cross-cutting band — top: Layer 7 */}
-      <CrossCuttingBand layerNum="7" active={view === "future"} />
+      {/* Cross-cutting band — top: Layer 7 — only in future view */}
+      {view === "future" && <CrossCuttingBand layerNum="7" />}
 
       {/* 4-stage flow */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
@@ -546,34 +506,8 @@ function TransformTab() {
         ))}
       </div>
 
-      {/* Cross-cutting band — bottom: Layer 8 */}
-      <CrossCuttingBand layerNum="8" active={view === "future"} />
-
-      {/* Legend / explanation strip */}
-      {view === "future" && (
-        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 text-sm text-fg">
-          <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-            How to read this
-          </div>
-          <ul className="ml-5 list-disc space-y-1 text-muted">
-            <li>
-              Each stage box shows the layers from the blueprint that replace today's
-              stage of the same shape in the flow.
-            </li>
-            <li>
-              <span className="text-fg">Development</span> shows two component layers (3 +
-              5) plus a badge for Layer 4 — that's not a component, it's the operating
-              model the whole stage runs on.
-            </li>
-            <li>
-              <span className="text-fg">Layer 7 (Ops, Risk &amp; Governance)</span> and{" "}
-              <span className="text-fg">Layer 8 (Financial Performance)</span> are
-              cross-cutting — they apply to every stage, so they're drawn as bands above
-              and below the flow.
-            </li>
-          </ul>
-        </div>
-      )}
+      {/* Cross-cutting band — bottom: Layer 8 — only in future view */}
+      {view === "future" && <CrossCuttingBand layerNum="8" />}
     </section>
   );
 }
@@ -615,41 +549,35 @@ function ToggleSwitch({
   );
 }
 
-function CrossCuttingBand({ layerNum, active }: { layerNum: string; active: boolean }) {
+function CrossCuttingBand({ layerNum }: { layerNum: string }) {
   const layer = LAYERS.find((l) => l.num === layerNum);
   if (!layer) return null;
 
   return (
     <div
-      className="rounded-2xl border px-5 py-3 transition"
+      className="rounded-2xl border px-5 py-3"
       style={{
-        borderColor: active ? `${layer.hex}55` : "rgb(var(--line))",
-        background: active ? `${layer.hex}10` : "transparent",
-        opacity: active ? 1 : 0.4,
+        borderColor: `${layer.hex}55`,
+        background: `${layer.hex}10`,
       }}
     >
       <div className="flex flex-wrap items-center gap-3">
         <span
           className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xs font-bold"
-          style={{
-            background: active ? `${layer.hex}22` : "rgb(var(--line) / 0.4)",
-            color: active ? layer.hex : "rgb(var(--muted))",
-          }}
+          style={{ background: `${layer.hex}22`, color: layer.hex }}
         >
           {layer.num}
         </span>
         <div className="min-w-0 flex-1">
           <div
             className="text-[10px] uppercase tracking-[0.18em]"
-            style={{ color: active ? layer.hex : undefined }}
+            style={{ color: layer.hex }}
           >
             Cross-cutting layer — applies to every stage
           </div>
           <div className="text-sm font-semibold text-fg">{layer.title}</div>
         </div>
-        <div className="text-[11px] text-muted">
-          {active ? layer.summary : "Not present today"}
-        </div>
+        <div className="text-[11px] text-muted">{layer.summary}</div>
       </div>
     </div>
   );
