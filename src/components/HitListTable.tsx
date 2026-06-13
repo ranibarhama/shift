@@ -266,7 +266,7 @@ export default function HitListTable({ rows: initialRows }: { rows: DropRow[] })
                   </td>
                   <td className="px-4 py-2.5 align-top">
                     <span
-                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                      className="inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium"
                       style={
                         isStage
                           ? { background: "rgb(var(--line) / 0.35)", color: "rgb(var(--fg))", borderColor: "rgb(var(--line))" }

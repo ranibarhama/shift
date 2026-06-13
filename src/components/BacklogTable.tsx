@@ -678,7 +678,7 @@ function RowFragment({
                   type="button"
                   key={c.key}
                   onClick={() => onToggleCategory(it.id, c.key)}
-                  className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium transition"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition"
                   style={{
                     background: active ? `${c.hex}22` : "transparent",
                     color: active ? c.hex : "#5b6489",
@@ -709,7 +709,7 @@ function RowFragment({
                   type="button"
                   key={r.key}
                   onClick={() => onSetRoi(it.id, active ? null : r.key)}
-                  className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium transition"
+                  className="inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition"
                   style={{
                     background: active ? `${r.hex}22` : "transparent",
                     color: active ? r.hex : "#5b6489",
@@ -733,7 +733,7 @@ function RowFragment({
                   type="button"
                   key={h.key}
                   onClick={() => onSetHorizon(it.id, active ? null : h.key)}
-                  className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium transition"
+                  className="inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition"
                   style={{
                     background: active ? `${h.hex}22` : "transparent",
                     color: active ? h.hex : "#5b6489",
@@ -757,7 +757,7 @@ function RowFragment({
                   type="button"
                   key={e.key}
                   onClick={() => onSetEffort(it.id, active ? null : e.key)}
-                  className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium transition"
+                  className="inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition"
                   style={{
                     background: active ? `${e.hex}22` : "transparent",
                     color: active ? e.hex : "#5b6489",
