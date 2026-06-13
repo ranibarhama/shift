@@ -325,9 +325,9 @@ type TransformStage = {
   currentSummary: string;
   newName: string;
   newSublabel: string;
-  newLayerNums: string[]; // Layers from LAYERS that compose the new stage
-  operatingLayerNum?: string; // Layer rendered as a "how this stage operates" badge
-  isLearningLoop?: boolean; // Special case for growth → learning loop
+  newLayerNums: string[];
+  operatingLayerNum?: string;
+  isLearningLoop?: boolean;
 };
 
 const TRANSFORM_STAGES: TransformStage[] = [
@@ -371,42 +371,31 @@ const TRANSFORM_STAGES: TransformStage[] = [
   },
 ];
 
-const CROSS_LAYER_NUMS = ["7", "8"];
-
 /* -------------------------------------------------------------------------- */
 
 export default function BlueprintView() {
   const [tab, setTab] = useState<"layers" | "transform">("layers");
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
-      {/* Hero */}
-      <div className="mb-6">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-          Target state
-        </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+    <div className="mx-auto w-full max-w-6xl px-6 py-10">
+      {/* Hero — minimal */}
+      <header className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
           How good looks like
         </h1>
-        <p className="mt-2 max-w-3xl text-base text-muted">
-          The AI-native product organization.
-        </p>
-        <div className="mt-4 rounded-2xl border border-line bg-card/60 px-4 py-3 text-sm text-fg">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
-            End-to-end flow
-          </span>
-          <div className="mt-1 font-medium">{FLOW_TAGLINE}</div>
-        </div>
-      </div>
+        <p className="mt-1.5 text-sm italic text-muted">{FLOW_TAGLINE}</p>
+      </header>
 
-      {/* Tab bar */}
-      <div className="mb-6 flex items-center gap-1 rounded-xl border border-line bg-card/60 p-1">
-        <TabButton active={tab === "layers"} onClick={() => setTab("layers")}>
-          Layers
-        </TabButton>
-        <TabButton active={tab === "transform"} onClick={() => setTab("transform")}>
-          Transformation structure
-        </TabButton>
+      {/* Tab bar — underline style */}
+      <div className="mb-8 border-b border-line">
+        <div className="flex gap-6">
+          <TabButton active={tab === "layers"} onClick={() => setTab("layers")}>
+            Layers
+          </TabButton>
+          <TabButton active={tab === "transform"} onClick={() => setTab("transform")}>
+            Transformation structure
+          </TabButton>
+        </div>
       </div>
 
       {tab === "layers" && <LayersTab />}
@@ -415,70 +404,74 @@ export default function BlueprintView() {
   );
 }
 
-/* ===== Tab 1: Layers (the original content) ============================== */
+/* ===== Tab 1: Layers ===================================================== */
 
 function LayersTab() {
   return (
     <>
-      {/* Transition principles strip */}
-      <section className="mb-8">
-        <div className="mb-3 text-[10px] uppercase tracking-[0.18em] text-muted">
-          Seven shifts behind the model
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Seven shifts — compact two-row grid */}
+      <section className="mb-10">
+        <SectionLabel>Seven shifts behind the model</SectionLabel>
+        <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {TRANSITIONS.map((t, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-xl border border-line bg-card/60 px-3 py-2.5"
-            >
-              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">
-                {i + 1}
+            <li key={i} className="flex items-baseline gap-3">
+              <span className="w-5 shrink-0 font-mono text-[11px] text-accent">
+                {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="text-xs leading-snug text-fg">{t}</span>
-            </div>
+              <span className="text-sm leading-snug text-fg">{t}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <Divider />
+
+      {/* 8 layers — slimmer cards */}
+      <section className="my-10 space-y-3">
+        <SectionLabel>Eight layers</SectionLabel>
+        <div className="space-y-3 pt-2">
+          {LAYERS.map((layer) => (
+            <LayerCard key={layer.num} layer={layer} />
           ))}
         </div>
       </section>
 
-      {/* 8 numbered layers */}
-      <section className="mb-10 space-y-4">
-        {LAYERS.map((layer) => (
-          <LayerCard key={layer.num} layer={layer} />
-        ))}
-      </section>
+      <Divider />
 
       {/* Organizational memory & learning loop */}
-      <section className="mb-2 rounded-2xl border border-line bg-card/60 p-5">
-        <div className="mb-3 flex items-center gap-3">
-          <span
-            className="grid h-9 w-9 place-items-center rounded-xl text-sm font-semibold"
-            style={{ background: `${LEARNING_LOOP_HEX}22`, color: LEARNING_LOOP_HEX }}
-          >
-            ∞
-          </span>
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-muted">
-              Foundation layer
-            </div>
-            <h2 className="text-lg font-semibold text-fg">
-              Organizational memory & learning loop
-            </h2>
-          </div>
-        </div>
-        <p className="mb-4 text-sm text-muted">
-          Every launch teaches the next plan. Every failure informs the next bet. Captured
-          centrally so the company compounds learning instead of repeating it.
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {LEARNING_LOOP_ITEMS.map((item) => (
+      <section className="mb-2 mt-10">
+        <SectionLabel>Foundation</SectionLabel>
+        <article
+          className="mt-3 overflow-hidden rounded-2xl border border-line bg-card/40"
+          style={{ boxShadow: `inset 3px 0 0 0 ${LEARNING_LOOP_HEX}` }}
+        >
+          <div className="flex items-center gap-3 px-5 pt-5">
             <span
-              key={item}
-              className="whitespace-nowrap rounded-full border border-line bg-bg px-2.5 py-1 text-[11px] text-fg"
+              className="grid h-7 w-7 place-items-center rounded-lg text-sm font-semibold"
+              style={{ background: `${LEARNING_LOOP_HEX}1a`, color: LEARNING_LOOP_HEX }}
+              aria-hidden
             >
-              {item}
+              ∞
             </span>
-          ))}
-        </div>
+            <h3 className="text-base font-semibold text-fg">
+              Organizational memory & learning loop
+            </h3>
+          </div>
+          <p className="mt-2 px-5 text-sm leading-snug text-muted">
+            Every launch teaches the next plan. Every failure informs the next bet.
+            Captured centrally so the company compounds learning instead of repeating it.
+          </p>
+          <div className="flex flex-wrap gap-1.5 px-5 pb-5 pt-3">
+            {LEARNING_LOOP_ITEMS.map((item) => (
+              <span
+                key={item}
+                className="whitespace-nowrap rounded-full border border-line bg-bg/70 px-2.5 py-0.5 text-[11px] text-fg"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </article>
       </section>
     </>
   );
@@ -490,23 +483,34 @@ function TransformTab() {
   const [view, setView] = useState<"current" | "future">("current");
 
   return (
-    <section className="space-y-4">
-      {/* Toggle on its own */}
-      <div className="flex justify-end">
+    <section className="space-y-5">
+      {/* Toggle row */}
+      <div className="flex items-center justify-between">
+        <SectionLabel>B2C workflow, today vs. target</SectionLabel>
         <ToggleSwitch view={view} onChange={setView} />
       </div>
 
-      {/* Cross-cutting band — top: Layer 7 — only in future view */}
+      {/* Cross-cutting band — top: Layer 7 — future only */}
       {view === "future" && <CrossCuttingBand layerNum="7" />}
 
-      {/* 4-stage flow */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+      {/* 4-stage flow with chevron connectors */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))] lg:gap-2">
         {TRANSFORM_STAGES.map((s, idx) => (
-          <TransformStageCard key={s.key} stage={s} view={view} index={idx} />
+          <div key={s.key} className="relative">
+            <TransformStageCard stage={s} view={view} index={idx} />
+            {idx < TRANSFORM_STAGES.length - 1 && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-line lg:block"
+              >
+                <Chevron />
+              </span>
+            )}
+          </div>
         ))}
       </div>
 
-      {/* Cross-cutting band — bottom: Layer 8 — only in future view */}
+      {/* Cross-cutting band — bottom: Layer 8 — future only */}
       {view === "future" && <CrossCuttingBand layerNum="8" />}
     </section>
   );
@@ -520,32 +524,39 @@ function ToggleSwitch({
   onChange: (v: "current" | "future") => void;
 }) {
   return (
-    <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-bg p-1">
-      <button
-        type="button"
-        onClick={() => onChange("current")}
-        className={
-          "rounded-full px-3 py-1.5 text-xs font-medium transition " +
-          (view === "current"
-            ? "bg-fg text-bg"
-            : "text-muted hover:text-fg")
-        }
-      >
+    <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-line bg-card/60 p-0.5">
+      <ToggleOption active={view === "current"} onClick={() => onChange("current")}>
         Current
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("future")}
-        className={
-          "rounded-full px-3 py-1.5 text-xs font-medium transition " +
-          (view === "future"
-            ? "bg-accent text-ink"
-            : "text-muted hover:text-fg")
-        }
-      >
+      </ToggleOption>
+      <ToggleOption active={view === "future"} onClick={() => onChange("future")}>
         How good looks like
-      </button>
+      </ToggleOption>
     </div>
+  );
+}
+
+function ToggleOption({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "rounded-full px-3.5 py-1.5 text-[12px] font-medium transition " +
+        (active
+          ? "bg-accent text-ink"
+          : "text-muted hover:text-fg")
+      }
+    >
+      {children}
+    </button>
   );
 }
 
@@ -555,29 +566,25 @@ function CrossCuttingBand({ layerNum }: { layerNum: string }) {
 
   return (
     <div
-      className="rounded-2xl border px-5 py-3"
-      style={{
-        borderColor: `${layer.hex}55`,
-        background: `${layer.hex}10`,
-      }}
+      className="relative overflow-hidden rounded-xl border border-line bg-card/30 px-4 py-3"
+      style={{ boxShadow: `inset 0 3px 0 0 ${layer.hex}` }}
     >
       <div className="flex flex-wrap items-center gap-3">
         <span
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xs font-bold"
-          style={{ background: `${layer.hex}22`, color: layer.hex }}
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-[11px] font-bold"
+          style={{ background: `${layer.hex}1a`, color: layer.hex }}
         >
           {layer.num}
         </span>
         <div className="min-w-0 flex-1">
-          <div
-            className="text-[10px] uppercase tracking-[0.18em]"
-            style={{ color: layer.hex }}
-          >
-            Cross-cutting layer — applies to every stage
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted">
+            Cross-cutting · applies to every stage
           </div>
           <div className="text-sm font-semibold text-fg">{layer.title}</div>
         </div>
-        <div className="text-[11px] text-muted">{layer.summary}</div>
+        <div className="hidden text-[11px] text-muted sm:block sm:max-w-md sm:text-right">
+          {layer.summary}
+        </div>
       </div>
     </div>
   );
@@ -599,48 +606,47 @@ function TransformStageCard({
   const operatingLayer = stage.operatingLayerNum
     ? LAYERS.find((l) => l.num === stage.operatingLayerNum)
     : null;
-  const primaryHex = isFuture && layerObjs[0] ? layerObjs[0].hex : "rgb(var(--line))";
+  const primaryHex = isFuture && layerObjs[0]
+    ? layerObjs[0].hex
+    : isFuture
+    ? LEARNING_LOOP_HEX
+    : null;
 
   return (
     <article
-      className="relative flex h-full flex-col overflow-hidden rounded-2xl border transition"
-      style={{
-        borderColor: isFuture ? `${primaryHex}55` : "rgb(var(--line))",
-        background: isFuture ? `${primaryHex}08` : "rgb(var(--card) / 0.6)",
-      }}
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card/40 transition"
+      style={primaryHex ? { boxShadow: `inset 3px 0 0 0 ${primaryHex}` } : undefined}
     >
-      {/* Step number + flow arrow on the side */}
-      <div className="flex items-center gap-2 border-b border-line/60 px-4 py-2.5">
+      <header className="flex items-center gap-2 px-4 pb-2 pt-4">
         <span
-          className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold"
-          style={{
-            background: isFuture
-              ? `${primaryHex}22`
-              : "rgb(var(--line) / 0.5)",
-            color: isFuture ? primaryHex : "rgb(var(--fg))",
-          }}
+          className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold"
+          style={
+            isFuture && primaryHex
+              ? { background: `${primaryHex}1a`, color: primaryHex }
+              : { background: "rgb(var(--line) / 0.5)", color: "rgb(var(--fg))" }
+          }
         >
           {index + 1}
         </span>
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
-          {isFuture ? "Future stage" : "Current stage"}
+          {isFuture ? "Future" : "Today"}
         </span>
-      </div>
+      </header>
 
-      <div className="flex flex-1 flex-col gap-3 px-4 py-3">
+      <div className="flex flex-1 flex-col gap-3 px-4 pb-4">
         {/* Heading */}
         <div>
           {isFuture && (
-            <div className="text-[10px] text-muted line-through">
+            <div className="text-[10px] text-muted/80 line-through">
               {stage.currentName}
             </div>
           )}
-          <h3 className="text-base font-semibold text-fg">
+          <h3 className="text-[15px] font-semibold leading-tight text-fg">
             {isFuture ? stage.newName : stage.currentName}
           </h3>
           <div
-            className="mt-1 text-[11px] uppercase tracking-wider"
-            style={{ color: isFuture ? primaryHex : "rgb(var(--muted))" }}
+            className="mt-0.5 text-[10px] uppercase tracking-wider"
+            style={primaryHex ? { color: primaryHex } : { color: "rgb(var(--muted))" }}
           >
             {isFuture ? stage.newSublabel : "Today"}
           </div>
@@ -672,7 +678,9 @@ function TransformStageCard({
                 </span>
               ))}
             </div>
-            <div className="text-[10px] text-muted">+ {LEARNING_LOOP_ITEMS.length - 6} more</div>
+            <div className="text-[10px] text-muted">
+              + {LEARNING_LOOP_ITEMS.length - 6} more
+            </div>
           </>
         )}
 
@@ -681,36 +689,25 @@ function TransformStageCard({
             {layerObjs.map((layer) => (
               <div
                 key={layer.num}
-                className="rounded-xl border bg-bg/60 px-3 py-2"
-                style={{ borderColor: `${layer.hex}33` }}
+                className="flex items-center gap-2 rounded-lg border border-line bg-bg/40 px-2.5 py-1.5"
               >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold"
-                    style={{
-                      background: `${layer.hex}22`,
-                      color: layer.hex,
-                    }}
-                  >
-                    {layer.num}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[12px] font-semibold text-fg">
-                      {layer.title}
-                    </div>
-                  </div>
-                </div>
+                <span
+                  className="grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold"
+                  style={{ background: `${layer.hex}1a`, color: layer.hex }}
+                >
+                  {layer.num}
+                </span>
+                <span className="truncate text-[12px] text-fg">{layer.title}</span>
                 {layer.centerpiece && (
-                  <div
-                    className="mt-1.5 inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  <span
+                    className="ml-auto whitespace-nowrap rounded-full px-1.5 py-0 text-[9px] font-bold tracking-wide"
                     style={{
                       background: `${layer.hex}18`,
                       color: layer.hex,
-                      border: `1px solid ${layer.hex}44`,
                     }}
                   >
                     {layer.centerpiece.label}
-                  </div>
+                  </span>
                 )}
               </div>
             ))}
@@ -720,23 +717,20 @@ function TransformStageCard({
         {/* Operating-model badge for Development → Layer 4 */}
         {isFuture && operatingLayer && (
           <div
-            className="rounded-xl border-2 border-dashed px-3 py-2"
-            style={{
-              borderColor: `${operatingLayer.hex}55`,
-              background: `${operatingLayer.hex}10`,
-            }}
+            className="rounded-lg border-2 border-dashed px-2.5 py-1.5"
+            style={{ borderColor: `${operatingLayer.hex}55` }}
           >
             <div
-              className="mb-0.5 text-[9px] uppercase tracking-[0.18em]"
+              className="text-[9px] uppercase tracking-[0.18em]"
               style={{ color: operatingLayer.hex }}
             >
               Operating model
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="mt-0.5 flex items-center gap-1.5">
               <span
                 className="grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold"
                 style={{
-                  background: `${operatingLayer.hex}22`,
+                  background: `${operatingLayer.hex}1a`,
                   color: operatingLayer.hex,
                 }}
               >
@@ -753,22 +747,18 @@ function TransformStageCard({
   );
 }
 
-/* ===== Shared: LayerCard ================================================= */
+/* ===== Shared bits ====================================================== */
 
 function LayerCard({ layer }: { layer: Layer }) {
   return (
     <article
-      className="overflow-hidden rounded-2xl border bg-card/60"
-      style={{ borderColor: `${layer.hex}55` }}
+      className="overflow-hidden rounded-2xl border border-line bg-card/40"
+      style={{ boxShadow: `inset 3px 0 0 0 ${layer.hex}` }}
     >
-      {/* Header strip */}
-      <header
-        className="flex flex-wrap items-start gap-4 border-b px-5 py-4"
-        style={{ borderColor: `${layer.hex}33`, background: `${layer.hex}10` }}
-      >
+      <header className="flex flex-wrap items-start gap-4 px-5 pt-4">
         <span
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-bold"
-          style={{ background: `${layer.hex}22`, color: layer.hex }}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-sm font-bold"
+          style={{ background: `${layer.hex}1a`, color: layer.hex }}
         >
           {layer.num}
         </span>
@@ -779,23 +769,21 @@ function LayerCard({ layer }: { layer: Layer }) {
           >
             Layer {layer.num}
           </div>
-          <h2 className="text-lg font-semibold text-fg">{layer.title}</h2>
-          <p className="mt-1 text-sm text-muted">{layer.summary}</p>
+          <h2 className="text-[16px] font-semibold leading-tight text-fg">
+            {layer.title}
+          </h2>
+          <p className="mt-1 text-[13px] leading-snug text-muted">{layer.summary}</p>
         </div>
         {layer.centerpiece && (
-          <div
-            className="flex shrink-0 flex-col items-center justify-center rounded-xl border px-4 py-3 text-center"
-            style={{
-              borderColor: `${layer.hex}66`,
-              background: `${layer.hex}18`,
-              color: layer.hex,
-            }}
-          >
-            <div className="whitespace-nowrap text-sm font-bold tracking-wide">
+          <div className="shrink-0 text-right">
+            <div
+              className="whitespace-nowrap text-[11px] font-bold tracking-wide"
+              style={{ color: layer.hex }}
+            >
               {layer.centerpiece.label}
             </div>
             {layer.centerpiece.sublabel && (
-              <div className="mt-0.5 whitespace-nowrap text-[10px] uppercase tracking-wider opacity-80">
+              <div className="whitespace-nowrap text-[10px] text-muted">
                 {layer.centerpiece.sublabel}
               </div>
             )}
@@ -803,17 +791,13 @@ function LayerCard({ layer }: { layer: Layer }) {
         )}
       </header>
 
-      {/* Stages grid */}
-      <div className="px-5 py-4">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-muted">
-          Stages
-        </div>
+      {/* Stages */}
+      <div className="px-5 pb-4 pt-3">
         <div className="flex flex-wrap gap-1.5">
           {layer.stages.map((s) => (
             <span
               key={s}
-              className="whitespace-nowrap rounded-full border bg-bg px-3 py-1 text-xs text-fg"
-              style={{ borderColor: `${layer.hex}55` }}
+              className="whitespace-nowrap rounded-full border border-line bg-bg/60 px-2.5 py-0.5 text-[11px] text-fg"
             >
               {s}
             </span>
@@ -822,19 +806,19 @@ function LayerCard({ layer }: { layer: Layer }) {
 
         {/* Extras */}
         {layer.extras?.map((ex) => (
-          <div key={ex.label} className="mt-4">
-            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+          <div key={ex.label} className="mt-3 border-t border-line/40 pt-3">
+            <div className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted">
               {ex.label}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {ex.items.map((it) => (
                 <span
                   key={it}
-                  className="whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px]"
+                  className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px]"
                   style={{
-                    background: `${layer.hex}14`,
+                    background: `${layer.hex}10`,
                     color: layer.hex,
-                    border: `1px solid ${layer.hex}33`,
+                    border: `1px solid ${layer.hex}28`,
                   }}
                 >
                   {it}
@@ -847,8 +831,6 @@ function LayerCard({ layer }: { layer: Layer }) {
     </article>
   );
 }
-
-/* ===== Shared: TabButton ================================================= */
 
 function TabButton({
   active,
@@ -864,13 +846,41 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={
-        "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition " +
+        "relative -mb-px border-b-2 px-1 pb-3 text-sm font-medium transition " +
         (active
-          ? "bg-accent text-ink shadow-card"
-          : "text-muted hover:bg-line/30 hover:text-fg")
+          ? "border-accent text-fg"
+          : "border-transparent text-muted hover:text-fg")
       }
     >
       {children}
     </button>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[10px] uppercase tracking-[0.2em] text-muted">{children}</div>
+  );
+}
+
+function Divider() {
+  return <div className="my-2 border-t border-line/50" />;
+}
+
+function Chevron() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
   );
 }
