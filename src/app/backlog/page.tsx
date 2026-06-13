@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Topbar from "@/components/Topbar";
-import BacklogTabs from "@/components/BacklogTabs";
+import BacklogTable from "@/components/BacklogTable";
 import { getCurrentRole } from "@/lib/session";
 import { getAllMissingItems } from "@/lib/queries";
 
@@ -15,7 +15,7 @@ export default async function BacklogPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Topbar />
-      <BacklogTabs items={items} />
+      <BacklogTable items={items} />
     </div>
   );
 }

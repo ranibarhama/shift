@@ -363,6 +363,10 @@ export type MissingItemRow = {
   created_at: number;
   stage_id: string;
   stage_name: string;
+  /** Owner role on the parent stage — used by the "what good looks like" sort. */
+  stage_owner_role: string | null;
+  /** Drop/Automate/Hybrid/Own decision on the parent stage. */
+  stage_decision_tag: string | null;
   process_id: string;
   process_type: "main" | "department";
   process_name: string;
@@ -381,6 +385,8 @@ export async function getAllMissingItems(): Promise<MissingItemRow[]> {
        i.created_at    AS created_at,
        s.id            AS stage_id,
        s.name          AS stage_name,
+       s.owner_role    AS stage_owner_role,
+       s.tag           AS stage_decision_tag,
        p.id            AS process_id,
        p.type          AS process_type,
        p.name          AS process_name,
