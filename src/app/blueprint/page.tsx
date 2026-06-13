@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentRole } from "@/lib/session";
 
 export const metadata = {
   title: "How good looks like · Shift",
@@ -320,21 +322,22 @@ const LEARNING_LOOP = [
 
 /* -------------------------------------------------------------------------- */
 
-export default function HowGoodLooksLikePage() {
+export default async function HowGoodLooksLikePage() {
+  const role = await getCurrentRole();
+  if (role !== "product") redirect("/");
+
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-8">
       {/* Hero */}
       <div className="mb-8">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-          Target state · CEO blueprint
+          Target state
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
           How good looks like
         </h1>
         <p className="mt-2 max-w-3xl text-base text-muted">
-          The AI-native product organization, as the CEO sees it. Use this page as the
-          shared target the workshop discusses against — where today's stages, gaps and
-          decisions need to land.
+          The AI-native product organization.
         </p>
         <div className="mt-4 rounded-2xl border border-line bg-card/60 px-4 py-3 text-sm text-fg">
           <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
