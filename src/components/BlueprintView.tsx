@@ -342,7 +342,7 @@ const TRANSFORM_STAGES: TransformStage[] = [
     currentSummary:
       "Manual market research and roadmap planning, mostly periodic, scattered across spreadsheets and docs.",
     newName: "B2C Insights Engine",
-    newSublabel: "Layer 1 + Layer 2, combined",
+    newSublabel: "Market & User Intelligence + Planning & Prioritization",
     newLayerNums: ["1", "2"],
   },
   {
@@ -351,7 +351,7 @@ const TRANSFORM_STAGES: TransformStage[] = [
     currentSummary:
       "Sprint-based delivery. Specs become tickets become code, reviewed in cycles.",
     newName: "AI-Native Build",
-    newSublabel: "Layer 3 + Layer 5, operating in Layer 4 mode",
+    newSublabel: "AI Build / MVP + Mini-Pods, operating in No-Sprints mode",
     newLayerNums: ["3", "5"],
     operatingLayerNum: "4",
     workTypes: {
@@ -381,7 +381,7 @@ const TRANSFORM_STAGES: TransformStage[] = [
     currentSummary:
       "Launch campaigns, channel setup and messaging owned per team, one launch at a time.",
     newName: "Agent-Driven GTM",
-    newSublabel: "Layer 6",
+    newSublabel: "Go-to-Market & Growth",
     newLayerNums: ["6"],
   },
   {
@@ -873,11 +873,10 @@ function CrossCuttingBand({ layerNum }: { layerNum: string }) {
     >
       <div className="flex flex-wrap items-center gap-3">
         <span
-          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-[11px] font-bold"
-          style={{ background: `${layer.hex}1a`, color: layer.hex }}
-        >
-          {layer.num}
-        </span>
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ background: layer.hex }}
+          aria-hidden
+        />
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted">
             Cross-cutting · applies to every stage
@@ -994,11 +993,10 @@ function TransformStageCard({
                 className="flex items-center gap-2 rounded-lg border border-line bg-bg/40 px-2.5 py-1.5"
               >
                 <span
-                  className="grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold"
-                  style={{ background: `${layer.hex}1a`, color: layer.hex }}
-                >
-                  {layer.num}
-                </span>
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: layer.hex }}
+                  aria-hidden
+                />
                 <span className="truncate text-[12px] text-fg">{layer.title}</span>
                 {layer.centerpiece && (
                   <span
@@ -1027,7 +1025,7 @@ function TransformStageCard({
           </div>
         )}
 
-        {/* Operating-model badge for Development → Layer 4 */}
+        {/* Operating-model badge for Development → No-Sprints Execution */}
         {isFuture && operatingLayer && (
           <div
             className="rounded-lg border-2 border-dashed px-2.5 py-1.5"
@@ -1041,14 +1039,10 @@ function TransformStageCard({
             </div>
             <div className="mt-0.5 flex items-center gap-1.5">
               <span
-                className="grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold"
-                style={{
-                  background: `${operatingLayer.hex}1a`,
-                  color: operatingLayer.hex,
-                }}
-              >
-                {operatingLayer.num}
-              </span>
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ background: operatingLayer.hex }}
+                aria-hidden
+              />
               <span className="text-[11px] font-semibold text-fg">
                 {operatingLayer.title}
               </span>
