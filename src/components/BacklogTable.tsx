@@ -613,11 +613,11 @@ function RowFragment({
         style={rowStyle}
       >
         {smartActive && (
-          <td className="px-4 py-2.5 align-top">
+          <td className="w-[120px] whitespace-nowrap px-4 py-2.5 align-top">
             {score.rated ? (
               <div className="flex flex-col items-start gap-1">
                 <span
-                  className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                  className="inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-bold tabular-nums"
                   style={{
                     background: score.score >= 80 ? "rgb(124 92 255 / 0.22)" : "rgb(var(--line) / 0.5)",
                     color: score.score >= 80 ? "rgb(124 92 255)" : "rgb(var(--fg))",
@@ -625,17 +625,17 @@ function RowFragment({
                 >
                   {score.score} / 100
                 </span>
-                <div className="text-[10px] font-mono text-muted">
+                <div className="whitespace-nowrap font-mono text-[10px] text-muted">
                   {roiLetter(it.roi)} · {horizonLetter(it.horizon)} · {effortLetter(it.effort)}
                 </div>
                 {isBenchmark && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">
+                  <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-accent">
                     ← top of list
                   </span>
                 )}
               </div>
             ) : (
-              <span className="text-[11px] text-muted">— unrated —</span>
+              <span className="whitespace-nowrap text-[11px] text-muted">— unrated —</span>
             )}
           </td>
         )}
