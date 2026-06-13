@@ -328,6 +328,11 @@ type TransformStage = {
   newLayerNums: string[];
   operatingLayerNum?: string;
   isLearningLoop?: boolean;
+  /** Optional split shown only on Future view — e.g. legacy vs. new features. */
+  workTypes?: {
+    legacy: { label: string; sublabel?: string; items: string[] };
+    new: { label: string; sublabel?: string; items: string[] };
+  };
 };
 
 const TRANSFORM_STAGES: TransformStage[] = [
@@ -349,6 +354,26 @@ const TRANSFORM_STAGES: TransformStage[] = [
     newSublabel: "Layer 3 + Layer 5, operating in Layer 4 mode",
     newLayerNums: ["3", "5"],
     operatingLayerNum: "4",
+    workTypes: {
+      legacy: {
+        label: "Legacy tasks",
+        sublabel: "existing product",
+        items: [
+          "AI maintenance & refactor agents",
+          "Regression test guardrails",
+          "Backwards-compat checks",
+        ],
+      },
+      new: {
+        label: "New features",
+        sublabel: "greenfield bets",
+        items: [
+          "MVP Mode from a Planthon brief",
+          "Experiment-first delivery",
+          "Fast rollback if it tanks",
+        ],
+      },
+    },
   },
   {
     key: "gtm",
@@ -714,6 +739,17 @@ function TransformStageCard({
           </div>
         )}
 
+        {/* Work-type split — e.g. Legacy tasks vs. New features on Build stage */}
+        {isFuture && stage.workTypes && (
+          <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-line bg-bg/30 p-2">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted">
+              Two streams of work
+            </div>
+            <WorkTypeBlock kind="legacy" wt={stage.workTypes.legacy} />
+            <WorkTypeBlock kind="new" wt={stage.workTypes.new} />
+          </div>
+        )}
+
         {/* Operating-model badge for Development → Layer 4 */}
         {isFuture && operatingLayer && (
           <div
@@ -865,6 +901,47 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Divider() {
   return <div className="my-2 border-t border-line/50" />;
+}
+
+function WorkTypeBlock({
+  kind,
+  wt,
+}: {
+  kind: "legacy" | "new";
+  wt: { label: string; sublabel?: string; items: string[] };
+}) {
+  // Muted slate for legacy, accent purple for new — fast visual read.
+  const hex = kind === "legacy" ? "#64748b" : "#7c5cff";
+  return (
+    <div className="rounded-md bg-card/40 p-2">
+      <div className="mb-1 flex items-baseline gap-1.5">
+        <span
+          className="text-[10px] font-semibold uppercase tracking-wider"
+          style={{ color: hex }}
+        >
+          {wt.label}
+        </span>
+        {wt.sublabel && (
+          <span className="text-[9px] text-muted">· {wt.sublabel}</span>
+        )}
+      </div>
+      <ul className="space-y-0.5">
+        {wt.items.map((it) => (
+          <li
+            key={it}
+            className="flex items-start gap-1.5 text-[10.5px] leading-snug text-fg"
+          >
+            <span
+              className="mt-1 h-1 w-1 shrink-0 rounded-full"
+              style={{ background: hex }}
+              aria-hidden
+            />
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function Chevron() {
