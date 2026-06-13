@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Topbar from "@/components/Topbar";
 import { getCurrentRole } from "@/lib/session";
 import BlueprintView from "@/components/BlueprintView";
 
@@ -9,5 +10,10 @@ export const metadata = {
 export default async function HowGoodLooksLikePage() {
   const role = await getCurrentRole();
   if (role !== "product") redirect("/");
-  return <BlueprintView />;
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Topbar />
+      <BlueprintView />
+    </div>
+  );
 }
