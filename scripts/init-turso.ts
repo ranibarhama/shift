@@ -101,6 +101,7 @@ async function main() {
       content TEXT NOT NULL,
       roi TEXT,
       horizon TEXT,
+      effort TEXT,
       tag TEXT,
       author_role TEXT,
       order_index INTEGER NOT NULL DEFAULT 0,

@@ -7,6 +7,7 @@ import {
   MISSING_CATEGORIES,
   ROI_LEVELS,
   HORIZON_LEVELS,
+  EFFORT_LEVELS,
   getTag,
   getMissingCategory,
   getRoi,
@@ -675,6 +676,28 @@ function MissingItemRow({
                 color: active ? lvl.hex : "#5b6489",
                 border: `1px solid ${active ? lvl.hex : "#2a3358"}`,
               }}
+            >
+              {lvl.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <span className="text-[9px] uppercase tracking-wider text-muted">Effort</span>
+        {EFFORT_LEVELS.map((lvl) => {
+          const active = item.effort === lvl.key;
+          return (
+            <button
+              key={lvl.key}
+              onClick={() => canEdit && onUpdate({ effort: active ? null : lvl.key })}
+              disabled={!canEdit}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-60"
+              style={{
+                background: active ? `${lvl.hex}22` : "transparent",
+                color: active ? lvl.hex : "#5b6489",
+                border: `1px solid ${active ? lvl.hex : "#2a3358"}`,
+              }}
+              title={`${lvl.label} — ${lvl.description}`}
             >
               {lvl.label}
             </button>

@@ -196,6 +196,9 @@ async function ensureSchema(db: Client) {
   if (!itemColNames.includes("horizon")) {
     await db.execute("ALTER TABLE items ADD COLUMN horizon TEXT");
   }
+  if (!itemColNames.includes("effort")) {
+    await db.execute("ALTER TABLE items ADD COLUMN effort TEXT");
+  }
 
   // Migration: move free-text participant items into the new participants
   // dictionary + stage_participants link table. Idempotent — once the source

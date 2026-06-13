@@ -12,6 +12,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if ("tag" in body) patch.tag = body.tag;
   if ("roi" in body) patch.roi = body.roi;
   if ("horizon" in body) patch.horizon = body.horizon;
+  if ("effort" in body) patch.effort = body.effort;
   const item = await updateItem(id, patch);
   return NextResponse.json({ item });
 }

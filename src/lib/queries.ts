@@ -49,6 +49,7 @@ export type ItemRow = {
   tag: TagKey | null;
   roi: string | null; // 'high' | 'mid' | 'low' — only meaningful for missing items
   horizon: string | null; // 'short' | 'mid' | 'long' — only meaningful for missing items
+  effort: string | null; // 's' | 'm' | 'l' | 'xl' — only meaningful for missing items
   author_role: RoleKey | null;
   order_index: number;
   created_at: number;
@@ -271,7 +272,7 @@ export async function createItem(
 
 export async function updateItem(
   id: string,
-  patch: Partial<Pick<ItemRow, "content" | "tag" | "roi" | "horizon">>
+  patch: Partial<Pick<ItemRow, "content" | "tag" | "roi" | "horizon" | "effort">>
 ): Promise<ItemRow | null> {
   const fields: string[] = [];
   const vals: (string | number | null)[] = [];
@@ -359,11 +360,12 @@ export type MissingItemRow = {
   category: string | null;
   roi: string | null;
   horizon: string | null;
+  effort: string | null;
   author_role: string | null;
   created_at: number;
   stage_id: string;
   stage_name: string;
-  /** Owner role on the parent stage — used by the "what good looks like" sort. */
+  /** Owner role on the parent stage. */
   stage_owner_role: string | null;
   /** Drop/Automate/Hybrid/Own decision on the parent stage. */
   stage_decision_tag: string | null;
@@ -381,6 +383,7 @@ export async function getAllMissingItems(): Promise<MissingItemRow[]> {
        i.tag           AS category,
        i.roi           AS roi,
        i.horizon       AS horizon,
+       i.effort        AS effort,
        i.author_role   AS author_role,
        i.created_at    AS created_at,
        s.id            AS stage_id,
@@ -408,6 +411,10 @@ export type DropRow = {
   created_at: number | null;
   stage_id: string;
   stage_name: string;
+  /** Only populated when row_type === 'stage'. Count of items the stage holds. */
+  stage_item_count: number;
+  /** Only populated when row_type === 'stage'. Count of comments on the stage. */
+  stage_comment_count: number;
   process_id: string;
   process_type: "main" | "department";
   process_name: string;
@@ -425,6 +432,8 @@ export async function getAllDropItems(): Promise<DropRow[]> {
        NULL           AS created_at,
        s.id           AS stage_id,
        s.name         AS stage_name,
+       (SELECT COUNT(*) FROM items    WHERE stage_id = s.id) AS stage_item_count,
+       (SELECT COUNT(*) FROM comments WHERE stage_id = s.id) AS stage_comment_count,
        p.id           AS process_id,
        p.type         AS process_type,
        p.name         AS process_name,
@@ -444,6 +453,8 @@ export async function getAllDropItems(): Promise<DropRow[]> {
        i.created_at   AS created_at,
        s.id           AS stage_id,
        s.name         AS stage_name,
+       0              AS stage_item_count,
+       0              AS stage_comment_count,
        p.id           AS process_id,
        p.type         AS process_type,
        p.name         AS process_name,

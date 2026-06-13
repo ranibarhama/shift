@@ -83,3 +83,24 @@ export type HorizonLevel = (typeof HORIZON_LEVELS)[number]["key"];
 export function getHorizon(key: string | null | undefined) {
   return HORIZON_LEVELS.find((h) => h.key === key);
 }
+
+/**
+ * T-shirt-size effort estimate on a missing item.
+ *   S  = up to 1 sprint
+ *   M  = up to 2 sprints
+ *   L  = up to 3 sprints
+ *   XL = more than 3 sprints
+ * Warm-to-cool colors so the row reads at a glance.
+ */
+export const EFFORT_LEVELS = [
+  { key: "s", label: "S", description: "up to 1 sprint", hex: "#22c55e" },
+  { key: "m", label: "M", description: "up to 2 sprints", hex: "#eab308" },
+  { key: "l", label: "L", description: "up to 3 sprints", hex: "#f97316" },
+  { key: "xl", label: "XL", description: "more than 3 sprints", hex: "#ef4444" },
+] as const;
+
+export type EffortLevel = (typeof EFFORT_LEVELS)[number]["key"];
+
+export function getEffort(key: string | null | undefined) {
+  return EFFORT_LEVELS.find((e) => e.key === key);
+}

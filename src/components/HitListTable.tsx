@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ROLES, ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
 import { ITEM_KINDS, getTag } from "@/lib/tags";
 import { TrashIcon } from "./DecisionIcons";
+import { useConfirm } from "./ConfirmProvider";
 import type { DropRow } from "@/lib/queries";
 
 type SortKey = "content" | "type" | "context" | "author" | "added";
@@ -18,13 +19,57 @@ const ROW_KIND_LABEL: Record<string, string> = {
   pain_point: "Pain point",
 };
 
-export default function HitListTable({ rows }: { rows: DropRow[] }) {
+export default function HitListTable({ rows: initialRows }: { rows: DropRow[] }) {
   const dropTag = getTag("drop")!;
+  const confirm = useConfirm();
+  const [rows, setRows] = useState<DropRow[]>(initialRows);
+  useEffect(() => setRows(initialRows), [initialRows]);
+
   const [search, setSearch] = useState("");
   const [rowType, setRowType] = useState<RowTypeFilter>("all");
   const [scope, setScope] = useState<"all" | "main" | RoleKey>("all");
   const [sortKey, setSortKey] = useState<SortKey>("added");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  async function deleteRow(r: DropRow) {
+    if (r.row_type === "stage") {
+      const itemCount = r.stage_item_count ?? 0;
+      const commentCount = r.stage_comment_count ?? 0;
+      const cascadeParts: string[] = [];
+      if (itemCount > 0) cascadeParts.push(`${itemCount} item${itemCount === 1 ? "" : "s"}`);
+      if (commentCount > 0)
+        cascadeParts.push(`${commentCount} comment${commentCount === 1 ? "" : "s"}`);
+      const cascade =
+        cascadeParts.length > 0 ? ` This will also delete ${cascadeParts.join(" and ")} on the stage.` : "";
+      const ok = await confirm({
+        title: "Delete this stage?",
+        message: `Remove "${r.content}" from ${r.process_name}.${cascade} The stage and everything on it will disappear from the canvas, the backlog, and this list. This cannot be undone.`,
+        confirmLabel: "Delete stage",
+        danger: true,
+      });
+      if (!ok) return;
+      setRows((arr) => arr.filter((x) => !(x.row_type === "stage" && x.id === r.id)));
+      try {
+        await fetch(`/api/stages/${r.id}`, { method: "DELETE" });
+      } catch (err) {
+        console.warn("[Shift] hit-list stage delete failed", err);
+      }
+    } else {
+      const ok = await confirm({
+        title: "Delete this item?",
+        message: `Remove "${r.content}" from ${r.stage_name}. This cannot be undone.`,
+        confirmLabel: "Delete",
+        danger: true,
+      });
+      if (!ok) return;
+      setRows((arr) => arr.filter((x) => !(x.row_type === "item" && x.id === r.id)));
+      try {
+        await fetch(`/api/items/${r.id}`, { method: "DELETE" });
+      } catch (err) {
+        console.warn("[Shift] hit-list item delete failed", err);
+      }
+    }
+  }
 
   const filtered = useMemo(() => {
     let list = rows;
@@ -187,12 +232,15 @@ export default function HitListTable({ rows }: { rows: DropRow[] }) {
               <Th sortKey="context" current={sortKey} dir={sortDir} onClick={toggleSort}>Stage · Workflow</Th>
               <Th sortKey="author" current={sortKey} dir={sortDir} onClick={toggleSort}>Tagged by</Th>
               <Th sortKey="added" current={sortKey} dir={sortDir} onClick={toggleSort}>Added</Th>
+              <th className="px-4 py-2 text-right text-xs uppercase tracking-wider text-muted">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted">
+                <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted">
                   {rows.length === 0
                     ? "Nothing tagged Drop yet."
                     : "No rows match these filters."}
@@ -267,6 +315,21 @@ export default function HitListTable({ rows }: { rows: DropRow[] }) {
                   >
                     {r.created_at ? relative(r.created_at) : "—"}
                   </td>
+                  <td className="px-4 py-2.5 align-top text-right">
+                    <button
+                      type="button"
+                      onClick={() => deleteRow(r)}
+                      className="grid h-7 w-7 place-items-center rounded-full border border-drop/40 text-drop transition hover:bg-drop/15"
+                      aria-label={isStage ? "Delete this stage" : "Delete this item"}
+                      title={
+                        isStage
+                          ? `Delete this stage and everything on it`
+                          : "Delete this item everywhere"
+                      }
+                    >
+                      <CloseIcon />
+                    </button>
+                  </td>
                 </tr>
               );
             })}
@@ -337,6 +400,24 @@ function SummaryChip({
       </div>
       <span className="h-2 w-2 rounded-full" style={{ background: hex }} />
     </button>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="6" y1="18" x2="18" y2="6" />
+    </svg>
   );
 }
 
