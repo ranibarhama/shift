@@ -1,6 +1,9 @@
 /**
- * Stone briefs — the post-workshop handoff each nominated leader writes
- * against the stones surfaced on /big-stones.
+ * Stone briefs — types, constants, and pure parsing helpers.
+ *
+ * Client-safe (no DB imports). The matching DB queries live in
+ * src/lib/stoneBriefsDb.ts so this file can be pulled into a client
+ * component without dragging node:fs into the client bundle.
  *
  * Shape per stone:
  *   - leaders    : multi-select from the fixed LEADER_NAMES list
@@ -10,8 +13,6 @@
  *   - people     : free-text of names pulled in from other teams
  *   - review_date: ISO yyyy-mm-dd of the leadership check-in
  */
-
-import { row, rows, run } from "./db";
 
 export const LEADER_NAMES = ["Gal", "Rani", "Ran", "Limor", "Yossi", "Ben"] as const;
 export type LeaderName = (typeof LEADER_NAMES)[number];
@@ -147,19 +148,6 @@ export function parseBrief(r: StoneBriefRow): StoneBrief {
   };
 }
 
-export async function getAllStoneBriefs(): Promise<StoneBrief[]> {
-  const raw = await rows<StoneBriefRow>("SELECT * FROM stone_briefs");
-  return raw.map(parseBrief);
-}
-
-export async function getStoneBrief(stoneKey: string): Promise<StoneBrief | null> {
-  const raw = await row<StoneBriefRow>(
-    "SELECT * FROM stone_briefs WHERE stone_key = ?",
-    [stoneKey]
-  );
-  return raw ? parseBrief(raw) : null;
-}
-
 export type StoneBriefPatch = {
   leaders?: LeaderName[];
   kpis?: Partial<Record<KpiKey, KpiRole>>;
@@ -168,51 +156,3 @@ export type StoneBriefPatch = {
   people?: string;
   reviewDate?: string;
 };
-
-/**
- * Upsert one stone brief. Reads the existing row, merges the patch on top,
- * and writes it back so partial updates from the UI just touch the fields
- * they care about.
- */
-export async function upsertStoneBrief(
-  stoneKey: string,
-  patch: StoneBriefPatch
-): Promise<StoneBrief> {
-  const existing = (await getStoneBrief(stoneKey)) ?? emptyBrief(stoneKey);
-  const merged: StoneBrief = {
-    ...existing,
-    leaders: patch.leaders ?? existing.leaders,
-    kpis: patch.kpis ?? existing.kpis,
-    outcome: patch.outcome ?? existing.outcome,
-    pilot: patch.pilot ?? existing.pilot,
-    people: patch.people ?? existing.people,
-    reviewDate: patch.reviewDate ?? existing.reviewDate,
-    updatedAt: Date.now(),
-  };
-
-  await run(
-    `INSERT INTO stone_briefs
-       (stone_key, leaders, kpis, outcome, pilot, people, review_date, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(stone_key) DO UPDATE SET
-       leaders = excluded.leaders,
-       kpis = excluded.kpis,
-       outcome = excluded.outcome,
-       pilot = excluded.pilot,
-       people = excluded.people,
-       review_date = excluded.review_date,
-       updated_at = excluded.updated_at`,
-    [
-      stoneKey,
-      JSON.stringify(merged.leaders),
-      JSON.stringify(merged.kpis),
-      merged.outcome,
-      merged.pilot,
-      merged.people,
-      merged.reviewDate,
-      merged.updatedAt,
-    ]
-  );
-
-  return merged;
-}

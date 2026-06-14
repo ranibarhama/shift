@@ -4,7 +4,7 @@ import BigStonesView from "@/components/BigStonesView";
 import { getCurrentRole } from "@/lib/session";
 import { getAllMissingItems } from "@/lib/queries";
 import { analyzeBacklog } from "@/lib/bigStones";
-import { getAllStoneBriefs } from "@/lib/stoneBriefs";
+import { getAllStoneBriefs } from "@/lib/stoneBriefsDb";
 
 export const metadata = {
   title: "Backlog Zoom Out · Shift",
