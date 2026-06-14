@@ -82,11 +82,13 @@ const AGENDA: AgendaItem[] = [
 ];
 
 const WORKSHOP_IS = [
-  "Align on how today's B2C process actually flows, end to end.",
-  "Surface the gaps each department sees from their seat.",
-  "Make the backlog real — every director owns 3–4 top items.",
-  "Show the team where we're heading and connect today's gaps to it.",
-  "Leave with a leader per stage and a clear next step.",
+  "Aligning on how the current B2C process flows end to end.",
+  "Surfacing the key gaps each department sees from its perspective.",
+  "Reviewing the task backlog at a high level.",
+  "Reviewing the list of items we may want to drop.",
+  "Showing the team where we are heading and what “good” should look like.",
+  "Zooming out from the backlog and connecting it to the broader vision.",
+  "Leaving the session with a clear owner for each stage and agreed next steps.",
 ];
 
 const WORKSHOP_IS_NOT = [
@@ -128,13 +130,16 @@ export default function WorkshopAgendaPage() {
             </h2>
           </div>
           <p className="text-sm leading-snug text-fg/85">
-            A working session to produce a{" "}
+            A working session to create a{" "}
             <span className="font-semibold text-fg">first mapping</span> of where we
-            are today and a{" "}
+            are today and define a{" "}
             <span className="font-semibold text-fg">high-level action plan</span> we
             can take forward.
           </p>
-          <ul className="mt-4 space-y-2">
+          <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+            The session will focus on
+          </div>
+          <ul className="mt-2 space-y-2">
             {WORKSHOP_IS.map((line) => (
               <li
                 key={line}
