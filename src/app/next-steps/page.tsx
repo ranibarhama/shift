@@ -1,26 +1,23 @@
 import { redirect } from "next/navigation";
 import Topbar from "@/components/Topbar";
-import BigStonesView from "@/components/BigStonesView";
+import NextStepsView from "@/components/NextStepsView";
 import { getCurrentRole } from "@/lib/session";
-import { getAllMissingItems } from "@/lib/queries";
-import { analyzeBacklog } from "@/lib/bigStones";
+import { getAllStoneBriefs } from "@/lib/stoneBriefsDb";
 
 export const metadata = {
-  title: "Backlog Zoom Out · Shift",
+  title: "Next Steps · Shift",
 };
 export const dynamic = "force-dynamic";
 
-export default async function BigStonesPage() {
+export default async function NextStepsPage() {
   const role = await getCurrentRole();
   if (role !== "product") redirect("/");
-
-  const items = await getAllMissingItems();
-  const analysis = analyzeBacklog(items);
+  const briefs = await getAllStoneBriefs();
 
   return (
     <div className="flex min-h-screen flex-col">
       <Topbar />
-      <BigStonesView analysis={analysis} />
+      <NextStepsView briefs={briefs} />
     </div>
   );
 }

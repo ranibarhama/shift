@@ -1,114 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { BIG_STONES, type BacklogAnalysis, type StoneAnalysis } from "@/lib/bigStones";
-import {
-  LEADER_NAMES,
-  KPIS,
-  emptyBrief,
-  type StoneBrief,
-  type LeaderName,
-  type KpiKey,
-  type KpiRole,
-} from "@/lib/stoneBriefs";
+import type { BacklogAnalysis, StoneAnalysis } from "@/lib/bigStones";
 
 type Props = {
   analysis: BacklogAnalysis;
-  briefs: StoneBrief[];
 };
 
-export default function BigStonesView({ analysis, briefs }: Props) {
-  const [tab, setTab] = useState<"overview" | "next-steps">("overview");
-
-  // Map briefs by stone key, defaulting to empty so every stone has one
-  const briefByKey = new Map(briefs.map((b) => [b.stoneKey, b]));
-  for (const s of BIG_STONES) {
-    if (!briefByKey.has(s.key)) briefByKey.set(s.key, emptyBrief(s.key));
-  }
-
-  return (
-    <main className="mx-auto w-full max-w-7xl px-6 py-10">
-      <Hero />
-
-      {/* Tabs */}
-      <div className="mb-6 border-b border-line">
-        <div className="flex gap-6">
-          <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
-            Overview
-          </TabButton>
-          <TabButton
-            active={tab === "next-steps"}
-            onClick={() => setTab("next-steps")}
-          >
-            Next steps
-          </TabButton>
-        </div>
-      </div>
-
-      {tab === "overview" && <OverviewTab analysis={analysis} />}
-      {tab === "next-steps" && (
-        <NextStepsTab analysis={analysis} briefByKey={briefByKey} />
-      )}
-    </main>
-  );
-}
-
-/* ========================================================================= */
-/* Hero + tab bar                                                            */
-/* ========================================================================= */
-
-function Hero() {
-  return (
-    <header className="mb-8">
-      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-        Backlog · zoomed out
-      </div>
-      <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
-        Backlog Zoom Out
-      </h1>
-      <p className="mt-1.5 max-w-2xl text-sm text-muted">
-        Six strategic moves rolled up from every gap on the backlog. Each stone connects
-        to the part of{" "}
-        <Link href="/blueprint" className="text-accent hover:underline">
-          How good looks like
-        </Link>{" "}
-        it pushes the company toward.
-      </p>
-    </header>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "relative -mb-px border-b-2 px-1 pb-3 text-sm font-medium transition " +
-        (active
-          ? "border-accent text-fg"
-          : "border-transparent text-muted hover:text-fg")
-      }
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ========================================================================= */
-/* Tab 1 — Overview                                                          */
-/* ========================================================================= */
-
-function OverviewTab({ analysis }: { analysis: BacklogAnalysis }) {
+export default function BigStonesView({ analysis }: Props) {
   const stonesWithMass = analysis.stones.filter((sa) => sa.itemCount > 0).length;
   const totalScore = analysis.stones.reduce((s, sa) => s + sa.totalScore, 0);
   const concentrations = [...analysis.stones]
@@ -117,7 +16,25 @@ function OverviewTab({ analysis }: { analysis: BacklogAnalysis }) {
     .slice(0, 3);
 
   return (
-    <>
+    <main className="mx-auto w-full max-w-7xl px-6 py-10">
+      {/* Hero */}
+      <header className="mb-8">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
+          Backlog · zoomed out
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+          Backlog Zoom Out
+        </h1>
+        <p className="mt-1.5 max-w-2xl text-sm text-muted">
+          Six strategic moves rolled up from every gap on the backlog. Each stone
+          connects to the part of{" "}
+          <Link href="/blueprint" className="text-accent hover:underline">
+            How good looks like
+          </Link>{" "}
+          it pushes the company toward.
+        </p>
+      </header>
+
       {/* Summary strip */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <SummaryCell label="Items in backlog" value={analysis.totalItems} />
@@ -176,8 +93,8 @@ function OverviewTab({ analysis }: { analysis: BacklogAnalysis }) {
             stone
           </h2>
           <p className="mt-1 text-sm text-muted">
-            These items don&apos;t obviously belong to any of the six stones. Review them
-            in the backlog and reword, or let the workshop assign them.
+            These items don&apos;t obviously belong to any of the six stones. Review
+            them in the backlog and reword, or let the workshop assign them.
           </p>
           <ul className="mt-3 space-y-1">
             {analysis.unmappedItems.slice(0, 10).map((item) => (
@@ -208,9 +125,11 @@ function OverviewTab({ analysis }: { analysis: BacklogAnalysis }) {
           </Link>
         </section>
       )}
-    </>
+    </main>
   );
 }
+
+/* ------------------------------------------------------------------------- */
 
 function SummaryCell({ label, value }: { label: string; value: string | number }) {
   return (
@@ -378,348 +297,4 @@ function MetricCell({
       <div className="text-[10px] leading-tight text-muted">{sublabel}</div>
     </div>
   );
-}
-
-/* ========================================================================= */
-/* Tab 2 — Next steps                                                        */
-/* ========================================================================= */
-
-function NextStepsTab({
-  analysis,
-  briefByKey,
-}: {
-  analysis: BacklogAnalysis;
-  briefByKey: Map<string, StoneBrief>;
-}) {
-  return (
-    <section className="space-y-5">
-      <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4">
-        <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-          Leader handoff
-        </div>
-        <h2 className="text-base font-semibold text-fg">
-          One brief per stone. Five lines, filled by the nominated leader.
-        </h2>
-        <p className="mt-1 text-[13px] text-muted">
-          Pick the leader(s) for each stone, set the KPI commitment (Primary or
-          Secondary), and write the outcome + first pilot. Edits save automatically.
-        </p>
-      </div>
-
-      {analysis.stones.map((sa) => (
-        <StoneBriefRow
-          key={sa.stone.key}
-          sa={sa}
-          initialBrief={briefByKey.get(sa.stone.key)!}
-        />
-      ))}
-    </section>
-  );
-}
-
-function StoneBriefRow({
-  sa,
-  initialBrief,
-}: {
-  sa: StoneAnalysis;
-  initialBrief: StoneBrief;
-}) {
-  const [brief, setBrief] = useState<StoneBrief>(initialBrief);
-  const [savingAt, setSavingAt] = useState<number | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(
-    initialBrief.updatedAt || null
-  );
-
-  function persist(patch: Partial<StoneBrief>) {
-    const next = { ...brief, ...patch };
-    setBrief(next);
-    setSavingAt(Date.now());
-    const body = {
-      leaders: next.leaders,
-      kpis: next.kpis,
-      outcome: next.outcome,
-      pilot: next.pilot,
-      people: next.people,
-      reviewDate: next.reviewDate,
-    };
-    void fetch(`/api/stone-briefs/${sa.stone.key}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    })
-      .then(() => setSavedAt(Date.now()))
-      .catch((err) => console.warn("[Shift] stone brief save failed", err));
-  }
-
-  function toggleLeader(name: LeaderName) {
-    const set = new Set<LeaderName>(brief.leaders);
-    if (set.has(name)) set.delete(name);
-    else set.add(name);
-    persist({ leaders: Array.from(set) });
-  }
-
-  function cycleKpi(key: KpiKey) {
-    const current = brief.kpis[key];
-    const next: KpiRole | undefined =
-      current === undefined ? "primary" : current === "primary" ? "secondary" : undefined;
-    const kpis = { ...brief.kpis };
-    if (next === undefined) delete kpis[key];
-    else kpis[key] = next;
-    persist({ kpis });
-  }
-
-  function onTextBlur(field: "outcome" | "pilot" | "people", value: string) {
-    if (value === brief[field]) return;
-    persist({ [field]: value });
-  }
-
-  function onDateChange(value: string) {
-    persist({ reviewDate: value });
-  }
-
-  return (
-    <article
-      className="rounded-2xl border border-line bg-card/60 shadow-card"
-      style={{ boxShadow: `inset 3px 0 0 0 ${sa.stone.hex}` }}
-    >
-      <header className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
-        <div className="flex items-start gap-3">
-          <span
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-bold"
-            style={{ background: `${sa.stone.hex}1a`, color: sa.stone.hex }}
-          >
-            {sa.stone.num}
-          </span>
-          <div className="min-w-0">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-              style={{ color: sa.stone.hex }}
-            >
-              Stone {String(sa.stone.num).padStart(2, "0")}
-            </div>
-            <h3 className="text-[16px] font-semibold leading-tight text-fg">
-              {sa.stone.name}
-            </h3>
-          </div>
-        </div>
-        <SaveIndicator savingAt={savingAt} savedAt={savedAt} />
-      </header>
-
-      <div className="space-y-5 px-5 pb-5 pt-4">
-        {/* Leader(s) */}
-        <Field
-          label="Leader(s)"
-          help="Select one or more — multi-ownership is fine."
-        >
-          <div className="flex flex-wrap gap-1.5">
-            {LEADER_NAMES.map((name) => {
-              const active = brief.leaders.includes(name);
-              return (
-                <button
-                  type="button"
-                  key={name}
-                  onClick={() => toggleLeader(name)}
-                  className="rounded-full border px-3 py-1 text-[12px] font-medium transition"
-                  style={
-                    active
-                      ? {
-                          borderColor: sa.stone.hex,
-                          background: `${sa.stone.hex}22`,
-                          color: sa.stone.hex,
-                        }
-                      : {
-                          borderColor: "rgb(var(--line))",
-                          color: "rgb(var(--muted))",
-                        }
-                  }
-                  aria-pressed={active}
-                >
-                  {name}
-                </button>
-              );
-            })}
-          </div>
-        </Field>
-
-        {/* KPI mapping */}
-        <Field
-          label="KPI commitment"
-          help="Click each KPI to cycle: Off → Primary → Secondary → Off."
-        >
-          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {KPIS.map((kpi) => (
-              <KpiChip
-                key={kpi.key}
-                kpi={kpi}
-                role={brief.kpis[kpi.key]}
-                hex={sa.stone.hex}
-                onClick={() => cycleKpi(kpi.key)}
-              />
-            ))}
-          </div>
-        </Field>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Outcome" help="What “good” looks like in 90 days, one line.">
-            <textarea
-              defaultValue={brief.outcome}
-              onBlur={(e) => onTextBlur("outcome", e.target.value)}
-              placeholder="By <date>, this stage will have <observable outcome>."
-              rows={2}
-              className="w-full resize-none rounded-lg border border-line bg-bg/60 px-3 py-2 text-[13px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
-            />
-          </Field>
-
-          <Field label="First pilot" help="Smallest concrete thing to ship in 2 weeks.">
-            <textarea
-              defaultValue={brief.pilot}
-              onBlur={(e) => onTextBlur("pilot", e.target.value)}
-              placeholder="The 2-week experiment we'll run to test the approach…"
-              rows={2}
-              className="w-full resize-none rounded-lg border border-line bg-bg/60 px-3 py-2 text-[13px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
-            />
-          </Field>
-
-          <Field label="People pulled in" help="1–3 names from other teams.">
-            <input
-              type="text"
-              defaultValue={brief.people}
-              onBlur={(e) => onTextBlur("people", e.target.value)}
-              placeholder="Names, comma-separated"
-              className="w-full rounded-lg border border-line bg-bg/60 px-3 py-2 text-[13px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
-            />
-          </Field>
-
-          <Field label="Review date" help="When leadership checks back.">
-            <input
-              type="date"
-              value={brief.reviewDate}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="w-full rounded-lg border border-line bg-bg/60 px-3 py-2 text-[13px] text-fg focus:border-accent focus:outline-none"
-            />
-          </Field>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function Field({
-  label,
-  help,
-  children,
-}: {
-  label: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="mb-1.5 flex items-baseline gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-fg">
-          {label}
-        </span>
-        {help && <span className="text-[10px] text-muted">· {help}</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function KpiChip({
-  kpi,
-  role,
-  hex,
-  onClick,
-}: {
-  kpi: { key: KpiKey; label: string; description: string };
-  role: KpiRole | undefined;
-  hex: string;
-  onClick: () => void;
-}) {
-  const isPrimary = role === "primary";
-  const isSecondary = role === "secondary";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={kpi.description}
-      className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition"
-      style={
-        isPrimary
-          ? {
-              borderColor: hex,
-              background: `${hex}22`,
-            }
-          : isSecondary
-          ? {
-              borderColor: `${hex}77`,
-              background: "transparent",
-            }
-          : {
-              borderColor: "rgb(var(--line))",
-              background: "transparent",
-            }
-      }
-    >
-      <span
-        className="text-[12.5px] font-semibold"
-        style={{ color: isPrimary || isSecondary ? hex : "rgb(var(--fg))" }}
-      >
-        {kpi.label}
-      </span>
-      <RoleBadge role={role} hex={hex} />
-    </button>
-  );
-}
-
-function RoleBadge({ role, hex }: { role: KpiRole | undefined; hex: string }) {
-  if (role === "primary") {
-    return (
-      <span
-        className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-        style={{ background: hex, color: "white" }}
-      >
-        Primary
-      </span>
-    );
-  }
-  if (role === "secondary") {
-    return (
-      <span
-        className="rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-        style={{ borderColor: hex, color: hex }}
-      >
-        Secondary
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full border border-line px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted">
-      Off
-    </span>
-  );
-}
-
-function SaveIndicator({
-  savingAt,
-  savedAt,
-}: {
-  savingAt: number | null;
-  savedAt: number | null;
-}) {
-  const saving = savingAt !== null && (savedAt === null || savedAt < savingAt);
-  if (saving) {
-    return (
-      <span className="text-[10px] uppercase tracking-wider text-muted">
-        Saving…
-      </span>
-    );
-  }
-  if (savedAt) {
-    return (
-      <span className="text-[10px] uppercase tracking-wider text-muted">Saved</span>
-    );
-  }
-  return null;
 }
