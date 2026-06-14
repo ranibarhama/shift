@@ -323,16 +323,6 @@ type TransformStage = {
   key: string;
   currentName: string;
   currentSummary: string;
-  newName: string;
-  newSublabel: string;
-  newLayerNums: string[];
-  operatingLayerNum?: string;
-  isLearningLoop?: boolean;
-  /** Optional split shown only on Future view — e.g. legacy vs. new features. */
-  workTypes?: {
-    legacy: { label: string; sublabel?: string; items: string[] };
-    new: { label: string; sublabel?: string; items: string[] };
-  };
 };
 
 const TRANSFORM_STAGES: TransformStage[] = [
@@ -341,58 +331,24 @@ const TRANSFORM_STAGES: TransformStage[] = [
     currentName: "Research & Planning",
     currentSummary:
       "Manual market research and roadmap planning, mostly periodic, scattered across spreadsheets and docs.",
-    newName: "B2C Insights Engine",
-    newSublabel: "Market & User Intelligence + Planning & Prioritization",
-    newLayerNums: ["1", "2"],
   },
   {
     key: "development",
     currentName: "Development",
     currentSummary:
       "Sprint-based delivery. Specs become tickets become code, reviewed in cycles.",
-    newName: "AI-Native Build",
-    newSublabel: "AI Build / MVP + Mini-Pods, operating in No-Sprints mode",
-    newLayerNums: ["3", "5"],
-    operatingLayerNum: "4",
-    workTypes: {
-      legacy: {
-        label: "Legacy tasks",
-        sublabel: "existing product",
-        items: [
-          "AI maintenance & refactor agents",
-          "Regression test guardrails",
-          "Backwards-compat checks",
-        ],
-      },
-      new: {
-        label: "New features",
-        sublabel: "greenfield bets",
-        items: [
-          "MVP Mode from a Planthon brief",
-          "Experiment-first delivery",
-          "Fast rollback if it tanks",
-        ],
-      },
-    },
   },
   {
     key: "gtm",
     currentName: "Go to Market",
     currentSummary:
       "Launch campaigns, channel setup and messaging owned per team, one launch at a time.",
-    newName: "Agent-Driven GTM",
-    newSublabel: "Go-to-Market & Growth",
-    newLayerNums: ["6"],
   },
   {
     key: "growth",
     currentName: "Growth",
     currentSummary:
       "Per-feature growth experiments and reporting, learnings live in the team that ran them.",
-    newName: "Continuous Learning Loop",
-    newSublabel: "Organizational memory & learning loop",
-    newLayerNums: [],
-    isLearningLoop: true,
   },
 ];
 
@@ -519,29 +475,273 @@ function TransformTab() {
         <ToggleSwitch view={view} onChange={setView} />
       </div>
 
-      {/* Cross-cutting band — top: Layer 7 — future only */}
-      {view === "future" && <CrossCuttingBand layerNum="7" />}
+      {view === "current" ? <CurrentStructure /> : <FutureStructure />}
+    </section>
+  );
+}
 
-      {/* 4-stage flow with chevron connectors */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))] lg:gap-2">
-        {TRANSFORM_STAGES.map((s, idx) => (
-          <div key={s.key} className="relative">
-            <TransformStageCard stage={s} view={view} index={idx} />
-            {idx < TRANSFORM_STAGES.length - 1 && (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-line lg:block"
+function CurrentStructure() {
+  return (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))] lg:gap-2">
+      {TRANSFORM_STAGES.map((s, idx) => (
+        <div key={s.key} className="relative">
+          <TransformStageCard stage={s} index={idx} />
+          {idx < TRANSFORM_STAGES.length - 1 && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-line lg:block"
+            >
+              <Chevron />
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ----- Future "How good looks like" — matches the CEO's diagram ---------- */
+
+const HEADER_HEX = "#f97316"; // orange title bar
+const OPMODEL_HEX = "#14b8a6"; // teal — operating model + insights highlight
+const PODS_HEX = "#8b5cf6"; // purple — Mini Pods Structure label
+
+function FutureStructure() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1fr_minmax(0,280px)]">
+      {/* Left column — the main flow */}
+      <div className="space-y-4 rounded-2xl border-2 border-dashed border-line/70 p-3 sm:p-4">
+        {/* 3 stage cards with chevrons between them */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-2">
+          <div className="relative">
+            <FutureStageCard num={1} title="B2C Insights Engine">
+              <FutureStageBody
+                description="Always-on agents listening to the market, users, support, social and competitors — feeding a single Insight Engine."
               >
-                <Chevron />
-              </span>
-            )}
+                <div>
+                  <div className="text-[12px] font-semibold text-fg">
+                    single source of signal
+                  </div>
+                  <div className="text-[11px] italic text-muted">Always on!</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold text-muted">for:</div>
+                  <div
+                    className="mt-1 text-[12px] font-semibold leading-snug"
+                    style={{ color: OPMODEL_HEX }}
+                  >
+                    Market &amp; User Intelligence + Planning &amp; Prioritization
+                  </div>
+                </div>
+              </FutureStageBody>
+            </FutureStageCard>
+            <FlowArrowGutter />
           </div>
-        ))}
+
+          <div className="relative">
+            <FutureStageCard num={2} title="AI Build / MVP and legacy">
+              <FutureStageBody description="From idea to testable MVP in days, not quarters. AI generates code, UX, copy and instrumentation against a shared design system.">
+                <div className="space-y-2.5">
+                  <div className="text-[11px] font-semibold text-fg">
+                    Two streams of work
+                  </div>
+
+                  <StreamBlock
+                    label="Legacy tasks"
+                    sublabel="existing product"
+                    items={[
+                      "AI maintenance & refactor agents",
+                      "Regression test guardrails",
+                      "Backwards-compat checks",
+                    ]}
+                  />
+
+                  <StreamBlock
+                    label="New features"
+                    sublabel="greenfield bets"
+                    badge={{ text: "Mini Pods Structure", hex: PODS_HEX }}
+                    items={[
+                      "MVP Mode from a Planthon brief",
+                      "Experiment-first delivery",
+                      "Fast rollback if it tanks",
+                    ]}
+                  />
+                </div>
+
+                {/* Operating Model */}
+                <div
+                  className="mt-1 rounded-lg border-2 border-dashed px-2.5 py-1.5"
+                  style={{ borderColor: `${OPMODEL_HEX}66` }}
+                >
+                  <div
+                    className="text-[9px] font-semibold uppercase tracking-[0.18em]"
+                    style={{ color: OPMODEL_HEX }}
+                  >
+                    Operating model
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: OPMODEL_HEX }}
+                      aria-hidden
+                    />
+                    <span className="text-[12px] font-semibold text-fg">
+                      No-Sprints Execution
+                    </span>
+                  </div>
+                </div>
+              </FutureStageBody>
+            </FutureStageCard>
+            <FlowArrowGutter />
+          </div>
+
+          <FutureStageCard num={3} title="GTM and Grow">
+            <FutureStageBody description="Launch and growth handled by an agent crew across every channel, watched by live KPI monitors that feed product back.">
+              <ul className="space-y-3 text-[13px] text-fg">
+                <li>Agent Driven GTM</li>
+                <li>Live KPI monitors</li>
+                <li>Real time alerting and reporting</li>
+              </ul>
+            </FutureStageBody>
+          </FutureStageCard>
+        </div>
+
+        {/* Cross-cutting bands */}
+        <CrossCuttingBand layerNum="7" />
+        <CrossCuttingBand layerNum="8" />
       </div>
 
-      {/* Cross-cutting band — bottom: Layer 8 — future only */}
-      {view === "future" && <CrossCuttingBand layerNum="8" />}
-    </section>
+      {/* Right column — Decision Brain card */}
+      <DecisionBrainCard />
+    </div>
+  );
+}
+
+function FutureStageCard({
+  num,
+  title,
+  children,
+}: {
+  num: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-line bg-card/40">
+      <header
+        className="flex items-center gap-2 px-3 py-2"
+        style={{ background: HEADER_HEX }}
+      >
+        <Hexagon num={num} />
+        <h3 className="text-[13px] font-semibold leading-tight text-white">{title}</h3>
+      </header>
+      <div className="flex flex-1 flex-col gap-3 px-3 py-3">{children}</div>
+    </article>
+  );
+}
+
+function FutureStageBody({
+  description,
+  children,
+}: {
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <div className="text-[11px] font-semibold text-fg">What is it</div>
+      <p className="text-[12px] leading-snug text-muted">{description}</p>
+      {children}
+    </>
+  );
+}
+
+function StreamBlock({
+  label,
+  sublabel,
+  badge,
+  items,
+}: {
+  label: string;
+  sublabel?: string;
+  badge?: { text: string; hex: string };
+  items: string[];
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline gap-1 text-[11px]">
+        <span className="font-semibold text-fg">{label}</span>
+        {sublabel && <span className="text-muted">· {sublabel}</span>}
+        {badge && (
+          <span
+            className="ml-1 text-[10.5px] font-semibold"
+            style={{ color: badge.hex }}
+          >
+            {badge.text}
+          </span>
+        )}
+      </div>
+      <ul className="ml-3 mt-1 space-y-0.5 text-[11px] leading-snug text-fg">
+        {items.map((it) => (
+          <li key={it}>{it}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DecisionBrainCard() {
+  return (
+    <aside className="h-full rounded-2xl border-2 border-dashed border-line/70 bg-card/40 p-4">
+      <h3 className="text-[13px] font-bold uppercase tracking-wider text-fg">
+        B2C Decision Brain
+      </h3>
+      <div className="mt-3 space-y-2">
+        <div className="text-[11px] font-semibold text-fg">What is it:</div>
+        <p className="text-[12px] leading-snug text-muted">
+          Company brain is a living knowledge layer that captures, updates, organizes,
+          and serves everything the organization knows. It sits above the existing tools
+          and process, and turns scattered work output into a connected, current
+          knowledge graph that humans and AI agents can both query.
+        </p>
+      </div>
+      <ul className="mt-5 space-y-3 text-[13px] text-fg">
+        <li>Answers you can actually trust</li>
+        <li>Maintain a real source of truth</li>
+        <li>Build reliable context for agents</li>
+      </ul>
+    </aside>
+  );
+}
+
+function Hexagon({ num }: { num: number }) {
+  return (
+    <span className="relative grid h-6 w-6 shrink-0 place-items-center">
+      <svg
+        viewBox="0 0 24 24"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden
+      >
+        <polygon
+          points="12,1.5 22.5,7.25 22.5,16.75 12,22.5 1.5,16.75 1.5,7.25"
+          fill="white"
+          stroke="rgba(0,0,0,0.15)"
+          strokeWidth="1"
+        />
+      </svg>
+      <span className="relative text-[11px] font-bold text-ink">{num}</span>
+    </span>
+  );
+}
+
+function FlowArrowGutter() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-line md:block"
+    >
+      <FlowChevron />
+    </span>
   );
 }
 
@@ -893,162 +1093,33 @@ function CrossCuttingBand({ layerNum }: { layerNum: string }) {
 
 function TransformStageCard({
   stage,
-  view,
   index,
 }: {
   stage: TransformStage;
-  view: "current" | "future";
   index: number;
 }) {
-  const isFuture = view === "future";
-  const layerObjs = stage.newLayerNums
-    .map((n) => LAYERS.find((l) => l.num === n))
-    .filter((l): l is Layer => Boolean(l));
-  const operatingLayer = stage.operatingLayerNum
-    ? LAYERS.find((l) => l.num === stage.operatingLayerNum)
-    : null;
-  const primaryHex = isFuture && layerObjs[0]
-    ? layerObjs[0].hex
-    : isFuture
-    ? LEARNING_LOOP_HEX
-    : null;
-
   return (
-    <article
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card/40 transition"
-      style={primaryHex ? { boxShadow: `inset 3px 0 0 0 ${primaryHex}` } : undefined}
-    >
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card/40">
       <header className="flex items-center gap-2 px-4 pb-2 pt-4">
         <span
           className="grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold"
-          style={
-            isFuture && primaryHex
-              ? { background: `${primaryHex}1a`, color: primaryHex }
-              : { background: "rgb(var(--line) / 0.5)", color: "rgb(var(--fg))" }
-          }
+          style={{ background: "rgb(var(--line) / 0.5)", color: "rgb(var(--fg))" }}
         >
           {index + 1}
         </span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
-          {isFuture ? "Future" : "Today"}
-        </span>
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted">Today</span>
       </header>
 
       <div className="flex flex-1 flex-col gap-3 px-4 pb-4">
-        {/* Heading */}
         <div>
-          {isFuture && (
-            <div className="text-[10px] text-muted/80 line-through">
-              {stage.currentName}
-            </div>
-          )}
           <h3 className="text-[15px] font-semibold leading-tight text-fg">
-            {isFuture ? stage.newName : stage.currentName}
+            {stage.currentName}
           </h3>
-          <div
-            className="mt-0.5 text-[10px] uppercase tracking-wider"
-            style={primaryHex ? { color: primaryHex } : { color: "rgb(var(--muted))" }}
-          >
-            {isFuture ? stage.newSublabel : "Today"}
+          <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted">
+            Today
           </div>
         </div>
-
-        {/* Body */}
-        {!isFuture && (
-          <p className="text-xs leading-snug text-muted">{stage.currentSummary}</p>
-        )}
-
-        {isFuture && stage.isLearningLoop && (
-          <>
-            <p className="text-xs leading-snug text-muted">
-              Every launch teaches the next plan. Captured centrally so the company
-              compounds learning instead of repeating it.
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {LEARNING_LOOP_ITEMS.slice(0, 6).map((it) => (
-                <span
-                  key={it}
-                  className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px]"
-                  style={{
-                    background: `${LEARNING_LOOP_HEX}14`,
-                    color: LEARNING_LOOP_HEX,
-                    border: `1px solid ${LEARNING_LOOP_HEX}33`,
-                  }}
-                >
-                  {it}
-                </span>
-              ))}
-            </div>
-            <div className="text-[10px] text-muted">
-              + {LEARNING_LOOP_ITEMS.length - 6} more
-            </div>
-          </>
-        )}
-
-        {isFuture && !stage.isLearningLoop && layerObjs.length > 0 && (
-          <div className="space-y-2">
-            {layerObjs.map((layer) => (
-              <div
-                key={layer.num}
-                className="flex items-center gap-2 rounded-lg border border-line bg-bg/40 px-2.5 py-1.5"
-              >
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: layer.hex }}
-                  aria-hidden
-                />
-                <span className="truncate text-[12px] text-fg">{layer.title}</span>
-                {layer.centerpiece && (
-                  <span
-                    className="ml-auto whitespace-nowrap rounded-full px-1.5 py-0 text-[9px] font-bold tracking-wide"
-                    style={{
-                      background: `${layer.hex}18`,
-                      color: layer.hex,
-                    }}
-                  >
-                    {layer.centerpiece.label}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Work-type split — e.g. Legacy tasks vs. New features on Build stage */}
-        {isFuture && stage.workTypes && (
-          <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-line bg-bg/30 p-2">
-            <div className="text-[9px] uppercase tracking-[0.18em] text-muted">
-              Two streams of work
-            </div>
-            <WorkTypeBlock kind="legacy" wt={stage.workTypes.legacy} />
-            <WorkTypeBlock kind="new" wt={stage.workTypes.new} />
-          </div>
-        )}
-
-        {/* Operating-model badge for Development → No-Sprints Execution */}
-        {isFuture && operatingLayer && (
-          <div
-            className="rounded-lg border-2 border-dashed px-2.5 py-1.5"
-            style={{ borderColor: `${operatingLayer.hex}55` }}
-          >
-            <div
-              className="text-[9px] uppercase tracking-[0.18em]"
-              style={{ color: operatingLayer.hex }}
-            >
-              Operating model
-            </div>
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ background: operatingLayer.hex }}
-                aria-hidden
-              />
-              <span className="text-[11px] font-semibold text-fg">
-                {operatingLayer.title}
-              </span>
-            </div>
-          </div>
-        )}
+        <p className="text-xs leading-snug text-muted">{stage.currentSummary}</p>
       </div>
     </article>
   );
@@ -1172,47 +1243,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Divider() {
   return <div className="my-2 border-t border-line/50" />;
-}
-
-function WorkTypeBlock({
-  kind,
-  wt,
-}: {
-  kind: "legacy" | "new";
-  wt: { label: string; sublabel?: string; items: string[] };
-}) {
-  // Muted slate for legacy, accent purple for new — fast visual read.
-  const hex = kind === "legacy" ? "#64748b" : "#7c5cff";
-  return (
-    <div className="rounded-md bg-card/40 p-2">
-      <div className="mb-1 flex items-baseline gap-1.5">
-        <span
-          className="text-[10px] font-semibold uppercase tracking-wider"
-          style={{ color: hex }}
-        >
-          {wt.label}
-        </span>
-        {wt.sublabel && (
-          <span className="text-[9px] text-muted">· {wt.sublabel}</span>
-        )}
-      </div>
-      <ul className="space-y-0.5">
-        {wt.items.map((it) => (
-          <li
-            key={it}
-            className="flex items-start gap-1.5 text-[10.5px] leading-snug text-fg"
-          >
-            <span
-              className="mt-1 h-1 w-1 shrink-0 rounded-full"
-              style={{ background: hex }}
-              aria-hidden
-            />
-            <span>{it}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function Chevron() {
