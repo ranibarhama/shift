@@ -148,6 +148,20 @@ async function ensureSchema(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_stages_process ON stages(process_id);
     CREATE INDEX IF NOT EXISTS idx_edges_process ON edges(process_id);
     CREATE INDEX IF NOT EXISTS idx_items_stage ON items(stage_id);
+
+    /* One brief per Big Stone, filled by the nominated leader(s)
+     * after the workshop. JSON-encoded multi-value fields kept as
+     * TEXT so the data stays portable across the libsql/Turso pair. */
+    CREATE TABLE IF NOT EXISTS stone_briefs (
+      stone_key TEXT PRIMARY KEY,
+      leaders TEXT,
+      kpis TEXT,
+      outcome TEXT,
+      pilot TEXT,
+      people TEXT,
+      review_date TEXT,
+      updated_at INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   // Migration: add order_index to processes if it doesn't exist yet
