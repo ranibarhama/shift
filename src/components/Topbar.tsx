@@ -40,7 +40,7 @@ export default async function Topbar() {
           <NavLink href="/hit-list">Hit List</NavLink>
           {role?.key === "product" && (
             <>
-              <NavLink href="/big-stones">Big Stones</NavLink>
+              <NavLink href="/big-stones">Backlog Zoom Out</NavLink>
               <NavLink href="/blueprint">How good looks like</NavLink>
             </>
           )}
