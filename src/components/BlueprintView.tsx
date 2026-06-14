@@ -504,7 +504,7 @@ function CurrentStructure() {
 
 const TEAL = "#14b8a6";
 const PODS_HEX = "#8b5cf6"; // purple — Mini Pods Structure label
-const BRAIN_HEX = "#a855f7"; // purple — Decision Brain accent
+const BRAIN_HEX = "#a855f7"; // purple — Organization Brain accent
 
 function FutureStructure() {
   return (
@@ -622,7 +622,7 @@ function FutureStructure() {
         </div>
       </div>
 
-      {/* Right column — Decision Brain card */}
+      {/* Right column — Organization Brain card */}
       <DecisionBrainCard />
     </div>
   );
@@ -819,7 +819,7 @@ function DecisionBrainCard() {
             Sits above everything
           </div>
           <h3 className="text-[15px] font-semibold leading-tight text-fg">
-            B2C Decision Brain
+            B2C Organization Brain
           </h3>
         </div>
       </header>

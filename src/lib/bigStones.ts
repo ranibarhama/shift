@@ -87,10 +87,10 @@ export const BIG_STONES: BigStone[] = [
   {
     key: "decision-brain",
     num: 4,
-    name: "Build the B2C Decision Brain",
+    name: "Build the B2C Organization Brain",
     description:
       "A living knowledge layer that captures and serves what the organization knows — for humans and AI agents.",
-    connectsTo: "B2C Decision Brain",
+    connectsTo: "B2C Organization Brain",
     hex: "#a855f7",
     keywords: [
       "knowledge", "memory", "brain",
