@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BigStonesPage() {
   const role = await getCurrentRole();
-  if (role !== "product") redirect("/");
+  if (!role) redirect("/");
 
   const items = await getAllMissingItems();
   const analysis = analyzeBacklog(items);

@@ -8,8 +8,6 @@ type Props = {
 };
 
 export default function BigStonesView({ analysis }: Props) {
-  const stonesWithMass = analysis.stones.filter((sa) => sa.itemCount > 0).length;
-  const totalScore = analysis.stones.reduce((s, sa) => s + sa.totalScore, 0);
   const concentrations = [...analysis.stones]
     .filter((s) => s.itemCount > 0)
     .sort((a, b) => b.totalScore - a.totalScore)
@@ -36,14 +34,9 @@ export default function BigStonesView({ analysis }: Props) {
       </header>
 
       {/* Summary strip */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3">
         <SummaryCell label="Items in backlog" value={analysis.totalItems} />
         <SummaryCell label="Mapped to stones" value={analysis.mappedItems} />
-        <SummaryCell
-          label="Stones with mass"
-          value={`${stonesWithMass} / ${analysis.stones.length}`}
-        />
-        <SummaryCell label="Total impact captured" value={totalScore} />
       </section>
 
       {concentrations.length > 0 && (

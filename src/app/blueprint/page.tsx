@@ -9,7 +9,7 @@ export const metadata = {
 
 export default async function HowGoodLooksLikePage() {
   const role = await getCurrentRole();
-  if (role !== "product") redirect("/");
+  if (!role) redirect("/");
   return (
     <div className="flex min-h-screen flex-col">
       <Topbar />
