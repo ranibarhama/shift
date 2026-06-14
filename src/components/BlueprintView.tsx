@@ -500,115 +500,126 @@ function CurrentStructure() {
   );
 }
 
-/* ----- Future "How good looks like" — matches the CEO's diagram ---------- */
+/* ----- Future "How good looks like" — refined diagram view --------------- */
 
-const HEADER_HEX = "#f97316"; // orange title bar
-const OPMODEL_HEX = "#14b8a6"; // teal — operating model + insights highlight
+const TEAL = "#14b8a6";
 const PODS_HEX = "#8b5cf6"; // purple — Mini Pods Structure label
+const BRAIN_HEX = "#a855f7"; // purple — Decision Brain accent
 
 function FutureStructure() {
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_minmax(0,280px)]">
+    <div className="grid gap-5 xl:grid-cols-[1fr_minmax(0,300px)]">
       {/* Left column — the main flow */}
-      <div className="space-y-4 rounded-2xl border-2 border-dashed border-line/70 p-3 sm:p-4">
-        {/* 3 stage cards with chevrons between them */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-2">
-          <div className="relative">
-            <FutureStageCard num={1} title="B2C Insights Engine">
-              <FutureStageBody
-                description="Always-on agents listening to the market, users, support, social and competitors — feeding a single Insight Engine."
-              >
+      <div className="relative space-y-5">
+        {/* Connecting rail behind cards row */}
+        <div className="relative">
+          {/* Subtle horizontal gradient rail running between card centers */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-[16%] right-[16%] top-[44px] hidden h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent md:block"
+          />
+          {/* 3 stage cards */}
+          <div className="relative grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
+            <FutureStageCard
+              num={1}
+              eyebrow="Stage 01"
+              title="B2C Insights Engine"
+              description="Always-on agents listening to the market, users, support, social and competitors — feeding a single Insight Engine."
+              accentHex={TEAL}
+              chevronAfter
+            >
+              <div className="space-y-3">
                 <div>
                   <div className="text-[12px] font-semibold text-fg">
-                    single source of signal
+                    Single source of signal
                   </div>
-                  <div className="text-[11px] italic text-muted">Always on!</div>
+                  <div className="text-[11px] italic text-muted">Always on</div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-semibold text-muted">for:</div>
-                  <div
-                    className="mt-1 text-[12px] font-semibold leading-snug"
-                    style={{ color: OPMODEL_HEX }}
-                  >
-                    Market &amp; User Intelligence + Planning &amp; Prioritization
+                  <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+                    Replaces
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <PillBadge hex={TEAL}>Market &amp; User Intelligence</PillBadge>
+                    <PillBadge hex={TEAL}>Planning &amp; Prioritization</PillBadge>
                   </div>
                 </div>
-              </FutureStageBody>
+              </div>
             </FutureStageCard>
-            <FlowArrowGutter />
-          </div>
 
-          <div className="relative">
-            <FutureStageCard num={2} title="AI Build / MVP and legacy">
-              <FutureStageBody description="From idea to testable MVP in days, not quarters. AI generates code, UX, copy and instrumentation against a shared design system.">
-                <div className="space-y-2.5">
-                  <div className="text-[11px] font-semibold text-fg">
-                    Two streams of work
-                  </div>
-
-                  <StreamBlock
-                    label="Legacy tasks"
-                    sublabel="existing product"
-                    items={[
-                      "AI maintenance & refactor agents",
-                      "Regression test guardrails",
-                      "Backwards-compat checks",
-                    ]}
-                  />
-
-                  <StreamBlock
-                    label="New features"
-                    sublabel="greenfield bets"
-                    badge={{ text: "Mini Pods Structure", hex: PODS_HEX }}
-                    items={[
-                      "MVP Mode from a Planthon brief",
-                      "Experiment-first delivery",
-                      "Fast rollback if it tanks",
-                    ]}
-                  />
+            <FutureStageCard
+              num={2}
+              eyebrow="Stage 02"
+              title="AI Build / MVP & Legacy"
+              description="From idea to testable MVP in days, not quarters. AI generates code, UX, copy and instrumentation against a shared design system."
+              accentHex={PODS_HEX}
+              chevronAfter
+            >
+              <div className="space-y-3">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+                  Two streams of work
                 </div>
 
-                {/* Operating Model */}
-                <div
-                  className="mt-1 rounded-lg border-2 border-dashed px-2.5 py-1.5"
-                  style={{ borderColor: `${OPMODEL_HEX}66` }}
-                >
-                  <div
-                    className="text-[9px] font-semibold uppercase tracking-[0.18em]"
-                    style={{ color: OPMODEL_HEX }}
-                  >
-                    Operating model
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1.5">
+                <StreamPanel
+                  label="Legacy"
+                  sublabel="existing product"
+                  hex="#64748b"
+                  items={[
+                    "AI maintenance & refactor agents",
+                    "Regression test guardrails",
+                    "Backwards-compat checks",
+                  ]}
+                />
+
+                <StreamPanel
+                  label="New features"
+                  sublabel="greenfield bets"
+                  hex={PODS_HEX}
+                  badge="Mini Pods Structure"
+                  items={[
+                    "MVP Mode from a Planthon brief",
+                    "Experiment-first delivery",
+                    "Fast rollback if it tanks",
+                  ]}
+                />
+
+                <OperatingModelPill hex={TEAL}>
+                  No-Sprints Execution
+                </OperatingModelPill>
+              </div>
+            </FutureStageCard>
+
+            <FutureStageCard
+              num={3}
+              eyebrow="Stage 03"
+              title="GTM & Grow"
+              description="Launch and growth handled by an agent crew across every channel, watched by live KPI monitors that feed product back."
+              accentHex="#ef4444"
+            >
+              <ul className="space-y-2.5">
+                {[
+                  "Agent-driven GTM",
+                  "Live KPI monitors",
+                  "Real-time alerting & reporting",
+                ].map((it) => (
+                  <li key={it} className="flex items-start gap-2 text-[13px] text-fg">
                     <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: OPMODEL_HEX }}
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
                       aria-hidden
                     />
-                    <span className="text-[12px] font-semibold text-fg">
-                      No-Sprints Execution
-                    </span>
-                  </div>
-                </div>
-              </FutureStageBody>
-            </FutureStageCard>
-            <FlowArrowGutter />
-          </div>
-
-          <FutureStageCard num={3} title="GTM and Grow">
-            <FutureStageBody description="Launch and growth handled by an agent crew across every channel, watched by live KPI monitors that feed product back.">
-              <ul className="space-y-3 text-[13px] text-fg">
-                <li>Agent Driven GTM</li>
-                <li>Live KPI monitors</li>
-                <li>Real time alerting and reporting</li>
+                    <span>{it}</span>
+                  </li>
+                ))}
               </ul>
-            </FutureStageBody>
-          </FutureStageCard>
+            </FutureStageCard>
+          </div>
         </div>
 
         {/* Cross-cutting bands */}
-        <CrossCuttingBand layerNum="7" />
-        <CrossCuttingBand layerNum="8" />
+        <div className="space-y-2.5">
+          <CrossCuttingBand layerNum="7" />
+          <CrossCuttingBand layerNum="8" />
+        </div>
       </div>
 
       {/* Right column — Decision Brain card */}
@@ -619,128 +630,333 @@ function FutureStructure() {
 
 function FutureStageCard({
   num,
+  eyebrow,
   title,
+  description,
+  accentHex,
+  chevronAfter,
   children,
 }: {
   num: number;
+  eyebrow: string;
   title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-line bg-card/40">
-      <header
-        className="flex items-center gap-2 px-3 py-2"
-        style={{ background: HEADER_HEX }}
-      >
-        <Hexagon num={num} />
-        <h3 className="text-[13px] font-semibold leading-tight text-white">{title}</h3>
-      </header>
-      <div className="flex flex-1 flex-col gap-3 px-3 py-3">{children}</div>
-    </article>
-  );
-}
-
-function FutureStageBody({
-  description,
-  children,
-}: {
   description: string;
+  accentHex: string;
+  chevronAfter?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <div className="text-[11px] font-semibold text-fg">What is it</div>
-      <p className="text-[12px] leading-snug text-muted">{description}</p>
-      {children}
-    </>
+    <div className="relative">
+      <article
+        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card/60 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg"
+        style={{ boxShadow: `inset 0 3px 0 0 ${accentHex}` }}
+      >
+        {/* Header: hex badge + eyebrow + title */}
+        <header className="flex items-start gap-3 px-4 pb-3 pt-5">
+          <Hexagon num={num} hex={accentHex} />
+          <div className="min-w-0 flex-1">
+            <div
+              className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: accentHex }}
+            >
+              {eyebrow}
+            </div>
+            <h3 className="text-[15px] font-semibold leading-tight text-fg">
+              {title}
+            </h3>
+          </div>
+        </header>
+
+        {/* What is it */}
+        <div className="px-4 pb-3">
+          <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted">
+            What is it
+          </div>
+          <p className="text-[12px] leading-snug text-fg/85">{description}</p>
+        </div>
+
+        <div className="mx-4 border-t border-line/50" />
+
+        {/* Body */}
+        <div className="flex flex-1 flex-col gap-3 px-4 py-4">{children}</div>
+      </article>
+
+      {chevronAfter && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-3.5 top-[44px] hidden -translate-y-1/2 md:block"
+        >
+          <RailChevron hex={accentHex} />
+        </span>
+      )}
+    </div>
   );
 }
 
-function StreamBlock({
+function PillBadge({ hex, children }: { hex: string; children: React.ReactNode }) {
+  return (
+    <span
+      className="whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+      style={{
+        background: `${hex}14`,
+        color: hex,
+        border: `1px solid ${hex}40`,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function StreamPanel({
   label,
   sublabel,
+  hex,
   badge,
   items,
 }: {
   label: string;
   sublabel?: string;
-  badge?: { text: string; hex: string };
+  hex: string;
+  badge?: string;
   items: string[];
 }) {
   return (
-    <div>
-      <div className="flex flex-wrap items-baseline gap-1 text-[11px]">
-        <span className="font-semibold text-fg">{label}</span>
-        {sublabel && <span className="text-muted">· {sublabel}</span>}
+    <div
+      className="rounded-xl border bg-bg/40 p-2.5"
+      style={{ borderColor: `${hex}33` }}
+    >
+      <div className="mb-1.5 flex flex-wrap items-baseline gap-1.5">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-wider"
+          style={{ color: hex }}
+        >
+          {label}
+        </span>
+        {sublabel && <span className="text-[10px] text-muted">· {sublabel}</span>}
         {badge && (
           <span
-            className="ml-1 text-[10.5px] font-semibold"
-            style={{ color: badge.hex }}
+            className="ml-auto rounded-full px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wider"
+            style={{
+              background: `${hex}18`,
+              color: hex,
+            }}
           >
-            {badge.text}
+            {badge}
           </span>
         )}
       </div>
-      <ul className="ml-3 mt-1 space-y-0.5 text-[11px] leading-snug text-fg">
+      <ul className="space-y-1">
         {items.map((it) => (
-          <li key={it}>{it}</li>
+          <li
+            key={it}
+            className="flex items-start gap-1.5 text-[11px] leading-snug text-fg"
+          >
+            <span
+              className="mt-1.5 h-1 w-1 shrink-0 rounded-full"
+              style={{ background: hex }}
+              aria-hidden
+            />
+            <span>{it}</span>
+          </li>
         ))}
       </ul>
     </div>
   );
 }
 
+function OperatingModelPill({
+  hex,
+  children,
+}: {
+  hex: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2 rounded-full border px-3 py-1.5"
+      style={{
+        borderColor: `${hex}44`,
+        background: `${hex}10`,
+      }}
+    >
+      <span
+        className="grid h-4 w-4 shrink-0 place-items-center rounded-full"
+        style={{ background: hex }}
+        aria-hidden
+      >
+        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 text-white" fill="currentColor">
+          <path d="M13 2 4 14h7l-2 8 11-13h-7l2-7z" />
+        </svg>
+      </span>
+      <span
+        className="text-[9px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: hex }}
+      >
+        Operating model
+      </span>
+      <span className="text-[12px] font-semibold text-fg">{children}</span>
+    </div>
+  );
+}
+
 function DecisionBrainCard() {
   return (
-    <aside className="h-full rounded-2xl border-2 border-dashed border-line/70 bg-card/40 p-4">
-      <h3 className="text-[13px] font-bold uppercase tracking-wider text-fg">
-        B2C Decision Brain
-      </h3>
-      <div className="mt-3 space-y-2">
-        <div className="text-[11px] font-semibold text-fg">What is it:</div>
-        <p className="text-[12px] leading-snug text-muted">
-          Company brain is a living knowledge layer that captures, updates, organizes,
-          and serves everything the organization knows. It sits above the existing tools
-          and process, and turns scattered work output into a connected, current
-          knowledge graph that humans and AI agents can both query.
+    <aside
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card/60 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg"
+      style={{
+        backgroundImage: `radial-gradient(circle at 100% 0%, ${BRAIN_HEX}18, transparent 60%)`,
+        boxShadow: `inset 0 3px 0 0 ${BRAIN_HEX}`,
+      }}
+    >
+      <header className="flex items-start gap-3 px-5 pb-3 pt-5">
+        <BrainIcon hex={BRAIN_HEX} />
+        <div>
+          <div
+            className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+            style={{ color: BRAIN_HEX }}
+          >
+            Sits above everything
+          </div>
+          <h3 className="text-[15px] font-semibold leading-tight text-fg">
+            B2C Decision Brain
+          </h3>
+        </div>
+      </header>
+
+      <div className="px-5 pb-3">
+        <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted">
+          What is it
+        </div>
+        <p className="text-[12px] leading-snug text-fg/85">
+          A living knowledge layer that captures, updates and serves everything the
+          organization knows. It sits above today's tools, turning scattered work
+          output into a connected knowledge graph that humans and AI agents can both
+          query.
         </p>
       </div>
-      <ul className="mt-5 space-y-3 text-[13px] text-fg">
-        <li>Answers you can actually trust</li>
-        <li>Maintain a real source of truth</li>
-        <li>Build reliable context for agents</li>
+
+      <div className="mx-5 border-t border-line/50" />
+
+      <ul className="flex flex-1 flex-col gap-2.5 px-5 py-4">
+        {[
+          "Answers you can actually trust",
+          "Maintain a real source of truth",
+          "Build reliable context for agents",
+        ].map((b) => (
+          <li key={b} className="flex items-start gap-2 text-[13px] text-fg">
+            <CheckMark hex={BRAIN_HEX} />
+            <span>{b}</span>
+          </li>
+        ))}
       </ul>
     </aside>
   );
 }
 
-function Hexagon({ num }: { num: number }) {
+function Hexagon({ num, hex }: { num: number; hex: string }) {
   return (
-    <span className="relative grid h-6 w-6 shrink-0 place-items-center">
+    <span className="relative grid h-9 w-9 shrink-0 place-items-center">
       <svg
         viewBox="0 0 24 24"
-        className="absolute inset-0 h-full w-full"
+        className="absolute inset-0 h-full w-full drop-shadow-sm"
         aria-hidden
       >
+        <defs>
+          <linearGradient id={`hex-grad-${num}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={hex} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={hex} stopOpacity="0.32" />
+          </linearGradient>
+        </defs>
         <polygon
           points="12,1.5 22.5,7.25 22.5,16.75 12,22.5 1.5,16.75 1.5,7.25"
-          fill="white"
-          stroke="rgba(0,0,0,0.15)"
+          fill={`url(#hex-grad-${num})`}
+          stroke={hex}
           strokeWidth="1"
         />
       </svg>
-      <span className="relative text-[11px] font-bold text-ink">{num}</span>
+      <span
+        className="relative text-[12px] font-bold tabular-nums"
+        style={{ color: hex }}
+      >
+        {num}
+      </span>
     </span>
   );
 }
 
-function FlowArrowGutter() {
+function RailChevron({ hex }: { hex: string }) {
   return (
     <span
-      aria-hidden
-      className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-line md:block"
+      className="grid h-7 w-7 place-items-center rounded-full"
+      style={{
+        background: `${hex}18`,
+        border: `1px solid ${hex}55`,
+      }}
     >
-      <FlowChevron />
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={hex}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <polyline points="9 6 15 12 9 18" />
+      </svg>
+    </span>
+  );
+}
+
+function BrainIcon({ hex }: { hex: string }) {
+  return (
+    <span
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+      style={{
+        background: `${hex}1a`,
+        border: `1px solid ${hex}44`,
+      }}
+      aria-hidden
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={hex}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15A2.5 2.5 0 0 1 9.5 22 2.5 2.5 0 0 1 7 19.5V18a2 2 0 0 1-2-2 2 2 0 0 1-1-3.7 2.5 2.5 0 0 1 0-4.6 2 2 0 0 1 1-3.7 2 2 0 0 1 2-2A2.5 2.5 0 0 1 9.5 2Z" />
+        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5V18a2 2 0 0 0 2-2 2 2 0 0 0 1-3.7 2.5 2.5 0 0 0 0-4.6 2 2 0 0 0-1-3.7 2 2 0 0 0-2-2A2.5 2.5 0 0 0 14.5 2Z" />
+      </svg>
+    </span>
+  );
+}
+
+function CheckMark({ hex }: { hex: string }) {
+  return (
+    <span
+      className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full"
+      style={{ background: `${hex}1a`, border: `1px solid ${hex}55` }}
+      aria-hidden
+    >
+      <svg
+        width="9"
+        height="9"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={hex}
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
     </span>
   );
 }
