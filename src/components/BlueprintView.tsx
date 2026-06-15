@@ -355,7 +355,7 @@ const TRANSFORM_STAGES: TransformStage[] = [
 /* -------------------------------------------------------------------------- */
 
 export default function BlueprintView() {
-  const [tab, setTab] = useState<"layers" | "transform">("layers");
+  const [tab, setTab] = useState<"layers" | "transform">("transform");
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -370,11 +370,11 @@ export default function BlueprintView() {
       {/* Tab bar — underline style */}
       <div className="mb-8 border-b border-line">
         <div className="flex gap-6">
-          <TabButton active={tab === "layers"} onClick={() => setTab("layers")}>
-            Layers
-          </TabButton>
           <TabButton active={tab === "transform"} onClick={() => setTab("transform")}>
             Transformation structure
+          </TabButton>
+          <TabButton active={tab === "layers"} onClick={() => setTab("layers")}>
+            Details
           </TabButton>
         </div>
       </div>
