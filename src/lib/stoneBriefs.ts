@@ -30,41 +30,81 @@ export type KpiRole = "primary" | "secondary";
 export type KpiDef = {
   key: KpiKey;
   label: string;
-  description: string;
+  /** Short "measured by" line — used as chip tooltip and in the modal. */
+  measuredBy: string;
+  /** Distinct accent color for the KPI (used in the overview modal). */
+  hex: string;
+  /** Concrete examples that anchor the metric for the team. */
+  examples: string[];
 };
 
 export const KPIS: KpiDef[] = [
   {
     key: "time-saved",
     label: "Time Saved",
-    description: "Time saved per task (self-reported per task).",
+    measuredBy: "Time saved per task (self-reported per task).",
+    hex: "#3b82f6",
+    examples: [
+      "JD writing: 3 hrs → 30 min",
+      "CV screening: 4 hrs → 45 min per role",
+      "Interview prep & feedback summaries: 2 hrs → 20 min",
+    ],
   },
   {
     key: "cost-avoidance",
     label: "Cost Avoidance",
-    description: "$$ tasks previously outsourced, now done in-house.",
+    measuredBy: "$$ tasks previously outsourced, now done in-house.",
+    hex: "#a855f7",
+    examples: [
+      "Headcount capacity freed for strategic work",
+      "Vendor contracts not renewed or reduced",
+      "Reduced time-to-hire",
+    ],
   },
   {
     key: "tool-adoption",
     label: "Tool Adoption",
-    description:
-      "% of Division using AI tools daily (Gemini, Base44, Claude) and use-case creation.",
+    measuredBy:
+      "% of division using AI tools daily (Gemini, Base44, Claude) and use-case creation.",
+    hex: "#7c5cff",
+    examples: [
+      "% using AI for repetitive tasks",
+      "# of use cases per person (breadth)",
+      "Weekly vs. daily usage trend",
+    ],
   },
   {
     key: "workflow-innovation",
     label: "Workflow Innovation",
-    description: "# processes redesigned or automated with AI.",
+    measuredBy: "# processes redesigned or automated with AI.",
+    hex: "#22d3ee",
+    examples: [
+      "Automated interview-scheduling comms",
+      "AI-generated offer-letter templates",
+      "Pulse-survey analysis automated",
+    ],
   },
   {
     key: "role-expansion",
     label: "Role Expansion",
-    description: "# new skills and activities each person completes.",
+    measuredBy: "# new skills and activities each person completes.",
+    hex: "#f59e0b",
+    examples: [
+      "Software developer learning UX/UI",
+      "Product manager building a feature from start to finish",
+    ],
   },
   {
     key: "business-outcomes",
     label: "Business Outcomes",
-    description:
+    measuredBy:
       "Revenue per employee, time-to-hire, sales-cycle length, support-resolution time.",
+    hex: "#10b981",
+    examples: [
+      "Revenue per employee trending up",
+      "Sales-cycle length trending down",
+      "Support-resolution time trending down",
+    ],
   },
 ];
 
