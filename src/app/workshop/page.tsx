@@ -18,7 +18,16 @@ type AgendaItem = {
 const AGENDA: AgendaItem[] = [
   {
     start: "11:00",
-    end: "11:30",
+    end: "11:05",
+    duration: 5,
+    title: "What we did so far",
+    description:
+      "Quick recap of the prep that got us here: main workflow drafted, each department's workflow(s) mapped, gaps logged, early decisions tagged. Everything we'll review today is built on this work.",
+    accent: "#7c5cff",
+  },
+  {
+    start: "11:05",
+    end: "11:35",
     duration: 30,
     title: "B2C main workflow",
     description:
@@ -26,9 +35,9 @@ const AGENDA: AgendaItem[] = [
     accent: "#22d3ee",
   },
   {
-    start: "11:30",
+    start: "11:35",
     end: "12:30",
-    duration: 60,
+    duration: 55,
     title: "Director presentations",
     description:
       "Each director walks the room through their own workflow(s). Audience listens for two things: where it connects to the main process, and where it depends on someone else in the room.",
