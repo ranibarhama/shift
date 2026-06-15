@@ -44,9 +44,42 @@ export default function DepartmentsDropdown({ ownRole }: Props) {
             .map((r) => (
               <DeptItem key={r.key} role={r.key as RoleKey} pathname={pathname} />
             ))}
+          <div className="mx-2 my-1 h-px bg-line/60" />
+          <OverviewItem pathname={pathname} />
         </div>
       </div>
     </div>
+  );
+}
+
+function OverviewItem({ pathname }: { pathname: string }) {
+  const isHere = pathname === "/overview";
+  return (
+    <Link
+      href="/overview"
+      className={
+        "flex items-center gap-2 rounded px-2 py-1.5 text-sm " +
+        (isHere
+          ? "bg-accent/15 text-accent"
+          : "text-muted hover:bg-line/40 hover:text-fg")
+      }
+    >
+      <span className="grid h-2 w-2 place-items-center text-accent" aria-hidden>
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+        >
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="12" y1="3" x2="12" y2="21" />
+        </svg>
+      </span>
+      <span className="flex-1 truncate">Overview (A–Z)</span>
+    </Link>
   );
 }
 

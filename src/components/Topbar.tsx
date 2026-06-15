@@ -35,7 +35,6 @@ export default async function Topbar() {
               ownRole={role.key !== "gm" ? userRole : null}
             />
           )}
-          <NavLink href="/overview">Overview (A–Z)</NavLink>
           <NavLink href="/backlog">Todo Backlog</NavLink>
           <NavLink href="/hit-list">Hit List</NavLink>
           <NavLink href="/blueprint">How good looks like</NavLink>
