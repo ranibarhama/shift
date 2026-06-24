@@ -35,25 +35,47 @@ export default async function Home() {
         </p>
       </div>
 
-      {/* Workshop CTA */}
-      <section className="mb-14 w-full">
+      {/* Meeting CTAs */}
+      <section className="mb-14 w-full space-y-3">
         <Link
-          href="/workshop"
+          href="/pilot"
           className="group block overflow-hidden rounded-2xl border border-accent/40 bg-accent/10 p-5 transition hover:-translate-y-0.5 hover:border-accent/70 hover:shadow-lg sm:p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-                Today's session
+                Next meeting · Monday 29 June
               </div>
               <div className="mt-1 text-lg font-semibold text-fg sm:text-xl">
+                Pilot Definition Meeting
+              </div>
+              <div className="mt-0.5 text-xs text-muted">
+                11:00 → 14:30 · 30 min lunch at 12:30
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/60 bg-card px-3 py-1.5 text-xs font-medium text-accent transition group-hover:bg-accent group-hover:text-ink">
+              Open agenda →
+            </span>
+          </div>
+        </Link>
+
+        <Link
+          href="/workshop"
+          className="group block overflow-hidden rounded-2xl border border-line bg-card/60 p-5 transition hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg sm:p-6"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+                Previous session
+              </div>
+              <div className="mt-1 text-base font-semibold text-fg sm:text-lg">
                 B2C AI Transition Workshop
               </div>
               <div className="mt-0.5 text-xs text-muted">
                 11:00 → 15:00 · 30 min lunch around 12:30
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/60 bg-card px-3 py-1.5 text-xs font-medium text-accent transition group-hover:bg-accent group-hover:text-ink">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-bg px-3 py-1.5 text-xs font-medium text-muted transition group-hover:border-accent/40 group-hover:text-accent">
               Open agenda →
             </span>
           </div>
