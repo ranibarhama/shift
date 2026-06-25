@@ -456,24 +456,100 @@ function InitiativeRow({
         </button>
       </header>
 
-      {/* Stage cells */}
-      <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 lg:grid-cols-3">
-        {PILOT_STAGES.map((stage) => (
+      {/* Body — mirrors the Blueprint future-view shape:
+       *  Ops/Risk band (top) · 3 main stages + Org Brain side · Financial band (bottom)
+       */}
+      <div className="space-y-4 p-4">
+        {/* Top cross-cutting band */}
+        <CrossCuttingBand
+          stage={STAGE_BY_KEY["ops-risk"]}
+          gaps={gaps.filter((g) => g.stageKey === "ops-risk")}
+          onAdd={() => onAddGap("ops-risk")}
+          onPatch={onPatchGap}
+          onDelete={onDeleteGap}
+        />
+
+        {/* Main flow + Org Brain side column */}
+        <div className="grid gap-4 xl:grid-cols-[1fr_minmax(0,280px)]">
+          {/* 3 main stages with chevrons in the gutter */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+            {MAIN_FLOW_STAGES.map((stage, idx) => (
+              <div key={stage.key} className="relative">
+                <StageCell
+                  stage={stage}
+                  gaps={gaps.filter((g) => g.stageKey === stage.key)}
+                  onAdd={() => onAddGap(stage.key)}
+                  onPatch={onPatchGap}
+                  onDelete={onDeleteGap}
+                />
+                {idx < MAIN_FLOW_STAGES.length - 1 && <ChevronInGutter />}
+              </div>
+            ))}
+          </div>
+
+          {/* Organization Brain — dashed side card */}
           <StageCell
-            key={stage.key}
-            stage={stage}
-            gaps={gaps.filter((g) => g.stageKey === stage.key)}
-            onAdd={() => onAddGap(stage.key)}
+            stage={STAGE_BY_KEY["decision-brain"]}
+            gaps={gaps.filter((g) => g.stageKey === "decision-brain")}
+            onAdd={() => onAddGap("decision-brain")}
             onPatch={onPatchGap}
             onDelete={onDeleteGap}
+            dashed
+            sideLabel="Sits above everything"
           />
-        ))}
+        </div>
+
+        {/* Bottom cross-cutting band */}
+        <CrossCuttingBand
+          stage={STAGE_BY_KEY["financial"]}
+          gaps={gaps.filter((g) => g.stageKey === "financial")}
+          onAdd={() => onAddGap("financial")}
+          onPatch={onPatchGap}
+          onDelete={onDeleteGap}
+        />
       </div>
     </article>
   );
 }
 
-function StageCell({
+const STAGE_BY_KEY = Object.fromEntries(
+  PILOT_STAGES.map((s) => [s.key, s])
+) as Record<StageKey, (typeof PILOT_STAGES)[number]>;
+
+const MAIN_FLOW_STAGES = [
+  STAGE_BY_KEY["insights"],
+  STAGE_BY_KEY["ai-build"],
+  STAGE_BY_KEY["gtm"],
+];
+
+function ChevronInGutter() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -right-4 top-7 hidden -translate-y-1/2 md:block"
+    >
+      <span
+        className="grid h-7 w-7 place-items-center rounded-full border border-line bg-card text-muted"
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <polyline points="9 6 15 12 9 18" />
+        </svg>
+      </span>
+    </span>
+  );
+}
+
+function CrossCuttingBand({
   stage,
   gaps,
   onAdd,
@@ -488,20 +564,92 @@ function StageCell({
 }) {
   return (
     <div
-      className="flex flex-col gap-2 rounded-xl border border-line bg-bg/40 p-3"
-      style={{ boxShadow: `inset 3px 0 0 0 ${stage.hex}` }}
+      className="rounded-xl border border-line bg-bg/30 p-3"
+      style={{ boxShadow: `inset 0 3px 0 0 ${stage.hex}` }}
     >
-      <div className="flex items-center gap-2">
+      <div className="mb-2.5 flex flex-wrap items-center gap-2">
         <span
           className="h-2 w-2 shrink-0 rounded-full"
           style={{ background: stage.hex }}
+          aria-hidden
         />
-        <h4
-          className="text-[12px] font-semibold uppercase tracking-wider"
+        <span
+          className="text-[11px] font-semibold uppercase tracking-[0.15em]"
           style={{ color: stage.hex }}
         >
           {stage.label}
-        </h4>
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-muted">
+          · cross-cutting · applies to every stage
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {gaps.map((g) => (
+          <div key={g.id} className="w-full sm:w-[260px]">
+            <GapCard
+              gap={g}
+              onPatch={(patch) => onPatch(g.id, patch)}
+              onDelete={() => onDelete(g.id)}
+            />
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-card/20 px-3 py-1.5 text-[11px] font-medium text-muted transition hover:border-accent/40 hover:text-accent sm:w-32"
+        >
+          <PlusIcon />
+          Add gap
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StageCell({
+  stage,
+  gaps,
+  onAdd,
+  onPatch,
+  onDelete,
+  dashed,
+  sideLabel,
+}: {
+  stage: (typeof PILOT_STAGES)[number];
+  gaps: PilotGap[];
+  onAdd: () => void;
+  onPatch: (id: string, patch: Partial<PilotGap>) => void;
+  onDelete: (id: string) => void;
+  /** Render with a dashed border — used for the Organization Brain side card. */
+  dashed?: boolean;
+  /** Optional eyebrow line under the stage name — e.g. "Sits above everything". */
+  sideLabel?: string;
+}) {
+  return (
+    <div
+      className={
+        "flex h-full flex-col gap-2 rounded-xl border bg-bg/40 p-3 " +
+        (dashed ? "border-2 border-dashed border-line" : "border-line")
+      }
+      style={{ boxShadow: `inset 3px 0 0 0 ${stage.hex}` }}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className="mt-1 h-2 w-2 shrink-0 rounded-full"
+          style={{ background: stage.hex }}
+        />
+        <div className="min-w-0 flex-1">
+          <h4
+            className="text-[12px] font-semibold uppercase tracking-wider"
+            style={{ color: stage.hex }}
+          >
+            {stage.label}
+          </h4>
+          {sideLabel && (
+            <div className="text-[10px] text-muted">{sideLabel}</div>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
