@@ -4,6 +4,7 @@ import {
   type LeaderName,
   type KpiKey,
   type KpiRole,
+  type CustomKpi,
   LEADER_NAMES,
   KPIS,
 } from "@/lib/stoneBriefs";
@@ -39,6 +40,26 @@ export async function PUT(
       }
     }
     patch.kpis = out;
+  }
+
+  if (Array.isArray(body.customKpis)) {
+    const out: CustomKpi[] = [];
+    for (const item of body.customKpis) {
+      if (
+        item &&
+        typeof item === "object" &&
+        typeof (item as { label?: unknown }).label === "string" &&
+        ((item as { label: string }).label).trim() &&
+        ((item as { role?: unknown }).role === "primary" ||
+          (item as { role?: unknown }).role === "secondary")
+      ) {
+        out.push({
+          label: ((item as { label: string }).label).trim(),
+          role: (item as { role: KpiRole }).role,
+        });
+      }
+    }
+    patch.customKpis = out;
   }
 
   if (typeof body.outcome === "string") patch.outcome = body.outcome;

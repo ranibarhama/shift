@@ -11,6 +11,7 @@ import {
   type KpiKey,
   type KpiRole,
   type KpiDef,
+  type CustomKpi,
 } from "@/lib/stoneBriefs";
 
 type Props = {
@@ -143,6 +144,23 @@ function StoneBriefCard({
     persist({ kpis });
   }
 
+  function addCustomKpi(label: string) {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    persist({
+      customKpis: [...brief.customKpis, { label: trimmed, role: "primary" }],
+    });
+  }
+
+  function updateCustomKpi(idx: number, patch: Partial<CustomKpi>) {
+    const next = brief.customKpis.map((c, i) => (i === idx ? { ...c, ...patch } : c));
+    persist({ customKpis: next });
+  }
+
+  function deleteCustomKpi(idx: number) {
+    persist({ customKpis: brief.customKpis.filter((_, i) => i !== idx) });
+  }
+
   function onTextBlur(field: "outcome" | "pilot" | "people", value: string) {
     if (value === brief[field]) return;
     persist({ [field]: value });
@@ -229,6 +247,32 @@ function StoneBriefCard({
                 onClick={() => cycleKpi(kpi.key)}
               />
             ))}
+          </div>
+
+          {/* Custom KPIs — free text, per-stone */}
+          <div className="mt-3 space-y-2">
+            {brief.customKpis.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+                  Stage-specific KPIs
+                </div>
+                {brief.customKpis.map((ck, idx) => (
+                  <CustomKpiRow
+                    key={idx}
+                    ck={ck}
+                    hex={stone.hex}
+                    onLabelBlur={(label) => updateCustomKpi(idx, { label })}
+                    onCycleRole={() =>
+                      updateCustomKpi(idx, {
+                        role: ck.role === "primary" ? "secondary" : "primary",
+                      })
+                    }
+                    onDelete={() => deleteCustomKpi(idx)}
+                  />
+                ))}
+              </div>
+            )}
+            <AddCustomKpiForm hex={stone.hex} onAdd={addCustomKpi} />
           </div>
         </Field>
 
@@ -337,6 +381,131 @@ function KpiChip({
       </span>
       <RoleBadge role={role} hex={hex} />
     </button>
+  );
+}
+
+function CustomKpiRow({
+  ck,
+  hex,
+  onLabelBlur,
+  onCycleRole,
+  onDelete,
+}: {
+  ck: CustomKpi;
+  hex: string;
+  onLabelBlur: (label: string) => void;
+  onCycleRole: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2 rounded-lg border px-3 py-1.5"
+      style={{ borderColor: `${hex}55`, background: `${hex}10` }}
+    >
+      <input
+        type="text"
+        defaultValue={ck.label}
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          if (v && v !== ck.label) onLabelBlur(v);
+        }}
+        className="min-w-0 flex-1 bg-transparent text-[12.5px] font-medium text-fg placeholder:text-muted/60 focus:outline-none"
+        placeholder="KPI label…"
+        aria-label="Custom KPI label"
+      />
+      <button
+        type="button"
+        onClick={onCycleRole}
+        className="shrink-0"
+        aria-label="Toggle Primary / Secondary"
+        title="Toggle Primary / Secondary"
+      >
+        <RoleBadge role={ck.role} hex={hex} />
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted transition hover:bg-line/40 hover:text-fg"
+        aria-label="Delete this KPI"
+        title="Delete"
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function AddCustomKpiForm({
+  hex,
+  onAdd,
+}: {
+  hex: string;
+  onAdd: (label: string) => void;
+}) {
+  const [value, setValue] = useState("");
+
+  function submit() {
+    const v = value.trim();
+    if (!v) return;
+    onAdd(v);
+    setValue("");
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-1.5"
+    >
+      <span className="grid h-4 w-4 shrink-0 place-items-center text-muted">
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Add a stage-specific KPI…"
+        className="min-w-0 flex-1 bg-transparent text-[12.5px] text-fg placeholder:text-muted/70 focus:outline-none"
+        aria-label="Add a custom KPI"
+      />
+      {value.trim() && (
+        <button
+          type="submit"
+          className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink"
+          style={{ background: hex }}
+        >
+          Add
+        </button>
+      )}
+    </form>
   );
 }
 

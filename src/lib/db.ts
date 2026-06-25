@@ -201,6 +201,15 @@ async function ensureSchema(db: Client) {
     await db.execute("ALTER TABLE stages ADD COLUMN goal TEXT NOT NULL DEFAULT ''");
   }
 
+  // Migration: add custom_kpis column on stone_briefs
+  const briefCols = await db.execute("PRAGMA table_info(stone_briefs)");
+  const briefColNames = briefCols.rows.map(
+    (r) => (r as unknown as { name: string }).name
+  );
+  if (!briefColNames.includes("custom_kpis")) {
+    await db.execute("ALTER TABLE stone_briefs ADD COLUMN custom_kpis TEXT");
+  }
+
   // Migration: add roi / horizon columns on items
   const itemCols = await db.execute("PRAGMA table_info(items)");
   const itemColNames = itemCols.rows.map((r) => (r as unknown as { name: string }).name);

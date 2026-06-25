@@ -42,6 +42,7 @@ export async function upsertStoneBrief(
     ...existing,
     leaders: patch.leaders ?? existing.leaders,
     kpis: patch.kpis ?? existing.kpis,
+    customKpis: patch.customKpis ?? existing.customKpis,
     outcome: patch.outcome ?? existing.outcome,
     pilot: patch.pilot ?? existing.pilot,
     people: patch.people ?? existing.people,
@@ -51,11 +52,12 @@ export async function upsertStoneBrief(
 
   await run(
     `INSERT INTO stone_briefs
-       (stone_key, leaders, kpis, outcome, pilot, people, review_date, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       (stone_key, leaders, kpis, custom_kpis, outcome, pilot, people, review_date, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(stone_key) DO UPDATE SET
        leaders = excluded.leaders,
        kpis = excluded.kpis,
+       custom_kpis = excluded.custom_kpis,
        outcome = excluded.outcome,
        pilot = excluded.pilot,
        people = excluded.people,
@@ -65,6 +67,7 @@ export async function upsertStoneBrief(
       stoneKey,
       JSON.stringify(merged.leaders),
       JSON.stringify(merged.kpis),
+      JSON.stringify(merged.customKpis),
       merged.outcome,
       merged.pilot,
       merged.people,

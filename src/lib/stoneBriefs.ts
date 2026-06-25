@@ -108,10 +108,14 @@ export const KPIS: KpiDef[] = [
   },
 ];
 
+/** A free-text KPI added to a single stone (not in the fixed KPIS list). */
+export type CustomKpi = { label: string; role: KpiRole };
+
 export type StoneBriefRow = {
   stone_key: string;
   leaders: string | null;
   kpis: string | null;
+  custom_kpis: string | null;
   outcome: string | null;
   pilot: string | null;
   people: string | null;
@@ -124,6 +128,7 @@ export type StoneBrief = {
   stoneKey: string;
   leaders: LeaderName[];
   kpis: Partial<Record<KpiKey, KpiRole>>;
+  customKpis: CustomKpi[];
   outcome: string;
   pilot: string;
   people: string;
@@ -136,6 +141,7 @@ export function emptyBrief(stoneKey: string): StoneBrief {
     stoneKey,
     leaders: [],
     kpis: {},
+    customKpis: [],
     outcome: "",
     pilot: "",
     people: "",
@@ -176,10 +182,34 @@ export function parseBrief(r: StoneBriefRow): StoneBrief {
     }
   })();
 
+  const customKpis = (() => {
+    if (!r.custom_kpis) return [] as CustomKpi[];
+    try {
+      const parsed = JSON.parse(r.custom_kpis) as Array<{
+        label?: unknown;
+        role?: unknown;
+      }>;
+      const out: CustomKpi[] = [];
+      for (const item of parsed) {
+        if (
+          typeof item?.label === "string" &&
+          item.label.trim() &&
+          (item.role === "primary" || item.role === "secondary")
+        ) {
+          out.push({ label: item.label.trim(), role: item.role });
+        }
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  })();
+
   return {
     stoneKey: r.stone_key,
     leaders,
     kpis,
+    customKpis,
     outcome: r.outcome ?? "",
     pilot: r.pilot ?? "",
     people: r.people ?? "",
@@ -191,6 +221,7 @@ export function parseBrief(r: StoneBriefRow): StoneBrief {
 export type StoneBriefPatch = {
   leaders?: LeaderName[];
   kpis?: Partial<Record<KpiKey, KpiRole>>;
+  customKpis?: CustomKpi[];
   outcome?: string;
   pilot?: string;
   people?: string;
