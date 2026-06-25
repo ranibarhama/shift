@@ -72,7 +72,7 @@ export default function PilotMeetingPage() {
       <Topbar />
       <main className="mx-auto w-full max-w-4xl px-6 py-10">
         {/* Hero */}
-        <header className="mb-10">
+        <header className="mb-6">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
             Pilot meeting · Monday 29 June
           </div>
@@ -83,6 +83,30 @@ export default function PilotMeetingPage() {
             11:00 → 14:30 · 30 min lunch at 12:30
           </p>
         </header>
+
+        {/* Pilot Board CTA */}
+        <Link
+          href="/pilot-board"
+          className="group mb-10 block overflow-hidden rounded-2xl border border-accent/40 bg-accent/10 p-5 transition hover:-translate-y-0.5 hover:border-accent/70 hover:shadow-lg"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+                Working board
+              </div>
+              <div className="mt-1 text-base font-semibold text-fg sm:text-lg">
+                Open the Pilot Board
+              </div>
+              <div className="mt-0.5 text-xs text-muted">
+                Propose initiatives, pick 2-3, walk each through the stages and log
+                what&apos;s missing — live, all in one page.
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/60 bg-card px-3 py-1.5 text-xs font-medium text-accent transition group-hover:bg-accent group-hover:text-ink">
+              Open board →
+            </span>
+          </div>
+        </Link>
 
         {/* What this meeting IS */}
         <section
