@@ -37,10 +37,10 @@ export default async function Topbar() {
           )}
           <NavLink href="/backlog">Todo Backlog</NavLink>
           <NavLink href="/hit-list">Hit List</NavLink>
-          <NavLink href="/pilot-board">Pilot Board</NavLink>
           <NavLink href="/blueprint">How good looks like</NavLink>
           <NavLink href="/big-stones">Backlog Zoom Out</NavLink>
           <NavLink href="/next-steps">Next Steps</NavLink>
+          <NavLink href="/pilot-board">Pilot Board</NavLink>
         </nav>
       </div>
       <div className="flex items-center gap-3">

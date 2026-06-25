@@ -419,8 +419,8 @@ function InitiativeRow({
   return (
     <article className="rounded-2xl border border-accent/30 bg-card/40 shadow-card">
       {/* Initiative header */}
-      <header className="flex items-center justify-between gap-3 border-b border-line/60 px-5 py-4">
-        <div className="min-w-0">
+      <header className="flex items-start justify-between gap-3 border-b border-line/60 px-5 py-4">
+        <div className="min-w-0 flex-1">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
             Selected initiative
           </div>
@@ -431,14 +431,21 @@ function InitiativeRow({
               const v = e.target.value.trim();
               if (v && v !== initiative.title) onPatchInitiative({ title: v });
             }}
-            className="block w-full bg-transparent text-[16px] font-semibold leading-tight text-fg focus:outline-none"
+            placeholder="Untitled initiative"
+            className="block w-full bg-transparent text-[16px] font-semibold leading-tight text-fg placeholder:text-muted/50 focus:outline-none"
             aria-label="Initiative title"
           />
-          {initiative.description && (
-            <div className="mt-0.5 text-[12px] text-muted">
-              {initiative.description}
-            </div>
-          )}
+          <input
+            type="text"
+            defaultValue={initiative.description}
+            onBlur={(e) => {
+              const v = e.target.value;
+              if (v !== initiative.description) onPatchInitiative({ description: v });
+            }}
+            placeholder="Add a one-line description…"
+            className="mt-0.5 block w-full bg-transparent text-[12px] text-muted placeholder:text-muted/40 focus:outline-none"
+            aria-label="Initiative description"
+          />
         </div>
         <button
           type="button"
