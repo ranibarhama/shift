@@ -63,11 +63,18 @@ export default function PilotBoardView({
     if (patch.title !== undefined) body.title = patch.title;
     if (patch.description !== undefined) body.description = patch.description;
     if (patch.selected !== undefined) body.selected = patch.selected;
+    if (patch.kpis !== undefined) body.kpis = patch.kpis;
+    if (patch.customKpis !== undefined) body.customKpis = patch.customKpis;
     void fetch(`/api/pilot-initiatives/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
-    });
+    })
+      .then((r) => {
+        if (!r.ok)
+          console.warn("[Shift] initiative save returned", r.status);
+      })
+      .catch((err) => console.warn("[Shift] initiative save failed", err));
   }
 
   async function deleteInitiative(initiative: PilotInitiative) {
@@ -109,7 +116,11 @@ export default function PilotBoardView({
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
-    });
+    })
+      .then((r) => {
+        if (!r.ok) console.warn("[Shift] gap save returned", r.status);
+      })
+      .catch((err) => console.warn("[Shift] gap save failed", err));
   }
 
   function deleteGap(id: string) {

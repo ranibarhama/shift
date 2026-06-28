@@ -109,6 +109,7 @@ function StoneBriefCard({
     const body = {
       leaders: next.leaders,
       kpis: next.kpis,
+      customKpis: next.customKpis,
       outcome: next.outcome,
       pilot: next.pilot,
       people: next.people,
@@ -119,7 +120,13 @@ function StoneBriefCard({
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     })
-      .then(() => setSavedAt(Date.now()))
+      .then((r) => {
+        if (!r.ok) {
+          console.warn("[Shift] stone brief save returned", r.status);
+          return;
+        }
+        setSavedAt(Date.now());
+      })
       .catch((err) => console.warn("[Shift] stone brief save failed", err));
   }
 
