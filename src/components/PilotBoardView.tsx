@@ -20,6 +20,14 @@ import {
   type KpiRole,
 } from "@/lib/stoneBriefs";
 import { useConfirm } from "./ConfirmProvider";
+import { ToastContainer, useToasts } from "./Toaster";
+
+type SaveState = {
+  savingAt: number | null;
+  savedAt: number | null;
+  failedAt: number | null;
+};
+const EMPTY_SAVE: SaveState = { savingAt: null, savedAt: null, failedAt: null };
 
 type Props = {
   initialInitiatives: PilotInitiative[];
@@ -34,7 +42,9 @@ export default function PilotBoardView({
     initialInitiatives
   );
   const [gaps, setGaps] = useState<PilotGap[]>(initialGaps);
+  const [saveStates, setSaveStates] = useState<Record<string, SaveState>>({});
   const confirm = useConfirm();
+  const { toasts, pushToast, dismissToast } = useToasts();
 
   useEffect(() => setInitiatives(initialInitiatives), [initialInitiatives]);
   useEffect(() => setGaps(initialGaps), [initialGaps]);
@@ -42,15 +52,72 @@ export default function PilotBoardView({
   const candidates = initiatives.filter((i) => !i.selected);
   const selected = initiatives.filter((i) => i.selected);
 
+  /* ---------- Save trackers ---------- */
+
+  function markSaving(id: string) {
+    setSaveStates((s) => ({
+      ...s,
+      [id]: { ...(s[id] ?? EMPTY_SAVE), savingAt: Date.now(), failedAt: null },
+    }));
+  }
+  function markSaved(id: string) {
+    setSaveStates((s) => ({
+      ...s,
+      [id]: { ...(s[id] ?? EMPTY_SAVE), savedAt: Date.now() },
+    }));
+  }
+  function markFailed(id: string) {
+    setSaveStates((s) => ({
+      ...s,
+      [id]: { ...(s[id] ?? EMPTY_SAVE), failedAt: Date.now() },
+    }));
+  }
+
+  /**
+   * Background save with per-id state tracking (when trackId provided) and
+   * a user-visible toast on any failure.
+   */
+  function backgroundSave({
+    trackId,
+    label,
+    fetchFn,
+  }: {
+    trackId?: string;
+    label: string;
+    fetchFn: () => Promise<Response>;
+  }): Promise<Response | null> {
+    if (trackId) markSaving(trackId);
+    return fetchFn()
+      .then((r) => {
+        if (!r.ok) {
+          if (trackId) markFailed(trackId);
+          pushToast(`${label} couldn't save (server ${r.status})`, "error");
+          return r;
+        }
+        if (trackId) markSaved(trackId);
+        return r;
+      })
+      .catch((err) => {
+        if (trackId) markFailed(trackId);
+        console.warn(`[Shift] ${label} save failed`, err);
+        pushToast(`${label} couldn't save — check your connection`, "error");
+        return null;
+      });
+  }
+
   /* ---------- Initiative mutations ---------- */
 
   async function addInitiative(title: string, description: string) {
-    const res = await fetch("/api/pilot-initiatives", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title, description }),
+    const res = await backgroundSave({
+      label: "New initiative",
+      fetchFn: () =>
+        fetch("/api/pilot-initiatives", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title, description }),
+        }),
     });
-    if (!res.ok) return;
+    if (!res || !res.ok) return;
     const { initiative } = (await res.json()) as { initiative: PilotInitiative };
     setInitiatives((arr) => [...arr, initiative]);
   }
@@ -65,16 +132,16 @@ export default function PilotBoardView({
     if (patch.selected !== undefined) body.selected = patch.selected;
     if (patch.kpis !== undefined) body.kpis = patch.kpis;
     if (patch.customKpis !== undefined) body.customKpis = patch.customKpis;
-    void fetch(`/api/pilot-initiatives/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    })
-      .then((r) => {
-        if (!r.ok)
-          console.warn("[Shift] initiative save returned", r.status);
-      })
-      .catch((err) => console.warn("[Shift] initiative save failed", err));
+    void backgroundSave({
+      trackId: id,
+      label: "Initiative",
+      fetchFn: () =>
+        fetch(`/api/pilot-initiatives/${id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+    });
   }
 
   async function deleteInitiative(initiative: PilotInitiative) {
@@ -87,18 +154,26 @@ export default function PilotBoardView({
     if (!ok) return;
     setInitiatives((arr) => arr.filter((i) => i.id !== initiative.id));
     setGaps((arr) => arr.filter((g) => g.initiativeId !== initiative.id));
-    void fetch(`/api/pilot-initiatives/${initiative.id}`, { method: "DELETE" });
+    void backgroundSave({
+      label: "Delete initiative",
+      fetchFn: () =>
+        fetch(`/api/pilot-initiatives/${initiative.id}`, { method: "DELETE" }),
+    });
   }
 
   /* ---------- Gap mutations ---------- */
 
   async function addGap(initiativeId: string, stageKey: StageKey) {
-    const res = await fetch("/api/pilot-gaps", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ initiativeId, stageKey }),
+    const res = await backgroundSave({
+      label: "New gap",
+      fetchFn: () =>
+        fetch("/api/pilot-gaps", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ initiativeId, stageKey }),
+        }),
     });
-    if (!res.ok) return;
+    if (!res || !res.ok) return;
     const { gap } = (await res.json()) as { gap: PilotGap };
     setGaps((arr) => [...arr, gap]);
   }
@@ -112,20 +187,23 @@ export default function PilotBoardView({
     if (patch.owner !== undefined) body.owner = patch.owner;
     if (patch.status !== undefined) body.status = patch.status;
     if (patch.notes !== undefined) body.notes = patch.notes;
-    void fetch(`/api/pilot-gaps/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    })
-      .then((r) => {
-        if (!r.ok) console.warn("[Shift] gap save returned", r.status);
-      })
-      .catch((err) => console.warn("[Shift] gap save failed", err));
+    void backgroundSave({
+      label: "Gap",
+      fetchFn: () =>
+        fetch(`/api/pilot-gaps/${id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+    });
   }
 
   function deleteGap(id: string) {
     setGaps((arr) => arr.filter((g) => g.id !== id));
-    void fetch(`/api/pilot-gaps/${id}`, { method: "DELETE" });
+    void backgroundSave({
+      label: "Delete gap",
+      fetchFn: () => fetch(`/api/pilot-gaps/${id}`, { method: "DELETE" }),
+    });
   }
 
   /* ---------- Render ---------- */
@@ -152,6 +230,7 @@ export default function PilotBoardView({
       <InitiativesPool
         candidates={candidates}
         selectedCount={selected.length}
+        saveStates={saveStates}
         onAdd={addInitiative}
         onPatch={patchInitiative}
         onDelete={deleteInitiative}
@@ -173,6 +252,7 @@ export default function PilotBoardView({
                 key={initiative.id}
                 initiative={initiative}
                 gaps={gaps.filter((g) => g.initiativeId === initiative.id)}
+                saveState={saveStates[initiative.id]}
                 onPatchInitiative={(p) => patchInitiative(initiative.id, p)}
                 onAddGap={(stageKey) => addGap(initiative.id, stageKey)}
                 onPatchGap={patchGap}
@@ -191,8 +271,48 @@ export default function PilotBoardView({
         />
         <GapBacklog initiatives={initiatives} gaps={gaps} />
       </section>
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </main>
   );
+}
+
+/* ========================================================================= */
+/* Save-state badge                                                          */
+/* ========================================================================= */
+
+function SaveStateBadge({ state }: { state?: SaveState }) {
+  if (!state) return null;
+  const failed =
+    state.failedAt !== null &&
+    (state.savedAt === null || state.failedAt > state.savedAt);
+  const saving =
+    !failed &&
+    state.savingAt !== null &&
+    (state.savedAt === null || state.savedAt < state.savingAt);
+
+  if (failed) {
+    return (
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-drop">
+        Save failed
+      </span>
+    );
+  }
+  if (saving) {
+    return (
+      <span className="text-[10px] uppercase tracking-wider text-muted">
+        Saving…
+      </span>
+    );
+  }
+  if (state.savedAt) {
+    return (
+      <span className="text-[10px] uppercase tracking-wider text-muted">
+        Saved
+      </span>
+    );
+  }
+  return null;
 }
 
 /* ========================================================================= */
@@ -226,12 +346,14 @@ function SectionHeader({
 function InitiativesPool({
   candidates,
   selectedCount,
+  saveStates,
   onAdd,
   onPatch,
   onDelete,
 }: {
   candidates: PilotInitiative[];
   selectedCount: number;
+  saveStates: Record<string, SaveState>;
   onAdd: (title: string, description: string) => Promise<void>;
   onPatch: (id: string, patch: Partial<PilotInitiative>) => void;
   onDelete: (initiative: PilotInitiative) => void;
@@ -311,6 +433,7 @@ function InitiativesPool({
             <InitiativeCard
               key={i.id}
               initiative={i}
+              saveState={saveStates[i.id]}
               onPatch={(p) => onPatch(i.id, p)}
               onDelete={() => onDelete(i)}
             />
@@ -323,10 +446,12 @@ function InitiativesPool({
 
 function InitiativeCard({
   initiative,
+  saveState,
   onPatch,
   onDelete,
 }: {
   initiative: PilotInitiative;
+  saveState?: SaveState;
   onPatch: (patch: Partial<PilotInitiative>) => void;
   onDelete: () => void;
 }) {
@@ -367,11 +492,14 @@ function InitiativeCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        {initiative.authorRole && (
-          <span className="text-[10px] uppercase tracking-wider text-muted">
-            by {initiative.authorRole}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {initiative.authorRole && (
+            <span className="text-[10px] uppercase tracking-wider text-muted">
+              by {initiative.authorRole}
+            </span>
+          )}
+          <SaveStateBadge state={saveState} />
+        </div>
         <button
           type="button"
           onClick={() => onPatch({ selected: !initiative.selected })}
@@ -422,6 +550,7 @@ function EmptyMatrix() {
 function InitiativeRow({
   initiative,
   gaps,
+  saveState,
   onPatchInitiative,
   onAddGap,
   onPatchGap,
@@ -429,6 +558,7 @@ function InitiativeRow({
 }: {
   initiative: PilotInitiative;
   gaps: PilotGap[];
+  saveState?: SaveState;
   onPatchInitiative: (patch: Partial<PilotInitiative>) => void;
   onAddGap: (stageKey: StageKey) => void;
   onPatchGap: (id: string, patch: Partial<PilotGap>) => void;
@@ -439,8 +569,11 @@ function InitiativeRow({
       {/* Initiative header */}
       <header className="flex items-start justify-between gap-3 border-b border-line/60 px-5 py-4">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-            Selected initiative
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+              Selected initiative
+            </div>
+            <SaveStateBadge state={saveState} />
           </div>
           <input
             type="text"

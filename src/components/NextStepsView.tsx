@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { BIG_STONES } from "@/lib/bigStones";
 import {
   LEADER_NAMES,
@@ -13,10 +13,15 @@ import {
   type KpiDef,
   type CustomKpi,
 } from "@/lib/stoneBriefs";
+import { ToastContainer, useToasts } from "./Toaster";
 
 type Props = {
   briefs: StoneBrief[];
 };
+
+// Lightweight context so each StoneBriefCard can push a toast on save failure
+// without prop-drilling through every helper.
+const PushToastCtx = createContext<((text: string, kind?: "error" | "info") => void) | null>(null);
 
 export default function NextStepsView({ briefs }: Props) {
   const briefByKey = new Map(briefs.map((b) => [b.stoneKey, b]));
@@ -24,8 +29,10 @@ export default function NextStepsView({ briefs }: Props) {
     if (!briefByKey.has(s.key)) briefByKey.set(s.key, emptyBrief(s.key));
   }
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
+  const { toasts, pushToast, dismissToast } = useToasts();
 
   return (
+    <PushToastCtx.Provider value={pushToast}>
     <main className="mx-auto w-full max-w-7xl px-6 py-10">
       {/* Hero */}
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -63,7 +70,10 @@ export default function NextStepsView({ briefs }: Props) {
       </section>
 
       {kpiModalOpen && <KpiOverviewModal onClose={() => setKpiModalOpen(false)} />}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </main>
+    </PushToastCtx.Provider>
   );
 }
 
@@ -102,6 +112,8 @@ function StoneBriefCard({
     initialBrief.updatedAt || null
   );
 
+  const pushToast = useContext(PushToastCtx);
+
   function persist(patch: Partial<StoneBrief>) {
     const next = { ...brief, ...patch };
     setBrief(next);
@@ -123,11 +135,21 @@ function StoneBriefCard({
       .then((r) => {
         if (!r.ok) {
           console.warn("[Shift] stone brief save returned", r.status);
+          pushToast?.(
+            `"${stone.name}" couldn't save (server ${r.status})`,
+            "error"
+          );
           return;
         }
         setSavedAt(Date.now());
       })
-      .catch((err) => console.warn("[Shift] stone brief save failed", err));
+      .catch((err) => {
+        console.warn("[Shift] stone brief save failed", err);
+        pushToast?.(
+          `"${stone.name}" couldn't save — check your connection`,
+          "error"
+        );
+      });
   }
 
   function toggleLeader(name: LeaderName) {
