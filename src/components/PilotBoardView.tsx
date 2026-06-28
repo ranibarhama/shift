@@ -11,7 +11,14 @@ import {
   type PilotInitiative,
   type PilotGap,
 } from "@/lib/pilotBoard";
-import { LEADER_NAMES } from "@/lib/stoneBriefs";
+import {
+  KPIS,
+  LEADER_NAMES,
+  type CustomKpi,
+  type KpiDef,
+  type KpiKey,
+  type KpiRole,
+} from "@/lib/stoneBriefs";
 import { useConfirm } from "./ConfirmProvider";
 
 type Props = {
@@ -456,6 +463,12 @@ function InitiativeRow({
         </button>
       </header>
 
+      {/* KPI commitment for this initiative */}
+      <InitiativeKpis
+        initiative={initiative}
+        onPatchInitiative={onPatchInitiative}
+      />
+
       {/* Body — mirrors the Blueprint future-view shape:
        *  Ops/Risk band (top) · 3 main stages + Org Brain side · Financial band (bottom)
        */}
@@ -521,6 +534,279 @@ const MAIN_FLOW_STAGES = [
   STAGE_BY_KEY["ai-build"],
   STAGE_BY_KEY["gtm"],
 ];
+
+/* ========================================================================= */
+/* Per-initiative KPI commitment                                             */
+/* ========================================================================= */
+
+function InitiativeKpis({
+  initiative,
+  onPatchInitiative,
+}: {
+  initiative: PilotInitiative;
+  onPatchInitiative: (patch: Partial<PilotInitiative>) => void;
+}) {
+  const ACCENT = "#7c5cff";
+
+  function cycleKpi(key: KpiKey) {
+    const current = initiative.kpis[key];
+    const next: KpiRole | undefined =
+      current === undefined
+        ? "primary"
+        : current === "primary"
+        ? "secondary"
+        : undefined;
+    const kpis = { ...initiative.kpis };
+    if (next === undefined) delete kpis[key];
+    else kpis[key] = next;
+    onPatchInitiative({ kpis });
+  }
+
+  function addCustomKpi(label: string) {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    onPatchInitiative({
+      customKpis: [...initiative.customKpis, { label: trimmed, role: "primary" }],
+    });
+  }
+
+  function updateCustomKpi(idx: number, patch: Partial<CustomKpi>) {
+    const next = initiative.customKpis.map((c, i) =>
+      i === idx ? { ...c, ...patch } : c
+    );
+    onPatchInitiative({ customKpis: next });
+  }
+
+  function deleteCustomKpi(idx: number) {
+    onPatchInitiative({
+      customKpis: initiative.customKpis.filter((_, i) => i !== idx),
+    });
+  }
+
+  return (
+    <section className="border-b border-line/60 px-5 py-4">
+      <div className="mb-2 flex items-baseline gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-fg">
+          KPI commitment
+        </span>
+        <span className="text-[10px] text-muted">
+          · click each KPI to cycle Off → Primary → Secondary → Off
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {KPIS.map((kpi) => (
+          <KpiChip
+            key={kpi.key}
+            kpi={kpi}
+            role={initiative.kpis[kpi.key]}
+            hex={ACCENT}
+            onClick={() => cycleKpi(kpi.key)}
+          />
+        ))}
+      </div>
+
+      {/* Custom KPIs */}
+      <div className="mt-3 space-y-2">
+        {initiative.customKpis.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+              Initiative-specific KPIs
+            </div>
+            {initiative.customKpis.map((ck, idx) => (
+              <CustomKpiRow
+                key={idx}
+                ck={ck}
+                hex={ACCENT}
+                onLabelBlur={(label) => updateCustomKpi(idx, { label })}
+                onCycleRole={() =>
+                  updateCustomKpi(idx, {
+                    role: ck.role === "primary" ? "secondary" : "primary",
+                  })
+                }
+                onDelete={() => deleteCustomKpi(idx)}
+              />
+            ))}
+          </div>
+        )}
+        <AddCustomKpiForm hex={ACCENT} onAdd={addCustomKpi} />
+      </div>
+    </section>
+  );
+}
+
+function KpiChip({
+  kpi,
+  role,
+  hex,
+  onClick,
+}: {
+  kpi: KpiDef;
+  role: KpiRole | undefined;
+  hex: string;
+  onClick: () => void;
+}) {
+  const isPrimary = role === "primary";
+  const isSecondary = role === "secondary";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={kpi.measuredBy}
+      className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition"
+      style={
+        isPrimary
+          ? { borderColor: hex, background: `${hex}22` }
+          : isSecondary
+          ? { borderColor: `${hex}77`, background: "transparent" }
+          : { borderColor: "rgb(var(--line))", background: "transparent" }
+      }
+    >
+      <span
+        className="text-[12.5px] font-semibold"
+        style={{ color: isPrimary || isSecondary ? hex : "rgb(var(--fg))" }}
+      >
+        {kpi.label}
+      </span>
+      <KpiRoleBadge role={role} hex={hex} />
+    </button>
+  );
+}
+
+function KpiRoleBadge({
+  role,
+  hex,
+}: {
+  role: KpiRole | undefined;
+  hex: string;
+}) {
+  if (role === "primary") {
+    return (
+      <span
+        className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+        style={{ background: hex, color: "white" }}
+      >
+        Primary
+      </span>
+    );
+  }
+  if (role === "secondary") {
+    return (
+      <span
+        className="rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+        style={{ borderColor: hex, color: hex }}
+      >
+        Secondary
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border border-line px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted">
+      Off
+    </span>
+  );
+}
+
+function CustomKpiRow({
+  ck,
+  hex,
+  onLabelBlur,
+  onCycleRole,
+  onDelete,
+}: {
+  ck: CustomKpi;
+  hex: string;
+  onLabelBlur: (label: string) => void;
+  onCycleRole: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2 rounded-lg border px-3 py-1.5"
+      style={{ borderColor: `${hex}55`, background: `${hex}10` }}
+    >
+      <input
+        type="text"
+        defaultValue={ck.label}
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          if (v && v !== ck.label) onLabelBlur(v);
+        }}
+        className="min-w-0 flex-1 bg-transparent text-[12.5px] font-medium text-fg placeholder:text-muted/60 focus:outline-none"
+        placeholder="KPI label…"
+        aria-label="Custom KPI label"
+      />
+      <button
+        type="button"
+        onClick={onCycleRole}
+        className="shrink-0"
+        aria-label="Toggle Primary / Secondary"
+        title="Toggle Primary / Secondary"
+      >
+        <KpiRoleBadge role={ck.role} hex={hex} />
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted transition hover:bg-line/40 hover:text-fg"
+        aria-label="Delete this KPI"
+        title="Delete"
+      >
+        <CrossIcon size={9} />
+      </button>
+    </div>
+  );
+}
+
+function AddCustomKpiForm({
+  hex,
+  onAdd,
+}: {
+  hex: string;
+  onAdd: (label: string) => void;
+}) {
+  const [value, setValue] = useState("");
+
+  function submit() {
+    const v = value.trim();
+    if (!v) return;
+    onAdd(v);
+    setValue("");
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-1.5"
+    >
+      <span className="grid h-4 w-4 shrink-0 place-items-center text-muted">
+        <PlusIcon />
+      </span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Add an initiative-specific KPI…"
+        className="min-w-0 flex-1 bg-transparent text-[12.5px] text-fg placeholder:text-muted/70 focus:outline-none"
+        aria-label="Add a custom KPI"
+      />
+      {value.trim() && (
+        <button
+          type="submit"
+          className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink"
+          style={{ background: hex }}
+        >
+          Add
+        </button>
+      )}
+    </form>
+  );
+}
+
+/* ========================================================================= */
 
 function ChevronInGutter() {
   return (

@@ -63,20 +63,32 @@ export async function updatePilotInitiative(
     [id]
   );
   if (!existing) return null;
+  const existingParsed = parseInitiative(existing);
 
   const next = {
     title: patch.title ?? existing.title,
     description: patch.description ?? existing.description ?? "",
     selected:
       patch.selected === undefined ? existing.selected : patch.selected ? 1 : 0,
+    kpis: JSON.stringify(patch.kpis ?? existingParsed.kpis),
+    custom_kpis: JSON.stringify(patch.customKpis ?? existingParsed.customKpis),
     updated_at: Date.now(),
   };
 
   await run(
     `UPDATE pilot_initiatives
-       SET title = ?, description = ?, selected = ?, updated_at = ?
+       SET title = ?, description = ?, selected = ?,
+           kpis = ?, custom_kpis = ?, updated_at = ?
      WHERE id = ?`,
-    [next.title, next.description, next.selected, next.updated_at, id]
+    [
+      next.title,
+      next.description,
+      next.selected,
+      next.kpis,
+      next.custom_kpis,
+      next.updated_at,
+      id,
+    ]
   );
 
   const fresh = await row<PilotInitiativeRow>(

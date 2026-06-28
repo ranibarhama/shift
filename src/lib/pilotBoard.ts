@@ -6,6 +6,13 @@
  * component without dragging node:fs into the bundle.
  */
 
+import {
+  KPIS,
+  type CustomKpi,
+  type KpiKey,
+  type KpiRole,
+} from "./stoneBriefs";
+
 export type StageKey =
   | "insights"
   | "ai-build"
@@ -56,6 +63,8 @@ export type PilotInitiativeRow = {
   description: string | null;
   author_role: string | null;
   selected: number;
+  kpis: string | null;
+  custom_kpis: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -66,9 +75,49 @@ export type PilotInitiative = {
   description: string;
   authorRole: string | null;
   selected: boolean;
+  kpis: Partial<Record<KpiKey, KpiRole>>;
+  customKpis: CustomKpi[];
   createdAt: number;
   updatedAt: number;
 };
+
+const KPI_KEY_SET = new Set<string>(KPIS.map((k) => k.key));
+
+function parseKpisJson(json: string | null): Partial<Record<KpiKey, KpiRole>> {
+  if (!json) return {};
+  try {
+    const parsed = JSON.parse(json) as Record<string, unknown>;
+    const out: Partial<Record<KpiKey, KpiRole>> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (KPI_KEY_SET.has(k) && (v === "primary" || v === "secondary")) {
+        out[k as KpiKey] = v;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function parseCustomKpisJson(json: string | null): CustomKpi[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json) as Array<{ label?: unknown; role?: unknown }>;
+    const out: CustomKpi[] = [];
+    for (const item of parsed) {
+      if (
+        typeof item?.label === "string" &&
+        item.label.trim() &&
+        (item.role === "primary" || item.role === "secondary")
+      ) {
+        out.push({ label: item.label.trim(), role: item.role });
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
 
 export function parseInitiative(r: PilotInitiativeRow): PilotInitiative {
   return {
@@ -77,6 +126,8 @@ export function parseInitiative(r: PilotInitiativeRow): PilotInitiative {
     description: r.description ?? "",
     authorRole: r.author_role,
     selected: r.selected === 1,
+    kpis: parseKpisJson(r.kpis),
+    customKpis: parseCustomKpisJson(r.custom_kpis),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -136,6 +187,8 @@ export type PilotInitiativePatch = {
   title?: string;
   description?: string;
   selected?: boolean;
+  kpis?: Partial<Record<KpiKey, KpiRole>>;
+  customKpis?: CustomKpi[];
 };
 
 export type PilotGapPatch = {

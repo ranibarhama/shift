@@ -239,6 +239,22 @@ async function ensureSchema(db: Client) {
     await db.execute("ALTER TABLE stone_briefs ADD COLUMN custom_kpis TEXT");
   }
 
+  // Migration: add kpis + custom_kpis columns on pilot_initiatives
+  const pilotInitCols = await db.execute(
+    "PRAGMA table_info(pilot_initiatives)"
+  );
+  const pilotInitColNames = pilotInitCols.rows.map(
+    (r) => (r as unknown as { name: string }).name
+  );
+  if (!pilotInitColNames.includes("kpis")) {
+    await db.execute("ALTER TABLE pilot_initiatives ADD COLUMN kpis TEXT");
+  }
+  if (!pilotInitColNames.includes("custom_kpis")) {
+    await db.execute(
+      "ALTER TABLE pilot_initiatives ADD COLUMN custom_kpis TEXT"
+    );
+  }
+
   // Migration: add roi / horizon columns on items
   const itemCols = await db.execute("PRAGMA table_info(items)");
   const itemColNames = itemCols.rows.map((r) => (r as unknown as { name: string }).name);
