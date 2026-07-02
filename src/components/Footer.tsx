@@ -1,13 +1,11 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-line/60 px-6 py-5 text-center text-[11px] leading-relaxed text-muted">
+    <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-line/60 bg-bg/95 px-6 py-2.5 text-center text-[11px] leading-relaxed text-muted backdrop-blur">
       <div className="flex items-center justify-center gap-1.5">
         <HeartIcon />
-        <span>
-          Built with passion and curiosity by the B2C
-        </span>
+        <span>Built with passion and curiosity by the B2C</span>
       </div>
-      <div className="mt-1">
+      <div className="mt-0.5">
         Any questions, suggestions or feedback — please contact{" "}
         <a
           href="mailto:Rani.barhama@similarweb.com"
