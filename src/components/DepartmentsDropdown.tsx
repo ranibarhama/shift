@@ -20,8 +20,8 @@ export default function DepartmentsDropdown({ ownRole }: Props) {
         aria-current={active ? "page" : undefined}
         className={
           active
-            ? "rounded-md bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent"
-            : "rounded-md px-3 py-1.5 text-sm text-muted hover:bg-line/40 hover:text-fg"
+            ? "whitespace-nowrap rounded-md bg-accent/15 px-2 py-1.5 text-xs font-medium text-accent"
+            : "whitespace-nowrap rounded-md px-2 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
         }
       >
         Departments ▾
