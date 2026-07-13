@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   PILOT_STAGES,
@@ -211,19 +212,27 @@ export default function PilotBoardView({
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10">
       {/* Hero */}
-      <header className="mb-8">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-          Pilot working board
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
+            Pilot working board
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+            Pilot Board
+          </h1>
+          <p className="mt-1.5 max-w-3xl text-sm text-muted">
+            Where we shape the pilot together. Three moves: propose initiatives,
+            pick 2-3 to take into the pilot, then walk each through every stage of
+            How good looks like and log what we&apos;re missing to make it run.
+            Everything saves live.
+          </p>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
-          Pilot Board
-        </h1>
-        <p className="mt-1.5 max-w-3xl text-sm text-muted">
-          Where we shape the pilot together. Three moves: propose initiatives,
-          pick 2-3 to take into the pilot, then walk each through every stage of
-          How good looks like and log what we&apos;re missing to make it run.
-          Everything saves live.
-        </p>
+        <Link
+          href="/pilot-tracker"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent transition hover:bg-accent hover:text-ink"
+        >
+          Track progress →
+        </Link>
       </header>
 
       {/* Section 1 — Initiatives pool */}

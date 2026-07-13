@@ -191,6 +191,22 @@ async function ensureSchema(db: Client) {
     );
     CREATE INDEX IF NOT EXISTS idx_pilot_gaps_initiative ON pilot_gaps(initiative_id);
     CREATE INDEX IF NOT EXISTS idx_pilot_gaps_stage ON pilot_gaps(stage_key);
+
+    /* Standalone pilot tasks — execution work that isn't a stage gap
+     * (e.g. "book kickoff", "share pilot brief"). Optionally tied to an
+     * initiative; NULL initiative_id = general pilot task. */
+    CREATE TABLE IF NOT EXISTS pilot_tasks (
+      id TEXT PRIMARY KEY,
+      initiative_id TEXT,
+      title TEXT NOT NULL,
+      owner TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      due_date TEXT,
+      notes TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_pilot_tasks_initiative ON pilot_tasks(initiative_id);
   `);
 
   // Migration: add order_index to processes if it doesn't exist yet
@@ -237,6 +253,15 @@ async function ensureSchema(db: Client) {
   );
   if (!briefColNames.includes("custom_kpis")) {
     await db.execute("ALTER TABLE stone_briefs ADD COLUMN custom_kpis TEXT");
+  }
+
+  // Migration: add due_date column on pilot_gaps
+  const pilotGapCols = await db.execute("PRAGMA table_info(pilot_gaps)");
+  const pilotGapColNames = pilotGapCols.rows.map(
+    (r) => (r as unknown as { name: string }).name
+  );
+  if (!pilotGapColNames.includes("due_date")) {
+    await db.execute("ALTER TABLE pilot_gaps ADD COLUMN due_date TEXT");
   }
 
   // Migration: add kpis + custom_kpis columns on pilot_initiatives

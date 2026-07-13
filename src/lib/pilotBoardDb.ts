@@ -11,12 +11,16 @@ import {
   PILOT_STAGES,
   parseGap,
   parseInitiative,
+  parseTask,
   type PilotGap,
   type PilotGapPatch,
   type PilotGapRow,
   type PilotInitiative,
   type PilotInitiativePatch,
   type PilotInitiativeRow,
+  type PilotTask,
+  type PilotTaskPatch,
+  type PilotTaskRow,
   type StageKey,
 } from "./pilotBoard";
 
@@ -152,13 +156,14 @@ export async function updatePilotGap(
     type_other: patch.typeOther ?? existing.type_other ?? "",
     owner: patch.owner === undefined ? existing.owner : patch.owner,
     status: patch.status ?? existing.status,
+    due_date: patch.dueDate ?? existing.due_date ?? "",
     notes: patch.notes ?? existing.notes ?? "",
     updated_at: Date.now(),
   };
 
   await run(
     `UPDATE pilot_gaps
-       SET title = ?, type = ?, type_other = ?, owner = ?, status = ?, notes = ?, updated_at = ?
+       SET title = ?, type = ?, type_other = ?, owner = ?, status = ?, due_date = ?, notes = ?, updated_at = ?
      WHERE id = ?`,
     [
       next.title,
@@ -166,6 +171,7 @@ export async function updatePilotGap(
       next.type_other,
       next.owner,
       next.status,
+      next.due_date,
       next.notes,
       next.updated_at,
       id,
@@ -181,4 +187,83 @@ export async function updatePilotGap(
 
 export async function deletePilotGap(id: string): Promise<void> {
   await run("DELETE FROM pilot_gaps WHERE id = ?", [id]);
+}
+
+/* ---------- Standalone pilot tasks ---------- */
+
+export async function getAllPilotTasks(): Promise<PilotTask[]> {
+  const raw = await rows<PilotTaskRow>(
+    "SELECT * FROM pilot_tasks ORDER BY created_at ASC"
+  );
+  return raw.map(parseTask);
+}
+
+export async function createPilotTask(
+  title: string,
+  initiativeId: string | null,
+  owner: string | null
+): Promise<PilotTask> {
+  const id = genId("tsk");
+  const now = Date.now();
+  await run(
+    `INSERT INTO pilot_tasks
+       (id, initiative_id, title, owner, status, due_date, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'open', NULL, NULL, ?, ?)`,
+    [id, initiativeId, title, owner, now, now]
+  );
+  const fresh = await row<PilotTaskRow>(
+    "SELECT * FROM pilot_tasks WHERE id = ?",
+    [id]
+  );
+  return parseTask(fresh!);
+}
+
+export async function updatePilotTask(
+  id: string,
+  patch: PilotTaskPatch
+): Promise<PilotTask | null> {
+  const existing = await row<PilotTaskRow>(
+    "SELECT * FROM pilot_tasks WHERE id = ?",
+    [id]
+  );
+  if (!existing) return null;
+
+  const next = {
+    title: patch.title ?? existing.title,
+    initiative_id:
+      patch.initiativeId === undefined
+        ? existing.initiative_id
+        : patch.initiativeId,
+    owner: patch.owner === undefined ? existing.owner : patch.owner,
+    status: patch.status ?? existing.status,
+    due_date: patch.dueDate ?? existing.due_date ?? "",
+    notes: patch.notes ?? existing.notes ?? "",
+    updated_at: Date.now(),
+  };
+
+  await run(
+    `UPDATE pilot_tasks
+       SET title = ?, initiative_id = ?, owner = ?, status = ?, due_date = ?, notes = ?, updated_at = ?
+     WHERE id = ?`,
+    [
+      next.title,
+      next.initiative_id,
+      next.owner,
+      next.status,
+      next.due_date,
+      next.notes,
+      next.updated_at,
+      id,
+    ]
+  );
+
+  const fresh = await row<PilotTaskRow>(
+    "SELECT * FROM pilot_tasks WHERE id = ?",
+    [id]
+  );
+  return fresh ? parseTask(fresh) : null;
+}
+
+export async function deletePilotTask(id: string): Promise<void> {
+  await run("DELETE FROM pilot_tasks WHERE id = ?", [id]);
 }

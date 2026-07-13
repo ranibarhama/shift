@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { deletePilotGap, updatePilotGap } from "@/lib/pilotBoardDb";
+import { deletePilotTask, updatePilotTask } from "@/lib/pilotBoardDb";
 import { getCurrentRole } from "@/lib/session";
 import {
   GAP_STATUSES,
-  GAP_TYPES,
   type GapStatus,
-  type GapType,
-  type PilotGapPatch,
+  type PilotTaskPatch,
 } from "@/lib/pilotBoard";
 import { LEADER_NAMES } from "@/lib/stoneBriefs";
 
-const TYPE_SET = new Set<string>(GAP_TYPES.map((t) => t.key));
 const STATUS_SET = new Set<string>(GAP_STATUSES.map((s) => s.key));
 const OWNER_SET = new Set<string>(LEADER_NAMES);
 
@@ -23,12 +20,13 @@ export async function PATCH(
   const { id } = await ctx.params;
   const body = (await req.json()) as Record<string, unknown>;
 
-  const patch: PilotGapPatch = {};
+  const patch: PilotTaskPatch = {};
   if (typeof body.title === "string") patch.title = body.title;
-  if (typeof body.type === "string" && TYPE_SET.has(body.type)) {
-    patch.type = body.type as GapType;
+  if (body.initiativeId === null) {
+    patch.initiativeId = null;
+  } else if (typeof body.initiativeId === "string") {
+    patch.initiativeId = body.initiativeId;
   }
-  if (typeof body.typeOther === "string") patch.typeOther = body.typeOther;
   if (body.owner === null) {
     patch.owner = null;
   } else if (typeof body.owner === "string" && OWNER_SET.has(body.owner)) {
@@ -40,9 +38,9 @@ export async function PATCH(
   if (typeof body.dueDate === "string") patch.dueDate = body.dueDate;
   if (typeof body.notes === "string") patch.notes = body.notes;
 
-  const gap = await updatePilotGap(id, patch);
-  if (!gap) return NextResponse.json({ error: "not found" }, { status: 404 });
-  return NextResponse.json({ gap });
+  const task = await updatePilotTask(id, patch);
+  if (!task) return NextResponse.json({ error: "not found" }, { status: 404 });
+  return NextResponse.json({ task });
 }
 
 export async function DELETE(
@@ -52,6 +50,6 @@ export async function DELETE(
   const role = await getCurrentRole();
   if (!role) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
-  await deletePilotGap(id);
+  await deletePilotTask(id);
   return NextResponse.json({ ok: true });
 }

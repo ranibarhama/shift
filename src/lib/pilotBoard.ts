@@ -36,7 +36,7 @@ export const PILOT_STAGES: StageDef[] = [
 ];
 
 export type GapType = "tool" | "workflow" | "infra" | "other";
-export type GapStatus = "open" | "in_progress" | "done";
+export type GapStatus = "open" | "in_progress" | "blocked" | "done";
 
 export type GapTypeDef = { key: GapType; label: string; hex: string };
 export const GAP_TYPES: GapTypeDef[] = [
@@ -50,6 +50,7 @@ export type GapStatusDef = { key: GapStatus; label: string; hex: string };
 export const GAP_STATUSES: GapStatusDef[] = [
   { key: "open", label: "Open", hex: "#94a3b8" },
   { key: "in_progress", label: "In progress", hex: "#3b82f6" },
+  { key: "blocked", label: "Blocked", hex: "#ef4444" },
   { key: "done", label: "Done", hex: "#10b981" },
 ];
 
@@ -140,6 +141,7 @@ export type PilotGapRow = {
   type_other: string | null;
   owner: string | null;
   status: string;
+  due_date: string | null;
   notes: string | null;
   created_at: number;
   updated_at: number;
@@ -154,6 +156,7 @@ export type PilotGap = {
   typeOther: string;
   owner: string | null;
   status: GapStatus;
+  dueDate: string;
   notes: string;
   createdAt: number;
   updatedAt: number;
@@ -173,6 +176,47 @@ export function parseGap(r: PilotGapRow): PilotGap {
     typeOther: r.type_other ?? "",
     owner: r.owner,
     status: (GAP_STATUS_SET.has(r.status) ? r.status : "open") as GapStatus,
+    dueDate: r.due_date ?? "",
+    notes: r.notes ?? "",
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+/* ---------- Standalone pilot tasks (tracker) ---------- */
+
+export type PilotTaskRow = {
+  id: string;
+  initiative_id: string | null;
+  title: string;
+  owner: string | null;
+  status: string;
+  due_date: string | null;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+};
+
+export type PilotTask = {
+  id: string;
+  initiativeId: string | null;
+  title: string;
+  owner: string | null;
+  status: GapStatus;
+  dueDate: string;
+  notes: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export function parseTask(r: PilotTaskRow): PilotTask {
+  return {
+    id: r.id,
+    initiativeId: r.initiative_id,
+    title: r.title,
+    owner: r.owner,
+    status: (GAP_STATUS_SET.has(r.status) ? r.status : "open") as GapStatus,
+    dueDate: r.due_date ?? "",
     notes: r.notes ?? "",
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -195,6 +239,16 @@ export type PilotGapPatch = {
   typeOther?: string;
   owner?: string | null;
   status?: GapStatus;
+  dueDate?: string;
+  notes?: string;
+};
+
+export type PilotTaskPatch = {
+  title?: string;
+  initiativeId?: string | null;
+  owner?: string | null;
+  status?: GapStatus;
+  dueDate?: string;
   notes?: string;
 };
 
