@@ -28,18 +28,29 @@ export default async function Topbar() {
             </span>
           </span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        {/* Nav reads left-to-right as the order we did things:
+            map → departments → backlog → drop → target → stones → handoff → pilot */}
+        <nav className="flex items-center gap-0.5 text-sm" aria-label="Journey">
           <NavLink href="/main">B2C main workflow</NavLink>
+          <NavArrow />
           {role && (
-            <DepartmentsDropdown
-              ownRole={role.key !== "gm" ? userRole : null}
-            />
+            <>
+              <DepartmentsDropdown
+                ownRole={role.key !== "gm" ? userRole : null}
+              />
+              <NavArrow />
+            </>
           )}
           <NavLink href="/backlog">Backlog</NavLink>
+          <NavArrow />
           <NavLink href="/hit-list">Hit List</NavLink>
+          <NavArrow />
           <NavLink href="/blueprint">How good looks like</NavLink>
+          <NavArrow />
           <NavLink href="/big-stones">Zoom out</NavLink>
+          <NavArrow />
           <NavLink href="/next-steps">Next Steps</NavLink>
+          <NavArrow />
           <NavLink href="/pilot-board">Pilot Board</NavLink>
         </nav>
       </div>
@@ -76,6 +87,28 @@ export default async function Topbar() {
         )}
       </div>
     </header>
+  );
+}
+
+function NavArrow() {
+  return (
+    <span
+      aria-hidden
+      className="shrink-0 text-line"
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="9 6 15 12 9 18" />
+      </svg>
+    </span>
   );
 }
 
