@@ -54,8 +54,7 @@ export default async function Topbar() {
           <NavLink href="/pilot-board">Pilot Board</NavLink>
         </nav>
       </div>
-      <div className="flex items-center gap-3">
-        <ThemeToggle initial={theme} />
+      <div className="flex items-center gap-2">
         {role ? (
           <>
             <div className="flex items-center gap-2 rounded-full border border-line bg-card/60 py-1 pl-1 pr-3 text-xs">
@@ -71,19 +70,22 @@ export default async function Topbar() {
               href="/"
               aria-label="Home"
               title="Home"
-              className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line text-muted hover:bg-line/40 hover:text-fg"
             >
               <HomeIcon />
-              Home
             </Link>
+            <ThemeToggle initial={theme} />
           </>
         ) : (
-          <Link
-            href="/"
-            className="rounded-md border border-line px-3 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
-          >
-            Sign in
-          </Link>
+          <>
+            <Link
+              href="/"
+              className="rounded-md border border-line px-3 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
+            >
+              Sign in
+            </Link>
+            <ThemeToggle initial={theme} />
+          </>
         )}
       </div>
     </header>
@@ -94,7 +96,7 @@ function NavArrow() {
   return (
     <span
       aria-hidden
-      className="shrink-0 text-line"
+      className="shrink-0 text-[#f97316]"
     >
       <svg
         width="12"
