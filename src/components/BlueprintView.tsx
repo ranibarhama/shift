@@ -552,7 +552,7 @@ function FutureStructure() {
             <FutureStageCard
               num={3}
               eyebrow="Stage 03"
-              title="Growth"
+              title="GTM & Growth"
               description="Launch and growth handled by an agent crew across every channel, watched by live KPI monitors that feed product back."
               accentHex="#ef4444"
             >
