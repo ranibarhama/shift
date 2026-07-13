@@ -49,7 +49,7 @@ export default async function Topbar() {
           <NavArrow />
           <NavLink href="/big-stones">Zoom out</NavLink>
           <NavArrow />
-          <NavLink href="/next-steps">Next Steps</NavLink>
+          <NavLink href="/next-steps">Stages Definition</NavLink>
           <NavArrow />
           <NavLink href="/pilot-board">Pilot Board</NavLink>
         </nav>
