@@ -30,7 +30,7 @@ export type StageDef = {
 export const PILOT_STAGES: StageDef[] = [
   { key: "insights", label: "Insights Engine", hex: "#22d3ee" },
   { key: "ai-build", label: "AI Build / MVP", hex: "#3b82f6" },
-  { key: "gtm", label: "GTM & Grow", hex: "#ef4444" },
+  { key: "gtm", label: "GTM & Growth", hex: "#ef4444" },
   { key: "decision-brain", label: "Organization Brain", hex: "#a855f7" },
   { key: "ops-risk", label: "Ops, Risk & Governance", hex: "#7c5cff" },
 ];
