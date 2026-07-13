@@ -263,42 +263,6 @@ export const LAYERS: Layer[] = [
       },
     ],
   },
-  {
-    num: "8",
-    title: "Financial Performance",
-    summary:
-      "Money in, money out, modeled live. Every metric ties back to a decision the leadership can take this week.",
-    hex: "#eab308",
-    stages: [
-      "Revenue tracking",
-      "Cost tracking",
-      "AI tooling costs",
-      "Marketing spend",
-      "R&D capacity",
-      "Gross margin & unit economics",
-      "CAC, LTV, ROAS, payback",
-      "Forecasting & scenario planning",
-      "Plan vs. actual",
-      "Budget alerts",
-      "Profitability dashboard",
-    ],
-    extras: [
-      {
-        label: "Decision outputs",
-        items: [
-          "Increase budget",
-          "Cut spend",
-          "Change pricing",
-          "Adjust roadmap",
-          "Stop experiment",
-          "Scale winner",
-          "Fix retention",
-          "Reduce cost",
-          "Raise LTV",
-        ],
-      },
-    ],
-  },
 ];
 
 const LEARNING_LOOP_HEX = "#a855f7";
@@ -614,7 +578,6 @@ function FutureStructure() {
         {/* Cross-cutting bands */}
         <div className="space-y-2.5">
           <CrossCuttingBand layerNum="7" />
-          <CrossCuttingBand layerNum="8" />
         </div>
       </div>
 

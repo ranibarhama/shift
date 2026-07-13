@@ -614,7 +614,7 @@ function InitiativeRow({
       />
 
       {/* Body — mirrors the Blueprint future-view shape:
-       *  Ops/Risk band (top) · 3 main stages + Org Brain side · Financial band (bottom)
+       *  Ops/Risk band (top) · 3 main stages + Org Brain side
        */}
       <div className="space-y-4 p-4">
         {/* Top cross-cutting band */}
@@ -656,14 +656,6 @@ function InitiativeRow({
           />
         </div>
 
-        {/* Bottom cross-cutting band */}
-        <CrossCuttingBand
-          stage={STAGE_BY_KEY["financial"]}
-          gaps={gaps.filter((g) => g.stageKey === "financial")}
-          onAdd={() => onAddGap("financial")}
-          onPatch={onPatchGap}
-          onDelete={onDeleteGap}
-        />
       </div>
     </article>
   );

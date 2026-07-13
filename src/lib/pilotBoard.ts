@@ -18,8 +18,7 @@ export type StageKey =
   | "ai-build"
   | "gtm"
   | "decision-brain"
-  | "ops-risk"
-  | "financial";
+  | "ops-risk";
 
 export type StageDef = {
   key: StageKey;
@@ -34,7 +33,6 @@ export const PILOT_STAGES: StageDef[] = [
   { key: "gtm", label: "GTM & Grow", hex: "#ef4444" },
   { key: "decision-brain", label: "Organization Brain", hex: "#a855f7" },
   { key: "ops-risk", label: "Ops, Risk & Governance", hex: "#7c5cff" },
-  { key: "financial", label: "Financial Performance", hex: "#eab308" },
 ];
 
 export type GapType = "tool" | "workflow" | "infra" | "other";

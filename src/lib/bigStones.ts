@@ -18,8 +18,7 @@ export type BigStoneKey =
   | "ai-build"
   | "gtm"
   | "decision-brain"
-  | "ops-risk"
-  | "financial";
+  | "ops-risk";
 
 export type BigStone = {
   key: BigStoneKey;
@@ -120,24 +119,6 @@ export const BIG_STONES: BigStone[] = [
       "quality gate", "threshold", "visibility",
     ],
   },
-  {
-    key: "financial",
-    num: 6,
-    name: "Financial Performance AI Layer",
-    description:
-      "Live revenue, cost and forecast modeling tied to decisions leadership can take this week.",
-    connectsTo: "Cross-cutting · Financial Performance",
-    hex: "#eab308",
-    keywords: [
-      "revenue", "sales report", "billing", "invoice",
-      "cost", "expense", "spend", "budget",
-      "finance", "financial", "p&l", "profit",
-      "forecast", "scenario", "plan vs actual",
-      "margin", "unit economics",
-      "arr", "mrr", "payback",
-      "profitability",
-    ],
-  },
 ];
 
 /**
@@ -216,7 +197,6 @@ export function analyzeBacklog(items: MissingItemRow[]): BacklogAnalysis {
     gtm: [],
     "decision-brain": [],
     "ops-risk": [],
-    financial: [],
   };
   const unmapped: MissingItemRow[] = [];
 

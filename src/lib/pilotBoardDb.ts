@@ -8,6 +8,7 @@
 
 import { row, rows, run } from "./db";
 import {
+  PILOT_STAGES,
   parseGap,
   parseInitiative,
   type PilotGap,
@@ -18,6 +19,8 @@ import {
   type PilotInitiativeRow,
   type StageKey,
 } from "./pilotBoard";
+
+const VALID_STAGE_KEYS = new Set<string>(PILOT_STAGES.map((s) => s.key));
 
 function genId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Math.random()
@@ -108,7 +111,10 @@ export async function getAllPilotGaps(): Promise<PilotGap[]> {
   const raw = await rows<PilotGapRow>(
     "SELECT * FROM pilot_gaps ORDER BY created_at ASC"
   );
-  return raw.map(parseGap);
+  // Drop rows whose stage_key is no longer a valid pilot stage (e.g. gaps
+  // logged against a stage that was later removed). Silently defaulting
+  // them to another stage via parseGap would misrepresent where they live.
+  return raw.filter((r) => VALID_STAGE_KEYS.has(r.stage_key)).map(parseGap);
 }
 
 export async function createPilotGap(
