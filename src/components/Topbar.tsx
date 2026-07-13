@@ -28,17 +28,17 @@ export default async function Topbar() {
             </span>
           </span>
         </Link>
-        <nav className="flex items-center gap-1 overflow-x-auto text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav className="flex items-center gap-1 text-sm">
           <NavLink href="/main">B2C main workflow</NavLink>
           {role && (
             <DepartmentsDropdown
               ownRole={role.key !== "gm" ? userRole : null}
             />
           )}
-          <NavLink href="/backlog">Todo Backlog</NavLink>
+          <NavLink href="/backlog">Backlog</NavLink>
           <NavLink href="/hit-list">Hit List</NavLink>
           <NavLink href="/blueprint">How good looks like</NavLink>
-          <NavLink href="/big-stones">Backlog Zoom Out</NavLink>
+          <NavLink href="/big-stones">Zoom out</NavLink>
           <NavLink href="/next-steps">Next Steps</NavLink>
           <NavLink href="/pilot-board">Pilot Board</NavLink>
         </nav>
