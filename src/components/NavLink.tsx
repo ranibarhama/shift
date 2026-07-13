@@ -20,8 +20,8 @@ export default function NavLink({ href, children, matchPrefix }: Props) {
       aria-current={active ? "page" : undefined}
       className={
         active
-          ? "rounded-md bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent"
-          : "rounded-md px-3 py-1.5 text-sm text-muted hover:bg-line/40 hover:text-fg"
+          ? "whitespace-nowrap rounded-md bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent"
+          : "whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted hover:bg-line/40 hover:text-fg"
       }
     >
       {children}
@@ -41,8 +41,8 @@ export function NavDropdownButton({
       aria-current={active ? "page" : undefined}
       className={
         active
-          ? "rounded-md bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent"
-          : "rounded-md px-3 py-1.5 text-sm text-muted hover:bg-line/40 hover:text-fg"
+          ? "whitespace-nowrap rounded-md bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent"
+          : "whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted hover:bg-line/40 hover:text-fg"
       }
     >
       {children}

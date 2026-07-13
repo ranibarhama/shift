@@ -14,10 +14,10 @@ export default async function Topbar() {
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-line/70 bg-bg/80 px-5 backdrop-blur">
-      <div className="flex items-center gap-6">
+      <div className="flex min-w-0 items-center gap-6">
         <Link
           href="/main"
-          className="group flex items-center gap-2.5 text-fg"
+          className="group flex shrink-0 items-center gap-2.5 text-fg"
           aria-label="Shift — B2C AI Implementation Playbook"
         >
           <ShiftMark />
@@ -28,7 +28,7 @@ export default async function Topbar() {
             </span>
           </span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex items-center gap-1 overflow-x-auto text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavLink href="/main">B2C main workflow</NavLink>
           {role && (
             <DepartmentsDropdown
