@@ -31,7 +31,7 @@ export default async function MainProcessPage() {
   const theme = await getCurrentTheme();
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <ProcessCanvas
         processId={process.id}

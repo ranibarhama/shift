@@ -22,7 +22,7 @@ export default async function PilotBoardPage() {
   ]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <PilotBoardView initialInitiatives={initiatives} initialGaps={gaps} />
     </div>

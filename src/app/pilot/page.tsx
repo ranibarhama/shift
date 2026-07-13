@@ -68,7 +68,7 @@ const MEETING_IS_NOT = [
 
 export default function PilotMeetingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <main className="mx-auto w-full max-w-4xl px-6 py-10">
         {/* Hero */}

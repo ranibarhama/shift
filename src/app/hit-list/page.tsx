@@ -13,7 +13,7 @@ export default async function HitListPage() {
   const rows = await getAllDropItems();
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <HitListTable rows={rows} />
     </div>

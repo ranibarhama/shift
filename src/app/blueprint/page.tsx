@@ -11,7 +11,7 @@ export default async function HowGoodLooksLikePage() {
   const role = await getCurrentRole();
   if (!role) redirect("/");
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <BlueprintView />
     </div>

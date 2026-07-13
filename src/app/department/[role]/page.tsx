@@ -54,7 +54,7 @@ export default async function DepartmentPage({
   const stageParticipants = selected ? await getStageParticipants(stages.map((s) => s.id)) : [];
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <div className="flex flex-1 overflow-hidden">
         <WorkflowSidebar

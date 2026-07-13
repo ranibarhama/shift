@@ -18,7 +18,7 @@ export default async function BigStonesPage() {
   const analysis = analyzeBacklog(items);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <BigStonesView analysis={analysis} />
     </div>

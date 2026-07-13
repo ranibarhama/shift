@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-line/60 bg-bg/95 px-6 py-2.5 text-center text-[11px] leading-relaxed text-muted backdrop-blur">
+    <footer className="border-t border-line/60 bg-bg px-6 py-2.5 text-center text-[11px] leading-relaxed text-muted">
       <div className="flex items-center justify-center gap-1.5">
         <HeartIcon />
         <span>Built with passion and curiosity by the B2C</span>

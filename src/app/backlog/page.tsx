@@ -13,7 +13,7 @@ export default async function BacklogPage() {
   const items = await getAllMissingItems();
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <BacklogTable items={items} />
     </div>

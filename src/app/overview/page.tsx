@@ -9,7 +9,7 @@ export default async function OverviewPage() {
   const data = await loadOverview();
   const theme = await getCurrentTheme();
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <OverviewCanvas data={data} initialTheme={theme} />
     </div>

@@ -15,7 +15,7 @@ export default async function NextStepsPage() {
   const briefs = await getAllStoneBriefs();
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <Topbar />
       <NextStepsView briefs={briefs} />
     </div>

@@ -18,9 +18,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = await getCurrentTheme();
   return (
     <html lang="en" className={theme === "dark" ? "dark" : ""} style={{ colorScheme: theme }}>
-      <body className="min-h-screen pb-16 antialiased">
-        <ConfirmProvider>{children}</ConfirmProvider>
-        <Footer />
+      <body className="flex min-h-screen flex-col antialiased">
+        <ConfirmProvider>
+          <div className="flex flex-1 flex-col">{children}</div>
+          <Footer />
+        </ConfirmProvider>
       </body>
     </html>
   );
