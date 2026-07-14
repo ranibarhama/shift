@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
+import FullscreenButton from "@/components/FullscreenButton";
+import { TrashIcon, BotIcon, MergeIcon, BrainIcon } from "@/components/DecisionIcons";
 
 export const metadata = {
   title: "The story so far · Shift",
@@ -110,6 +112,37 @@ const PHASES: Phase[] = [
   },
 ];
 
+const DECISIONS = [
+  {
+    n: "01",
+    title: "Drop it",
+    desc: "Outdated or no-longer-useful steps.",
+    hex: "#ef4444",
+    Icon: TrashIcon,
+  },
+  {
+    n: "02",
+    title: "Automate it",
+    desc: "AI handles it end-to-end.",
+    hex: "#22c55e",
+    Icon: BotIcon,
+  },
+  {
+    n: "03",
+    title: "Hybrid",
+    desc: "Human + AI together.",
+    hex: "#eab308",
+    Icon: MergeIcon,
+  },
+  {
+    n: "04",
+    title: "Own it",
+    desc: "Only humans can do this.",
+    hex: "#38bdf8",
+    Icon: BrainIcon,
+  },
+];
+
 const SESSIONS = [
   { name: "AI Transition Workshop", when: "Session 1", href: "/workshop" },
   { name: "Pilot Definition Meeting", when: "Session 2", href: "/pilot" },
@@ -120,125 +153,235 @@ export default function JourneyPage() {
   return (
     <div className="flex flex-1 flex-col">
       <Topbar />
-      <main className="mx-auto w-full max-w-4xl px-6 py-10">
-        {/* Hero */}
-        <header className="mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-            Context · The story so far
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-[36px]">
-            What we&apos;ve built
-          </h1>
-          <p className="mt-2 max-w-2xl text-[15.5px] leading-relaxed text-muted">
-            Over the past two months the B2C team mapped how we work today, defined
-            where AI makes the biggest impact, and turned it into a pilot we can run.
-            Here&apos;s the whole journey on one page — then we dive into the system
-            itself.
-          </p>
-        </header>
+      <main className="w-full">
+        {/* ============ HERO ============ */}
+        <section className="relative overflow-hidden">
+          {/* ambient glow */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full opacity-40 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(124,92,255,0.55), transparent 65%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-32 top-20 h-[380px] w-[380px] rounded-full opacity-25 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(34,211,238,0.5), transparent 65%)",
+            }}
+          />
+          <div className="relative mx-auto w-full max-w-5xl px-6 pb-14 pt-16 sm:pt-24">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-accent">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                Context · The story so far
+              </div>
+              <FullscreenButton />
+            </div>
+            <h1 className="max-w-3xl text-balance text-4xl font-bold leading-[1.02] tracking-tight text-fg sm:text-6xl">
+              What we&apos;ve built,{" "}
+              <span className="text-accent">on one page.</span>
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
+              Over the past two months the B2C team mapped how we work today,
+              defined where AI makes the biggest impact, and turned it into a pilot
+              we can run. Here&apos;s the whole journey — then we dive into the
+              system itself.
+            </p>
 
-        {/* Sessions strip */}
-        <section className="mb-10 flex flex-wrap items-center gap-2">
-          {SESSIONS.map((s, i) => (
-            <span key={s.name} className="flex items-center gap-2">
-              <Link
-                href={s.href}
-                className={
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition hover:border-accent/50 " +
-                  (s.now
-                    ? "border-accent/50 bg-accent/10 text-accent"
-                    : "border-line bg-card/60 text-muted hover:text-fg")
-                }
-              >
-                <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">
-                  {s.when}
+            {/* Sessions strip */}
+            <div className="mt-8 flex flex-wrap items-center gap-2">
+              {SESSIONS.map((s, i) => (
+                <span key={s.name} className="flex items-center gap-2">
+                  <Link
+                    href={s.href}
+                    className={
+                      "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs transition hover:border-accent/50 " +
+                      (s.now
+                        ? "border-accent/50 bg-accent/10 text-accent"
+                        : "border-line bg-card/60 text-muted hover:text-fg")
+                    }
+                  >
+                    <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">
+                      {s.when}
+                    </span>
+                    <span className="font-medium">{s.name}</span>
+                  </Link>
+                  {i < SESSIONS.length - 1 && (
+                    <span className="text-[#f97316]" aria-hidden>
+                      <Chevron />
+                    </span>
+                  )}
                 </span>
-                <span className="font-medium">{s.name}</span>
-              </Link>
-              {i < SESSIONS.length - 1 && (
-                <span className="text-[#f97316]" aria-hidden>
-                  <Chevron />
-                </span>
-              )}
-            </span>
-          ))}
+              ))}
+            </div>
+          </div>
         </section>
 
-        {/* Phases */}
-        <div className="space-y-12">
-          {PHASES.map((phase) => (
-            <section key={phase.label}>
-              <div className="mb-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                  {phase.label}
+        {/* ============ THE CORE DECISION ============ */}
+        <section className="border-y border-line/60 bg-card/30">
+          <div className="mx-auto w-full max-w-5xl px-6 py-16">
+            <div className="mx-auto max-w-2xl text-center">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
+                The decision at the heart of it
+              </div>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-fg sm:text-4xl">
+                For every stage &amp; task, decide
+              </h2>
+              <p className="mt-3 text-[15.5px] leading-relaxed text-muted">
+                You&apos;ll tag every task and pain point inside every stage with one
+                of these four choices. The visualization color-codes them so you can
+                see where the work goes.
+              </p>
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {DECISIONS.map((d) => (
+                <div
+                  key={d.title}
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card/60 p-5 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                  style={{
+                    borderColor: `${d.hex}44`,
+                    boxShadow: `inset 0 3px 0 0 ${d.hex}`,
+                  }}
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <span
+                      className="grid h-11 w-11 place-items-center rounded-xl"
+                      style={{ background: `${d.hex}1f`, color: d.hex }}
+                    >
+                      <d.Icon size={18} strokeWidth={2.2} />
+                    </span>
+                    <span
+                      className="font-mono text-xs font-bold tracking-[0.15em]"
+                      style={{ color: d.hex }}
+                    >
+                      {d.n}
+                    </span>
+                  </div>
+                  <div className="text-lg font-bold uppercase tracking-wide text-fg">
+                    {d.title}
+                  </div>
+                  <p
+                    className="mt-1 text-[13.5px] leading-snug"
+                    style={{ color: d.hex }}
+                  >
+                    {d.desc}
+                  </p>
                 </div>
-                <h2 className="mt-1 text-xl font-semibold tracking-tight text-fg">
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ THE JOURNEY (phases) ============ */}
+        <section className="mx-auto w-full max-w-5xl px-6 py-16">
+          <div className="mb-12 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
+              How we got here
+            </div>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-fg sm:text-4xl">
+              Nine steps, left to right
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-[15.5px] leading-relaxed text-muted">
+              The top navigation is the journey. Each step below is a real, editable
+              page — click any of them to jump straight in.
+            </p>
+          </div>
+
+          <div className="space-y-14">
+            {PHASES.map((phase) => (
+              <div key={phase.label}>
+                <div className="mb-5 flex items-baseline gap-3">
+                  <span className="font-mono text-sm font-bold tracking-[0.15em] text-accent">
+                    {phase.label.toUpperCase()}
+                  </span>
+                  <div className="h-px flex-1 bg-line/70" />
+                </div>
+                <h3 className="text-2xl font-bold tracking-tight text-fg">
                   {phase.title}
-                </h2>
-                <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted">
+                </h3>
+                <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-muted">
                   {phase.blurb}
                 </p>
-              </div>
 
-              <div className="space-y-2.5">
-                {phase.steps.map((step) => (
-                  <Link
-                    key={step.n}
-                    href={step.href}
-                    className="group flex items-start gap-4 rounded-2xl border border-line bg-card/50 p-4 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg sm:p-5"
-                    style={{ boxShadow: `inset 3px 0 0 0 ${step.hex}` }}
-                  >
-                    <span
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[14px] font-bold tabular-nums"
-                      style={{ background: `${step.hex}1a`, color: step.hex }}
+                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {phase.steps.map((step) => (
+                    <Link
+                      key={step.n}
+                      href={step.href}
+                      className="group flex items-start gap-4 rounded-2xl border border-line bg-card/50 p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg"
+                      style={{ boxShadow: `inset 3px 0 0 0 ${step.hex}` }}
                     >
-                      {step.n}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-[16px] font-semibold leading-tight text-fg">
-                          {step.name}
-                        </h3>
-                        <span className="text-muted opacity-0 transition group-hover:opacity-100">
-                          →
-                        </span>
+                      <span
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[15px] font-bold tabular-nums"
+                        style={{ background: `${step.hex}1a`, color: step.hex }}
+                      >
+                        {step.n}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-[16px] font-semibold leading-tight text-fg">
+                            {step.name}
+                          </h4>
+                          <span className="text-accent opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100">
+                            →
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[13.5px] leading-snug text-muted">
+                          {step.what}
+                        </p>
                       </div>
-                      <p className="mt-1 text-[13.5px] leading-snug text-muted">
-                        {step.what}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </section>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <section className="mt-14 rounded-2xl border border-accent/40 bg-accent/10 p-6 text-center">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-            Now let&apos;s dive in
+            ))}
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-fg">
-            The whole thing is live in this app.
-          </h2>
-          <p className="mx-auto mt-1 max-w-xl text-sm text-muted">
-            Every step above is a real, editable page. Start from the top of the
-            navigation and walk it left to right — the menu is the journey.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <Link
-              href="/main"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
-            >
-              Start the walkthrough →
-            </Link>
-            <Link
-              href="/kickoff"
-              className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-card px-5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent hover:text-ink"
-            >
-              Tomorrow&apos;s kickoff agenda
-            </Link>
+        </section>
+
+        {/* ============ CTA ============ */}
+        <section className="border-t border-line/60">
+          <div className="mx-auto w-full max-w-5xl px-6 py-16">
+            <div className="relative overflow-hidden rounded-3xl border border-accent/40 bg-accent/10 p-10 text-center">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(124,92,255,0.6), transparent 65%)",
+                }}
+              />
+              <div className="relative">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
+                  Now let&apos;s dive in
+                </div>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-fg sm:text-4xl">
+                  The whole thing is live in this app.
+                </h2>
+                <p className="mx-auto mt-3 max-w-xl text-[15.5px] leading-relaxed text-muted">
+                  Every step above is a real, editable page. Start from the top of the
+                  navigation and walk it left to right — the menu is the journey.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href="/main"
+                    className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-ink transition hover:brightness-110"
+                  >
+                    Start the walkthrough →
+                  </Link>
+                  <Link
+                    href="/kickoff"
+                    className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-card px-6 py-3 text-sm font-semibold text-accent transition hover:bg-accent hover:text-ink"
+                  >
+                    Tomorrow&apos;s kickoff agenda
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>
