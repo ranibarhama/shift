@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { createPilotTask } from "@/lib/pilotBoardDb";
-import { getCurrentRole } from "@/lib/session";
 import { LEADER_NAMES } from "@/lib/stoneBriefs";
 
 const OWNER_SET = new Set<string>(LEADER_NAMES);
 
+// Public route: the Pilot Tracker is shareable by link, so creating a
+// task doesn't require a signed-in role.
 export async function POST(req: Request) {
-  const role = await getCurrentRole();
-  if (!role) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = (await req.json()) as {
     title?: unknown;
     initiativeId?: unknown;

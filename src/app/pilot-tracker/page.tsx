@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
 import Topbar from "@/components/Topbar";
 import PilotTrackerView from "@/components/PilotTrackerView";
-import { getCurrentRole } from "@/lib/session";
 import {
   getAllPilotInitiatives,
   getAllPilotGaps,
@@ -13,10 +11,8 @@ export const metadata = {
 };
 export const dynamic = "force-dynamic";
 
+// Public page: anyone with the link can view and edit — no sign-in gate.
 export default async function PilotTrackerPage() {
-  const role = await getCurrentRole();
-  if (!role) redirect("/");
-
   const [initiatives, gaps, tasks] = await Promise.all([
     getAllPilotInitiatives(),
     getAllPilotGaps(),

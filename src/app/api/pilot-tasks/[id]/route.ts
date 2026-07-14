@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { deletePilotTask, updatePilotTask } from "@/lib/pilotBoardDb";
-import { getCurrentRole } from "@/lib/session";
 import {
   GAP_STATUSES,
   type GapStatus,
@@ -11,12 +10,12 @@ import { LEADER_NAMES } from "@/lib/stoneBriefs";
 const STATUS_SET = new Set<string>(GAP_STATUSES.map((s) => s.key));
 const OWNER_SET = new Set<string>(LEADER_NAMES);
 
+// Public route: the Pilot Tracker is shareable by link, so task edits
+// don't require a signed-in role.
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const role = await getCurrentRole();
-  if (!role) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
   const body = (await req.json()) as Record<string, unknown>;
 
@@ -47,8 +46,6 @@ export async function DELETE(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const role = await getCurrentRole();
-  if (!role) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
   await deletePilotTask(id);
   return NextResponse.json({ ok: true });
