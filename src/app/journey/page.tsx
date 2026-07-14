@@ -181,15 +181,25 @@ export default function JourneyPage() {
               </div>
               <FullscreenButton />
             </div>
-            <h1 className="max-w-3xl text-balance text-4xl font-bold leading-[1.02] tracking-tight text-fg sm:text-6xl">
-              What we&apos;ve built,{" "}
-              <span className="text-accent">on one page.</span>
+            <h1 className="max-w-3xl text-balance text-4xl font-bold leading-[1.04] tracking-tight text-fg sm:text-6xl">
+              Map today. Define tomorrow.
+              <br />
+              <span className="text-accent">Decide where AI fits.</span>{" "}
+              <span className="font-extrabold text-automate">Shift!</span>
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
-              Over the past two months the B2C team mapped how we work today,
-              defined where AI makes the biggest impact, and turned it into a pilot
-              we can run. Here&apos;s the whole journey — then we dive into the
-              system itself.
+              The B2C AI Implementation Playbook. Not just a snapshot of how we
+              work today — it&apos;s where we define how we want to work next, and
+              for every stage and task choose what to{" "}
+              <span className="text-drop">drop</span>,{" "}
+              <span className="text-automate">automate</span>,{" "}
+              <span className="text-hybrid">make hybrid</span>, or{" "}
+              <span className="text-own">own</span>.
+            </p>
+            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted/80">
+              Over the past two months we mapped how we work today, defined where AI
+              makes the biggest impact, and turned it into a pilot we can run.
+              Here&apos;s the whole journey on one page.
             </p>
 
             {/* Sessions strip */}
@@ -338,6 +348,8 @@ export default function JourneyPage() {
                     </Link>
                   ))}
                 </div>
+
+                {phase.label === "Phase 1" && <DecisionMini />}
               </div>
             ))}
           </div>
@@ -385,6 +397,43 @@ export default function JourneyPage() {
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function DecisionMini() {
+  return (
+    <div className="mt-4 rounded-2xl border border-line bg-card/40 p-4 sm:p-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+        The decision at the heart of it
+      </div>
+      <h4 className="mt-1 text-[16px] font-bold tracking-tight text-fg">
+        For every stage &amp; task, decide
+      </h4>
+      <p className="mt-1 max-w-2xl text-[13px] leading-snug text-muted">
+        You&apos;ll tag every task and pain point inside every stage with one of
+        these four choices. The visualization color-codes them so you can see
+        where the work goes.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {DECISIONS.map((d) => (
+          <span
+            key={d.title}
+            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
+            style={{
+              borderColor: `${d.hex}55`,
+              color: d.hex,
+              background: `${d.hex}12`,
+            }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: d.hex }}
+            />
+            {d.title}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
