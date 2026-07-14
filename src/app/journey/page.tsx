@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
 import FullscreenButton from "@/components/FullscreenButton";
+import DecideTooltip from "@/components/DecideTooltip";
 import { TrashIcon, BotIcon, MergeIcon, BrainIcon } from "@/components/DecisionIcons";
 
 export const metadata = {
@@ -231,62 +232,6 @@ export default function JourneyPage() {
           </div>
         </section>
 
-        {/* ============ THE CORE DECISION ============ */}
-        <section className="border-y border-line/60 bg-card/30">
-          <div className="mx-auto w-full max-w-5xl px-6 py-16">
-            <div className="mx-auto max-w-2xl text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
-                The decision at the heart of it
-              </div>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-fg sm:text-4xl">
-                For every stage &amp; task, decide
-              </h2>
-              <p className="mt-3 text-[15.5px] leading-relaxed text-muted">
-                You&apos;ll tag every task and pain point inside every stage with one
-                of these four choices. The visualization color-codes them so you can
-                see where the work goes.
-              </p>
-            </div>
-
-            <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {DECISIONS.map((d) => (
-                <div
-                  key={d.title}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card/60 p-5 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
-                  style={{
-                    borderColor: `${d.hex}44`,
-                    boxShadow: `inset 0 3px 0 0 ${d.hex}`,
-                  }}
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <span
-                      className="grid h-11 w-11 place-items-center rounded-xl"
-                      style={{ background: `${d.hex}1f`, color: d.hex }}
-                    >
-                      <d.Icon size={18} strokeWidth={2.2} />
-                    </span>
-                    <span
-                      className="font-mono text-xs font-bold tracking-[0.15em]"
-                      style={{ color: d.hex }}
-                    >
-                      {d.n}
-                    </span>
-                  </div>
-                  <div className="text-lg font-bold uppercase tracking-wide text-fg">
-                    {d.title}
-                  </div>
-                  <p
-                    className="mt-1 text-[13.5px] leading-snug"
-                    style={{ color: d.hex }}
-                  >
-                    {d.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* ============ THE JOURNEY (phases) ============ */}
         <section className="mx-auto w-full max-w-5xl px-6 py-16">
           <div className="mb-12 text-center">
@@ -404,12 +349,17 @@ export default function JourneyPage() {
 function DecisionMini() {
   return (
     <div className="mt-4 rounded-2xl border border-line bg-card/40 p-4 sm:p-5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-        The decision at the heart of it
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+            The decision at the heart of it
+          </div>
+          <h4 className="mt-1 text-[16px] font-bold tracking-tight text-fg">
+            For every stage &amp; task, decide
+          </h4>
+        </div>
+        <DecideTooltip />
       </div>
-      <h4 className="mt-1 text-[16px] font-bold tracking-tight text-fg">
-        For every stage &amp; task, decide
-      </h4>
       <p className="mt-1 max-w-2xl text-[13px] leading-snug text-muted">
         You&apos;ll tag every task and pain point inside every stage with one of
         these four choices. The visualization color-codes them so you can see
