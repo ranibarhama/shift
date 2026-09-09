@@ -14,6 +14,7 @@ export type I2Node = {
     details?: string;
     inputs?: string;
     outputs?: string;
+    color?: string;
   };
 };
 
@@ -98,8 +99,13 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       details?: unknown;
       inputs?: unknown;
       outputs?: unknown;
+      color?: unknown;
     } | undefined;
     const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
+    const color =
+      typeof data?.color === "string" && /^#[0-9a-fA-F]{6}$/.test(data.color)
+        ? data.color
+        : undefined;
     nodes.push({
       id: n.id,
       position: {
@@ -111,6 +117,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
         details: str(data?.details),
         inputs: str(data?.inputs),
         outputs: str(data?.outputs),
+        color,
       },
     });
   }

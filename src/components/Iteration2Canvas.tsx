@@ -30,7 +30,20 @@ type NodeData = {
   details?: string;
   inputs?: string;
   outputs?: string;
+  color?: string;
 };
+
+const DEFAULT_COLOR = "#7c5cff";
+const CARD_COLORS = [
+  "#7c5cff",
+  "#22d3ee",
+  "#3b82f6",
+  "#10b981",
+  "#eab308",
+  "#f97316",
+  "#ef4444",
+  "#a855f7",
+];
 
 const ARROW = { type: MarkerType.ArrowClosed, width: 18, height: 18 } as const;
 const EDGE_COLOR = "#8b9cff";
@@ -40,7 +53,7 @@ const EDGE_COLOR = "#8b9cff";
 function toRfNodes(g: I2Graph): Node<NodeData>[] {
   return g.nodes.map((n) => ({
     id: n.id,
-    type: "circle",
+    type: "card",
     position: n.position,
     data: { ...n.data },
   }));
@@ -80,6 +93,7 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
         details: n.data.details,
         inputs: n.data.inputs,
         outputs: n.data.outputs,
+        color: n.data.color,
       },
     })),
     edges: edges.map((e) => ({
@@ -105,20 +119,20 @@ const SIDES = [
   { id: "bottom", pos: Position.Bottom },
 ] as const;
 
-function CircleNode({ data, selected }: NodeProps<Node<NodeData>>) {
+function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
   const hasMore = !!(data.details || data.inputs || data.outputs);
+  const c = data.color || DEFAULT_COLOR;
   return (
     <div
-      className="group relative grid place-items-center rounded-full border transition"
+      className="group relative grid place-items-center rounded-2xl border transition"
       style={{
-        width: 118,
-        height: 118,
-        borderColor: selected ? "rgb(124 92 255)" : "rgba(124,92,255,0.55)",
-        background:
-          "radial-gradient(circle at 50% 38%, rgba(124,92,255,0.28), rgba(18,22,40,0.55))",
+        width: 122,
+        height: 122,
+        borderColor: selected ? c : `${c}88`,
+        background: `radial-gradient(circle at 50% 35%, ${c}3d, rgba(18,22,40,0.55))`,
         boxShadow: selected
-          ? "0 0 0 2px rgba(124,92,255,0.9), 0 0 34px rgba(124,92,255,0.55)"
-          : "0 0 26px rgba(124,92,255,0.26)",
+          ? `0 0 0 2px ${c}, 0 0 34px ${c}88`
+          : `0 0 24px ${c}3d`,
       }}
     >
       {SIDES.map((s) => (
@@ -141,7 +155,11 @@ function CircleNode({ data, selected }: NodeProps<Node<NodeData>>) {
         {data.title || "—"}
       </span>
       {hasMore && (
-        <span className="absolute bottom-3 h-1 w-1 rounded-full bg-accent" aria-hidden />
+        <span
+          className="absolute bottom-3 h-1 w-1 rounded-full"
+          style={{ background: c }}
+          aria-hidden
+        />
       )}
     </div>
   );
@@ -294,6 +312,29 @@ function NodePanel({
             className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-fg focus:border-accent focus:outline-none"
           />
         </Field>
+        <Field label="Color">
+          <div className="flex flex-wrap gap-2">
+            {CARD_COLORS.map((col) => {
+              const active = (node.data.color || DEFAULT_COLOR) === col;
+              return (
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => onChange({ color: col })}
+                  aria-label={`Color ${col}`}
+                  className={
+                    "h-7 w-7 rounded-full border-2 transition " +
+                    (active ? "scale-110" : "opacity-80 hover:opacity-100")
+                  }
+                  style={{
+                    background: col,
+                    borderColor: active ? "rgb(var(--fg))" : "transparent",
+                  }}
+                />
+              );
+            })}
+          </div>
+        </Field>
         <Field label="Details">
           <textarea
             value={node.data.details ?? ""}
@@ -376,8 +417,25 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   const { screenToFlowPosition } = useReactFlow();
   const firstRender = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFull, setIsFull] = useState(false);
 
-  const nodeTypes = useMemo(() => ({ circle: CircleNode }), []);
+  useEffect(() => {
+    const onChange = () =>
+      setIsFull(document.fullscreenElement === containerRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.();
+    } else {
+      void containerRef.current?.requestFullscreen?.();
+    }
+  }
+
+  const nodeTypes = useMemo(() => ({ card: CardNode }), []);
   const edgeTypes = useMemo(() => ({ editable: EditableEdge }), []);
 
   const editingNode = nodes.find((n) => n.id === editingId) ?? null;
@@ -442,7 +500,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
     const id = newId();
     setNodes((nds) => [
       ...nds,
-      { id, type: "circle", position: pos, data: { title: "New card" } },
+      { id, type: "card", position: pos, data: { title: "New card" } },
     ]);
     setEditingId(id);
   }
@@ -454,7 +512,11 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   }
 
   return (
-    <div className="relative h-[76vh] w-full overflow-hidden rounded-2xl border border-line bg-bg">
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden rounded-2xl border border-line bg-bg"
+      style={{ height: isFull ? "100vh" : "76vh" }}
+    >
       {/* Toolbar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-2 p-3">
         <div className="pointer-events-auto flex items-center gap-2">
@@ -471,6 +533,13 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
             className="rounded-full border border-line bg-card/90 px-3 py-1.5 text-xs font-medium text-muted shadow-card backdrop-blur transition hover:border-accent/40 hover:text-fg"
           >
             Reset loop
+          </button>
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="rounded-full border border-line bg-card/90 px-3 py-1.5 text-xs font-medium text-muted shadow-card backdrop-blur transition hover:border-accent/40 hover:text-fg"
+          >
+            {isFull ? "Exit full screen" : "Full screen"}
           </button>
         </div>
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-line bg-card/90 px-3 py-1.5 text-[11px] shadow-card backdrop-blur">
