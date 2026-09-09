@@ -367,15 +367,6 @@ export default function BlueprintView({
       {tab === "transform" && <TransformTab />}
       {tab === "iteration2" && (
         <section>
-          <div className="mb-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-              &quot;(Almost) self-improving product&quot;
-            </div>
-            <p className="mt-1 max-w-2xl text-[13.5px] text-muted">
-              A living map of the next iteration. Drag the boxes, connect them,
-              double-click to rename, and add your own stages — it saves as you go.
-            </p>
-          </div>
           <Iteration2Canvas initialGraph={iteration2Graph} />
         </section>
       )}

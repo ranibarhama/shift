@@ -10,6 +10,7 @@ import {
   Handle,
   Position,
   MarkerType,
+  NodeToolbar,
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
@@ -23,8 +24,7 @@ import {
   type NodeProps,
   type EdgeProps,
 } from "@xyflow/react";
-import { SEED_GRAPH, type I2Graph } from "@/lib/iteration2";
-import { useConfirm } from "./ConfirmProvider";
+import { type I2Graph } from "@/lib/iteration2";
 
 type CardSize = "s" | "m" | "l";
 type CardShape = "square" | "circle" | "rect";
@@ -530,6 +530,121 @@ function Field({
   );
 }
 
+/* ---------- Quick info popover (click a card, no editor) ---------- */
+
+function InfoLines({ text }: { text: string }) {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length <= 1) {
+    return <p className="text-[12px] leading-snug text-fg/90">{text}</p>;
+  }
+  return (
+    <ul className="space-y-0.5">
+      {lines.map((l, i) => (
+        <li key={i} className="flex items-start gap-1.5 text-[12px] leading-snug text-fg/90">
+          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" aria-hidden />
+          <span>{l}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function InfoCard({
+  node,
+  onEdit,
+  onClose,
+}: {
+  node: Node<NodeData>;
+  onEdit: () => void;
+  onClose: () => void;
+}) {
+  const d = node.data;
+  const c = d.color || DEFAULT_COLOR;
+  const has = !!(d.details || d.inputs || d.outputs);
+  return (
+    <div className="w-[248px] rounded-2xl border border-line bg-card/97 p-3.5 text-left shadow-xl backdrop-blur">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: c }}
+            aria-hidden
+          />
+          <span className="truncate text-sm font-bold text-fg">{d.title || "—"}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted transition hover:bg-line/40 hover:text-fg"
+        >
+          ✕
+        </button>
+      </div>
+
+      {(d.system || d.owner) && (
+        <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+          {d.system && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+              style={{ background: `${c}22`, color: c, border: `1px solid ${c}55` }}
+            >
+              {d.system}
+            </span>
+          )}
+          {d.owner && (
+            <span className="text-[11px] text-muted">Owner · {d.owner}</span>
+          )}
+        </div>
+      )}
+
+      {has ? (
+        <div className="space-y-2.5">
+          {d.details && (
+            <div>
+              <div className="mb-0.5 text-[9.5px] font-semibold uppercase tracking-[0.15em] text-muted">
+                Details
+              </div>
+              <InfoLines text={d.details} />
+            </div>
+          )}
+          {d.inputs && (
+            <div>
+              <div className="mb-0.5 text-[9.5px] font-semibold uppercase tracking-[0.15em] text-muted">
+                Inputs
+              </div>
+              <InfoLines text={d.inputs} />
+            </div>
+          )}
+          {d.outputs && (
+            <div>
+              <div className="mb-0.5 text-[9.5px] font-semibold uppercase tracking-[0.15em] text-muted">
+                Outputs
+              </div>
+              <InfoLines text={d.outputs} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-[12px] text-muted">
+          No details, inputs or outputs yet. Double-click the card to add them.
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="mt-3 w-full rounded-lg border border-line bg-bg py-1.5 text-[12px] font-semibold text-fg transition hover:border-accent/50 hover:text-accent"
+      >
+        Edit card
+      </button>
+    </div>
+  );
+}
+
 /* ---------- Canvas ---------- */
 
 let idc = 0;
@@ -544,9 +659,9 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(toRfEdges(initialGraph));
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [infoId, setInfoId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const { screenToFlowPosition } = useReactFlow();
-  const confirm = useConfirm();
   const firstRender = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -571,6 +686,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   const edgeTypes = useMemo(() => ({ editable: EditableEdge }), []);
 
   const editingNode = nodes.find((n) => n.id === editingId) ?? null;
+  const infoNode = nodes.find((n) => n.id === infoId) ?? null;
 
   const onConnect = useCallback(
     (c: Connection) =>
@@ -622,6 +738,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
     setEditingId(null);
+    setInfoId(null);
   }
 
   function addCard() {
@@ -634,21 +751,8 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
       ...nds,
       { id, type: "card", position: pos, data: { title: "New card" } },
     ]);
+    setInfoId(null);
     setEditingId(id);
-  }
-
-  async function reset() {
-    const ok = await confirm({
-      title: "Reset to the template?",
-      message:
-        "This replaces the current canvas with the original Use → Learn → Build → Ship loop. Every card, edit and connection you added will be lost. This cannot be undone.",
-      confirmLabel: "Reset to template",
-      danger: true,
-    });
-    if (!ok) return;
-    setNodes(toRfNodes(SEED_GRAPH));
-    setEdges(toRfEdges(SEED_GRAPH));
-    setEditingId(null);
   }
 
   return (
@@ -669,13 +773,6 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
           </button>
           <button
             type="button"
-            onClick={reset}
-            className="rounded-full border border-line bg-card/90 px-3 py-1.5 text-xs font-medium text-muted shadow-card backdrop-blur transition hover:border-accent/40 hover:text-fg"
-          >
-            Reset loop
-          </button>
-          <button
-            type="button"
             onClick={toggleFullscreen}
             className="rounded-full border border-line bg-card/90 px-3 py-1.5 text-xs font-medium text-muted shadow-card backdrop-blur transition hover:border-accent/40 hover:text-fg"
           >
@@ -690,7 +787,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
 
       {/* Hint */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-line bg-card/80 px-3 py-1 text-center text-[10.5px] text-muted shadow-card backdrop-blur">
-        Click a card to edit it · drag to move · hover a card &amp; drag a dot to connect · click a line for direction / animation / delete
+        Click a card for its inputs &amp; outputs · double-click to edit · drag to move · drag a dot to connect · click a line for direction / animation / delete
       </div>
 
       <ReactFlow
@@ -699,8 +796,18 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={(_, n) => setEditingId(n.id)}
-        onPaneClick={() => setEditingId(null)}
+        onNodeClick={(_, n) => {
+          setEditingId(null);
+          setInfoId(n.id);
+        }}
+        onNodeDoubleClick={(_, n) => {
+          setInfoId(null);
+          setEditingId(n.id);
+        }}
+        onPaneClick={() => {
+          setInfoId(null);
+          setEditingId(null);
+        }}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         deleteKeyCode={["Backspace", "Delete"]}
@@ -712,6 +819,24 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
         <Controls showInteractive={false} />
+        {infoNode && !editingNode && (
+          <NodeToolbar
+            nodeId={infoNode.id}
+            isVisible
+            position={Position.Right}
+            offset={16}
+            align="center"
+          >
+            <InfoCard
+              node={infoNode}
+              onEdit={() => {
+                setInfoId(null);
+                setEditingId(infoNode.id);
+              }}
+              onClose={() => setInfoId(null)}
+            />
+          </NodeToolbar>
+        )}
       </ReactFlow>
 
       {editingNode && (
