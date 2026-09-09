@@ -21,6 +21,8 @@ export type I2Edge = {
   label?: string;
   animated?: boolean;
   dashed?: boolean;
+  /** true = arrows on both ends (two-way); false/undefined = one-way. */
+  bidirectional?: boolean;
 };
 
 export type I2Graph = {
@@ -139,6 +141,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       label: typeof e.label === "string" ? e.label : undefined,
       animated: !!e.animated,
       dashed: !!e.dashed,
+      bidirectional: !!e.bidirectional,
     });
   }
 

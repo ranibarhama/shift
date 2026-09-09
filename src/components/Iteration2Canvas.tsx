@@ -10,6 +10,9 @@ import {
   Handle,
   Position,
   MarkerType,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -18,6 +21,7 @@ import {
   type Edge,
   type Connection,
   type NodeProps,
+  type EdgeProps,
 } from "@xyflow/react";
 import { SEED_GRAPH, type I2Graph } from "@/lib/iteration2";
 
@@ -34,16 +38,20 @@ function toRfNodes(g: I2Graph): Node<NodeData>[] {
   }));
 }
 
+const ARROW = { type: MarkerType.ArrowClosed, width: 18, height: 18 } as const;
+
 function toRfEdges(g: I2Graph): Edge[] {
   return g.edges.map((e) => ({
     id: e.id,
+    type: "editable",
     source: e.source,
     target: e.target,
     sourceHandle: e.sourceHandle ?? undefined,
     targetHandle: e.targetHandle ?? undefined,
     label: e.label,
     animated: e.animated,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+    markerEnd: ARROW,
+    markerStart: e.bidirectional ? ARROW : undefined,
     style: e.dashed ? { strokeDasharray: "6 4" } : undefined,
   }));
 }
@@ -64,8 +72,135 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
       label: typeof e.label === "string" ? e.label : undefined,
       animated: !!e.animated,
       dashed: !!(e.style && (e.style as { strokeDasharray?: string }).strokeDasharray),
+      bidirectional: !!e.markerStart,
     })),
   };
+}
+
+/* ---------- Editable edge (click to reveal a toolbar) ---------- */
+
+function EditableEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  markerStart,
+  style,
+  selected,
+  animated,
+  label,
+}: EdgeProps) {
+  const { setEdges } = useReactFlow();
+  const [path, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+  const bidi = !!markerStart;
+
+  function toggleDirection() {
+    setEdges((eds) =>
+      eds.map((e) =>
+        e.id === id ? { ...e, markerStart: bidi ? undefined : ARROW } : e
+      )
+    );
+  }
+  function toggleAnimated() {
+    setEdges((eds) =>
+      eds.map((e) => (e.id === id ? { ...e, animated: !e.animated } : e))
+    );
+  }
+  function remove() {
+    setEdges((eds) => eds.filter((e) => e.id !== id));
+  }
+
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        markerEnd={markerEnd}
+        markerStart={markerStart}
+        style={style}
+      />
+      <EdgeLabelRenderer>
+        {label && !selected && (
+          <div
+            className="pointer-events-none rounded-md border border-line bg-card/90 px-1.5 py-0.5 text-[10px] text-muted shadow-sm backdrop-blur"
+            style={{
+              position: "absolute",
+              transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)`,
+            }}
+          >
+            {label as string}
+          </div>
+        )}
+        {selected && (
+          <div
+            className="nodrag nopan flex items-center gap-0.5 rounded-full border border-accent/50 bg-card px-1 py-0.5 shadow-card"
+            style={{
+              position: "absolute",
+              transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)`,
+              pointerEvents: "all",
+            }}
+          >
+            <EdgeBtn
+              onClick={toggleDirection}
+              title={bidi ? "Make one-way" : "Make two-way"}
+              label={bidi ? "↔" : "→"}
+            />
+            <EdgeBtn
+              onClick={toggleAnimated}
+              title={animated ? "Stop animation" : "Animate flow"}
+              label="⟿"
+              active={!!animated}
+            />
+            <EdgeBtn onClick={remove} title="Delete connection" label="✕" danger />
+          </div>
+        )}
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+function EdgeBtn({
+  onClick,
+  title,
+  label,
+  active,
+  danger,
+}: {
+  onClick: () => void;
+  title: string;
+  label: string;
+  active?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={
+        "grid h-6 min-w-6 place-items-center rounded-full px-1 text-[12px] font-bold leading-none transition " +
+        (danger
+          ? "text-drop hover:bg-drop/15"
+          : active
+          ? "bg-accent text-ink"
+          : "text-muted hover:bg-line/50 hover:text-fg")
+      }
+    >
+      {label}
+    </button>
+  );
 }
 
 /* ---------- Editable node ---------- */
@@ -192,6 +327,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const nodeTypes = useMemo(() => ({ editable: EditableNode }), []);
+  const edgeTypes = useMemo(() => ({ editable: EditableEdge }), []);
 
   const onConnect = useCallback(
     (c: Connection) =>
@@ -200,7 +336,8 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
           {
             ...c,
             id: `e_${Date.now().toString(36)}`,
-            markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+            type: "editable",
+            markerEnd: ARROW,
           },
           eds
         )
@@ -280,7 +417,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
 
       {/* Hint */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-line bg-card/80 px-3 py-1 text-[10.5px] text-muted shadow-card backdrop-blur">
-        Drag to move · hover a box &amp; drag a dot to connect · double-click to edit · select + Delete to remove
+        Drag to move · hover a box &amp; drag a dot to connect · double-click a box to edit · click a connection for one-way / two-way / animate / delete
       </div>
 
       <ReactFlow
@@ -290,14 +427,13 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         deleteKeyCode={["Backspace", "Delete"]}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         colorMode="system"
         proOptions={{ hideAttribution: true }}
-        defaultEdgeOptions={{
-          markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-        }}
+        defaultEdgeOptions={{ type: "editable", markerEnd: ARROW }}
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1} />
         <Controls showInteractive={false} />
