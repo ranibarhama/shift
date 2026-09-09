@@ -215,7 +215,29 @@ async function ensureSchema(db: Client) {
       graph TEXT,
       updated_at INTEGER NOT NULL DEFAULT 0
     );
+
+    /* Small key/value store for one-off app flags. */
+    CREATE TABLE IF NOT EXISTS app_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
   `);
+
+  // One-time reset of the Iteration 2 canvas when the seed changes.
+  // Bump ITERATION2_SEED_VERSION to re-seed everyone from SEED_GRAPH.
+  const ITERATION2_SEED_VERSION = "loop-v1";
+  const seedFlag = await db.execute(
+    "SELECT value FROM app_meta WHERE key = 'iteration2_seed'"
+  );
+  const seedVal = (seedFlag.rows[0] as unknown as { value?: string } | undefined)
+    ?.value;
+  if (seedVal !== ITERATION2_SEED_VERSION) {
+    await db.execute("DELETE FROM iteration2 WHERE id = 'canvas'");
+    await db.execute({
+      sql: "INSERT INTO app_meta (key, value) VALUES ('iteration2_seed', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      args: [ITERATION2_SEED_VERSION],
+    });
+  }
 
   // Migration: add order_index to processes if it doesn't exist yet
   const procCols = await db.execute("PRAGMA table_info(processes)");

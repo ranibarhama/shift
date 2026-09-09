@@ -25,20 +25,34 @@ import {
 } from "@xyflow/react";
 import { SEED_GRAPH, type I2Graph } from "@/lib/iteration2";
 
-type NodeData = { title: string; body?: string };
+type NodeData = {
+  title: string;
+  details?: string;
+  inputs?: string;
+  outputs?: string;
+};
 
-/* ---------- Graph <-> React Flow mapping ---------- */
+const ARROW = { type: MarkerType.ArrowClosed, width: 18, height: 18 } as const;
+const EDGE_COLOR = "#8b9cff";
+
+/* ---------- Graph <-> React Flow ---------- */
 
 function toRfNodes(g: I2Graph): Node<NodeData>[] {
   return g.nodes.map((n) => ({
     id: n.id,
-    type: "editable",
+    type: "circle",
     position: n.position,
-    data: { title: n.data.title, body: n.data.body },
+    data: { ...n.data },
   }));
 }
 
-const ARROW = { type: MarkerType.ArrowClosed, width: 18, height: 18 } as const;
+function edgeStyle(dashed?: boolean) {
+  return {
+    stroke: EDGE_COLOR,
+    strokeWidth: 2,
+    ...(dashed ? { strokeDasharray: "1 9", strokeLinecap: "round" as const } : {}),
+  };
+}
 
 function toRfEdges(g: I2Graph): Edge[] {
   return g.edges.map((e) => ({
@@ -52,7 +66,7 @@ function toRfEdges(g: I2Graph): Edge[] {
     animated: e.animated,
     markerEnd: ARROW,
     markerStart: e.bidirectional ? ARROW : undefined,
-    style: e.dashed ? { strokeDasharray: "6 4" } : undefined,
+    style: edgeStyle(e.dashed),
   }));
 }
 
@@ -61,7 +75,12 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
     nodes: nodes.map((n) => ({
       id: n.id,
       position: { x: n.position.x, y: n.position.y },
-      data: { title: n.data.title ?? "", body: n.data.body },
+      data: {
+        title: n.data.title ?? "",
+        details: n.data.details,
+        inputs: n.data.inputs,
+        outputs: n.data.outputs,
+      },
     })),
     edges: edges.map((e) => ({
       id: e.id,
@@ -77,7 +96,58 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
   };
 }
 
-/* ---------- Editable edge (click to reveal a toolbar) ---------- */
+/* ---------- Circular node ---------- */
+
+const SIDES = [
+  { id: "left", pos: Position.Left },
+  { id: "right", pos: Position.Right },
+  { id: "top", pos: Position.Top },
+  { id: "bottom", pos: Position.Bottom },
+] as const;
+
+function CircleNode({ data, selected }: NodeProps<Node<NodeData>>) {
+  const hasMore = !!(data.details || data.inputs || data.outputs);
+  return (
+    <div
+      className="group relative grid place-items-center rounded-full border transition"
+      style={{
+        width: 118,
+        height: 118,
+        borderColor: selected ? "rgb(124 92 255)" : "rgba(124,92,255,0.55)",
+        background:
+          "radial-gradient(circle at 50% 38%, rgba(124,92,255,0.28), rgba(18,22,40,0.55))",
+        boxShadow: selected
+          ? "0 0 0 2px rgba(124,92,255,0.9), 0 0 34px rgba(124,92,255,0.55)"
+          : "0 0 26px rgba(124,92,255,0.26)",
+      }}
+    >
+      {SIDES.map((s) => (
+        <Fragment key={s.id}>
+          <Handle
+            id={`t-${s.id}`}
+            type="target"
+            position={s.pos}
+            className="!h-2.5 !w-2.5 !border-2 !border-bg !bg-accent/50 opacity-0 transition group-hover:opacity-100"
+          />
+          <Handle
+            id={`s-${s.id}`}
+            type="source"
+            position={s.pos}
+            className="!h-2.5 !w-2.5 !border-2 !border-bg !bg-accent opacity-0 transition group-hover:opacity-100"
+          />
+        </Fragment>
+      ))}
+      <span className="px-2 text-center text-[13px] font-semibold uppercase tracking-[0.2em] text-fg">
+        {data.title || "—"}
+      </span>
+      {hasMore && (
+        <span className="absolute bottom-3 h-1 w-1 rounded-full bg-accent" aria-hidden />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Editable edge ---------- */
 
 function EditableEdge({
   id,
@@ -107,9 +177,7 @@ function EditableEdge({
 
   function toggleDirection() {
     setEdges((eds) =>
-      eds.map((e) =>
-        e.id === id ? { ...e, markerStart: bidi ? undefined : ARROW } : e
-      )
+      eds.map((e) => (e.id === id ? { ...e, markerStart: bidi ? undefined : ARROW } : e))
     );
   }
   function toggleAnimated() {
@@ -123,13 +191,7 @@ function EditableEdge({
 
   return (
     <>
-      <BaseEdge
-        id={id}
-        path={path}
-        markerEnd={markerEnd}
-        markerStart={markerStart}
-        style={style}
-      />
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} markerStart={markerStart} style={style} />
       <EdgeLabelRenderer>
         {label && !selected && (
           <div
@@ -151,17 +213,8 @@ function EditableEdge({
               pointerEvents: "all",
             }}
           >
-            <EdgeBtn
-              onClick={toggleDirection}
-              title={bidi ? "Make one-way" : "Make two-way"}
-              label={bidi ? "↔" : "→"}
-            />
-            <EdgeBtn
-              onClick={toggleAnimated}
-              title={animated ? "Stop animation" : "Animate flow"}
-              label="⟿"
-              active={!!animated}
-            />
+            <EdgeBtn onClick={toggleDirection} title={bidi ? "Make one-way" : "Make two-way"} label={bidi ? "↔" : "→"} />
+            <EdgeBtn onClick={toggleAnimated} title={animated ? "Stop animation" : "Animate flow"} label="⟿" active={!!animated} />
             <EdgeBtn onClick={remove} title="Delete connection" label="✕" danger />
           </div>
         )}
@@ -203,103 +256,104 @@ function EdgeBtn({
   );
 }
 
-/* ---------- Editable node ---------- */
+/* ---------- Node edit panel ---------- */
 
-const SIDES = [
-  { id: "left", pos: Position.Left },
-  { id: "right", pos: Position.Right },
-  { id: "top", pos: Position.Top },
-  { id: "bottom", pos: Position.Bottom },
-] as const;
-
-function EditableNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
-  const { setNodes } = useReactFlow();
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(data.title ?? "");
-  const [body, setBody] = useState(data.body ?? "");
-
-  useEffect(() => {
-    if (!editing) {
-      setTitle(data.title ?? "");
-      setBody(data.body ?? "");
-    }
-  }, [data.title, data.body, editing]);
-
-  const commit = useCallback(() => {
-    setEditing(false);
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === id
-          ? { ...n, data: { ...n.data, title: title.trim(), body: body.trim() || undefined } }
-          : n
-      )
-    );
-  }, [id, title, body, setNodes]);
-
+function NodePanel({
+  node,
+  onChange,
+  onDelete,
+  onClose,
+}: {
+  node: Node<NodeData>;
+  onChange: (patch: Partial<NodeData>) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
   return (
-    <div
-      className={
-        "group rounded-xl border bg-card px-3 py-2 text-fg shadow-card transition " +
-        (selected ? "border-accent ring-1 ring-accent/40" : "border-line")
-      }
-      style={{ minWidth: 132, maxWidth: 230 }}
-      onDoubleClick={() => setEditing(true)}
-    >
-      {SIDES.map((s) => (
-        <Fragment key={s.id}>
-          <Handle
-            id={`t-${s.id}`}
-            type="target"
-            position={s.pos}
-            className="!h-2.5 !w-2.5 !border-2 !border-bg !bg-accent/50 opacity-0 transition group-hover:opacity-100"
-          />
-          <Handle
-            id={`s-${s.id}`}
-            type="source"
-            position={s.pos}
-            className="!h-2.5 !w-2.5 !border-2 !border-bg !bg-accent opacity-0 transition group-hover:opacity-100"
-          />
-        </Fragment>
-      ))}
-
-      {editing ? (
-        <div
-          className="flex flex-col gap-1"
-          onClick={(e) => e.stopPropagation()}
-          onDoubleClick={(e) => e.stopPropagation()}
-        >
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") setEditing(false);
-            }}
-            placeholder="Title"
-            className="rounded border border-line bg-bg px-1.5 py-0.5 text-[12.5px] font-bold text-fg focus:border-accent focus:outline-none"
-          />
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onBlur={commit}
-            rows={3}
-            placeholder="Details (optional)"
-            className="resize-none rounded border border-line bg-bg px-1.5 py-0.5 text-[11px] text-muted focus:border-accent focus:outline-none"
-          />
+    <aside className="absolute right-0 top-0 z-20 flex h-full w-[320px] max-w-[88%] flex-col border-l border-line bg-card/95 shadow-xl backdrop-blur">
+      <header className="flex items-center justify-between border-b border-line px-4 py-3">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+          Edit card
         </div>
-      ) : (
-        <>
-          <div className="text-[12.5px] font-bold leading-tight">
-            {data.title || <span className="text-muted">Untitled</span>}
-          </div>
-          {data.body && (
-            <div className="mt-1 whitespace-pre-line text-[10.5px] leading-snug text-muted">
-              {data.body}
-            </div>
-          )}
-        </>
-      )}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="grid h-7 w-7 place-items-center rounded-full text-muted transition hover:bg-line/40 hover:text-fg"
+        >
+          ✕
+        </button>
+      </header>
+
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <Field label="Name">
+          <input
+            value={node.data.title ?? ""}
+            onChange={(e) => onChange({ title: e.target.value })}
+            placeholder="Card name"
+            className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-fg focus:border-accent focus:outline-none"
+          />
+        </Field>
+        <Field label="Details">
+          <textarea
+            value={node.data.details ?? ""}
+            onChange={(e) => onChange({ details: e.target.value })}
+            rows={3}
+            placeholder="What happens in this stage…"
+            className="w-full resize-none rounded-lg border border-line bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+          />
+        </Field>
+        <Field label="Inputs" help="what this stage needs — one per line">
+          <textarea
+            value={node.data.inputs ?? ""}
+            onChange={(e) => onChange({ inputs: e.target.value })}
+            rows={3}
+            placeholder="e.g. usage signals&#10;support tickets"
+            className="w-full resize-none rounded-lg border border-line bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+          />
+        </Field>
+        <Field label="Outputs" help="what this stage produces — one per line">
+          <textarea
+            value={node.data.outputs ?? ""}
+            onChange={(e) => onChange({ outputs: e.target.value })}
+            rows={3}
+            placeholder="e.g. prioritized backlog&#10;shipped release"
+            className="w-full resize-none rounded-lg border border-line bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+          />
+        </Field>
+      </div>
+
+      <footer className="border-t border-line p-4">
+        <button
+          type="button"
+          onClick={onDelete}
+          className="w-full rounded-lg border border-drop/40 py-2 text-sm font-semibold text-drop transition hover:bg-drop/10"
+        >
+          Delete card
+        </button>
+      </footer>
+    </aside>
+  );
+}
+
+function Field({
+  label,
+  help,
+  children,
+}: {
+  label: string;
+  help?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-fg">
+          {label}
+        </span>
+        {help && <span className="text-[10px] text-muted">· {help}</span>}
+      </div>
+      {children}
     </div>
   );
 }
@@ -316,18 +370,17 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeData>>(
     toRfNodes(initialGraph)
   );
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(
-    toRfEdges(initialGraph)
-  );
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">(
-    "idle"
-  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(toRfEdges(initialGraph));
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const { screenToFlowPosition } = useReactFlow();
   const firstRender = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const nodeTypes = useMemo(() => ({ editable: EditableNode }), []);
+  const nodeTypes = useMemo(() => ({ circle: CircleNode }), []);
   const edgeTypes = useMemo(() => ({ editable: EditableEdge }), []);
+
+  const editingNode = nodes.find((n) => n.id === editingId) ?? null;
 
   const onConnect = useCallback(
     (c: Connection) =>
@@ -338,6 +391,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
             id: `e_${Date.now().toString(36)}`,
             type: "editable",
             markerEnd: ARROW,
+            style: edgeStyle(false),
           },
           eds
         )
@@ -345,7 +399,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
     [setEdges]
   );
 
-  // Debounced autosave whenever the graph changes
+  // Debounced autosave
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -368,45 +422,55 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
     };
   }, [nodes, edges]);
 
-  function addStage() {
+  function updateNodeData(id: string, patch: Partial<NodeData>) {
+    setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n))
+    );
+  }
+
+  function deleteNode(id: string) {
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    setEditingId(null);
+  }
+
+  function addCard() {
     const pos = screenToFlowPosition({
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
     });
+    const id = newId();
     setNodes((nds) => [
       ...nds,
-      {
-        id: newId(),
-        type: "editable",
-        position: pos,
-        data: { title: "New stage" },
-      },
+      { id, type: "circle", position: pos, data: { title: "New card" } },
     ]);
+    setEditingId(id);
   }
 
-  function resetToWhiteboard() {
+  function reset() {
     setNodes(toRfNodes(SEED_GRAPH));
     setEdges(toRfEdges(SEED_GRAPH));
+    setEditingId(null);
   }
 
   return (
-    <div className="relative h-[74vh] w-full overflow-hidden rounded-2xl border border-line bg-bg">
+    <div className="relative h-[76vh] w-full overflow-hidden rounded-2xl border border-line bg-bg">
       {/* Toolbar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-2 p-3">
         <div className="pointer-events-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={addStage}
+            onClick={addCard}
             className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-1.5 text-xs font-bold text-ink shadow-card transition hover:brightness-110"
           >
-            + Add stage
+            + Add card
           </button>
           <button
             type="button"
-            onClick={resetToWhiteboard}
+            onClick={reset}
             className="rounded-full border border-line bg-card/90 px-3 py-1.5 text-xs font-medium text-muted shadow-card backdrop-blur transition hover:border-accent/40 hover:text-fg"
           >
-            Reset to whiteboard
+            Reset loop
           </button>
         </div>
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-line bg-card/90 px-3 py-1.5 text-[11px] shadow-card backdrop-blur">
@@ -416,8 +480,8 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
       </div>
 
       {/* Hint */}
-      <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-line bg-card/80 px-3 py-1 text-[10.5px] text-muted shadow-card backdrop-blur">
-        Drag to move · hover a box &amp; drag a dot to connect · double-click a box to edit · click a connection for one-way / two-way / animate / delete
+      <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-line bg-card/80 px-3 py-1 text-center text-[10.5px] text-muted shadow-card backdrop-blur">
+        Click a card to edit it · drag to move · hover a card &amp; drag a dot to connect · click a line for direction / animation / delete
       </div>
 
       <ReactFlow
@@ -426,18 +490,29 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={(_, n) => setEditingId(n.id)}
+        onPaneClick={() => setEditingId(null)}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         deleteKeyCode={["Backspace", "Delete"]}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.25 }}
         colorMode="system"
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{ type: "editable", markerEnd: ARROW }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>
+
+      {editingNode && (
+        <NodePanel
+          node={editingNode}
+          onChange={(patch) => updateNodeData(editingNode.id, patch)}
+          onDelete={() => deleteNode(editingNode.id)}
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -452,20 +527,10 @@ const SAVE_LABEL: Record<string, string> = {
 function SaveDot({ state }: { state: string }) {
   const color =
     state === "error" ? "#ef4444" : state === "saving" ? "#f59e0b" : "#10b981";
-  return (
-    <span
-      className="h-1.5 w-1.5 rounded-full"
-      style={{ background: color }}
-      aria-hidden
-    />
-  );
+  return <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} aria-hidden />;
 }
 
-export default function Iteration2Canvas({
-  initialGraph,
-}: {
-  initialGraph: I2Graph;
-}) {
+export default function Iteration2Canvas({ initialGraph }: { initialGraph: I2Graph }) {
   return (
     <ReactFlowProvider>
       <CanvasInner initialGraph={initialGraph} />

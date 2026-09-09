@@ -9,7 +9,12 @@
 export type I2Node = {
   id: string;
   position: { x: number; y: number };
-  data: { title: string; body?: string };
+  data: {
+    title: string;
+    details?: string;
+    inputs?: string;
+    outputs?: string;
+  };
 };
 
 export type I2Edge = {
@@ -30,76 +35,51 @@ export type I2Graph = {
   edges: I2Edge[];
 };
 
-/** The whiteboard sketch, as the starting point. */
+/** The continuous product loop — USE → LEARN → BUILD → SHIP → USE. */
 export const SEED_GRAPH: I2Graph = {
   nodes: [
-    { id: "roles", position: { x: 720, y: -30 }, data: { title: "PM · UX · TL" } },
-    { id: "data-hub", position: { x: 40, y: 150 }, data: { title: "Data HUB" } },
-    {
-      id: "gate",
-      position: { x: 360, y: 120 },
-      data: {
-        title: "GATE",
-        body: "HL validation\nRICE optimization\nApprove for work",
-      },
-    },
-    {
-      id: "ignis",
-      position: { x: 680, y: 120 },
-      data: { title: "Ignis", body: "Ticket\nVibe coding" },
-    },
-    { id: "mr", position: { x: 1000, y: 150 }, data: { title: "MR" } },
-    { id: "prod", position: { x: 1180, y: 150 }, data: { title: "Prod" } },
-    {
-      id: "pod-pilot",
-      position: { x: 400, y: 360 },
-      data: {
-        title: "Pod Pilot",
-        body: "Current roadmap\nCurrent capacity\nPast cases intel\nAny other data",
-      },
-    },
-    { id: "ops-hub", position: { x: 1000, y: 360 }, data: { title: "OPS HUB" } },
-    { id: "gtm", position: { x: 660, y: 560 }, data: { title: "GTM" } },
-    {
-      id: "tracking",
-      position: { x: 80, y: 560 },
-      data: { title: "Ongoing post-launch tracking" },
-    },
+    { id: "use", position: { x: 420, y: 40 }, data: { title: "Use" } },
+    { id: "learn", position: { x: 660, y: 260 }, data: { title: "Learn" } },
+    { id: "build", position: { x: 420, y: 480 }, data: { title: "Build" } },
+    { id: "ship", position: { x: 180, y: 260 }, data: { title: "Ship" } },
   ],
   edges: [
     {
-      id: "e-datahub-gate",
-      source: "data-hub",
-      target: "gate",
+      id: "e-use-learn",
+      source: "use",
+      target: "learn",
       sourceHandle: "s-right",
-      targetHandle: "t-left",
-      label: "North Star · Pillars · Insights · Problems",
-    },
-    { id: "e-gate-ignis", source: "gate", target: "ignis", sourceHandle: "s-right", targetHandle: "t-left" },
-    { id: "e-ignis-mr", source: "ignis", target: "mr", sourceHandle: "s-right", targetHandle: "t-left" },
-    { id: "e-mr-prod", source: "mr", target: "prod", sourceHandle: "s-right", targetHandle: "t-left" },
-    { id: "e-pod-gate", source: "pod-pilot", target: "gate", sourceHandle: "s-top", targetHandle: "t-bottom" },
-    {
-      id: "e-datahub-pod",
-      source: "data-hub",
-      target: "pod-pilot",
-      sourceHandle: "s-bottom",
-      targetHandle: "t-left",
-      dashed: true,
-    },
-    { id: "e-ops-ignis", source: "ops-hub", target: "ignis", sourceHandle: "s-top", targetHandle: "t-bottom" },
-    { id: "e-ops-gtm", source: "ops-hub", target: "gtm", sourceHandle: "s-bottom", targetHandle: "t-right" },
-    { id: "e-gtm-tracking", source: "gtm", target: "tracking", sourceHandle: "s-left", targetHandle: "t-right" },
-    {
-      id: "e-tracking-datahub",
-      source: "tracking",
-      target: "data-hub",
-      sourceHandle: "s-top",
-      targetHandle: "t-bottom",
-      dashed: true,
+      targetHandle: "t-top",
       animated: true,
+      dashed: true,
     },
-    { id: "e-roles-ignis", source: "roles", target: "ignis", sourceHandle: "s-bottom", targetHandle: "t-top" },
+    {
+      id: "e-learn-build",
+      source: "learn",
+      target: "build",
+      sourceHandle: "s-bottom",
+      targetHandle: "t-right",
+      animated: true,
+      dashed: true,
+    },
+    {
+      id: "e-build-ship",
+      source: "build",
+      target: "ship",
+      sourceHandle: "s-left",
+      targetHandle: "t-bottom",
+      animated: true,
+      dashed: true,
+    },
+    {
+      id: "e-ship-use",
+      source: "ship",
+      target: "use",
+      sourceHandle: "s-top",
+      targetHandle: "t-left",
+      animated: true,
+      dashed: true,
+    },
   ],
 };
 
@@ -113,7 +93,13 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
   for (const n of obj.nodes as Record<string, unknown>[]) {
     if (!n || typeof n.id !== "string") continue;
     const pos = n.position as { x?: unknown; y?: unknown } | undefined;
-    const data = n.data as { title?: unknown; body?: unknown } | undefined;
+    const data = n.data as {
+      title?: unknown;
+      details?: unknown;
+      inputs?: unknown;
+      outputs?: unknown;
+    } | undefined;
+    const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
     nodes.push({
       id: n.id,
       position: {
@@ -122,7 +108,9 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       },
       data: {
         title: typeof data?.title === "string" ? data.title : "",
-        body: typeof data?.body === "string" ? data.body : undefined,
+        details: str(data?.details),
+        inputs: str(data?.inputs),
+        outputs: str(data?.outputs),
       },
     });
   }
