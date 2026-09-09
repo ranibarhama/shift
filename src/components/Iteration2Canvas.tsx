@@ -26,6 +26,9 @@ import {
 import { SEED_GRAPH, type I2Graph } from "@/lib/iteration2";
 import { useConfirm } from "./ConfirmProvider";
 
+type CardSize = "s" | "m" | "l";
+type CardShape = "square" | "circle" | "rect";
+
 type NodeData = {
   title: string;
   owner?: string;
@@ -33,9 +36,20 @@ type NodeData = {
   inputs?: string;
   outputs?: string;
   color?: string;
+  size?: CardSize;
+  shape?: CardShape;
 };
 
 const DEFAULT_COLOR = "#7c5cff";
+const SIZE_BASE: Record<CardSize, number> = { s: 92, m: 122, l: 158 };
+
+function cardDims(shape: CardShape, size: CardSize) {
+  const b = SIZE_BASE[size];
+  if (shape === "rect") {
+    return { width: Math.round(b * 1.75), height: Math.round(b * 0.72), radius: 14 };
+  }
+  return { width: b, height: b, radius: shape === "circle" ? 9999 : 18 };
+}
 const CARD_COLORS = [
   "#7c5cff",
   "#22d3ee",
@@ -97,6 +111,8 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
         inputs: n.data.inputs,
         outputs: n.data.outputs,
         color: n.data.color,
+        size: n.data.size,
+        shape: n.data.shape,
       },
     })),
     edges: edges.map((e) => ({
@@ -125,12 +141,14 @@ const SIDES = [
 function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
   const hasMore = !!(data.details || data.inputs || data.outputs);
   const c = data.color || DEFAULT_COLOR;
+  const dims = cardDims(data.shape ?? "square", data.size ?? "m");
   return (
     <div
-      className="group relative grid place-items-center rounded-2xl border transition"
+      className="group relative grid place-items-center border transition"
       style={{
-        width: 122,
-        height: 122,
+        width: dims.width,
+        height: dims.height,
+        borderRadius: dims.radius,
         borderColor: selected ? c : `${c}88`,
         background: `radial-gradient(circle at 50% 35%, ${c}3d, rgba(18,22,40,0.55))`,
         boxShadow: selected
@@ -353,6 +371,28 @@ function NodePanel({
             })}
           </div>
         </Field>
+        <Field label="Shape">
+          <Seg
+            value={node.data.shape ?? "square"}
+            options={[
+              { key: "square", label: "Square" },
+              { key: "circle", label: "Circle" },
+              { key: "rect", label: "Rectangle" },
+            ]}
+            onChange={(v) => onChange({ shape: v as CardShape })}
+          />
+        </Field>
+        <Field label="Size">
+          <Seg
+            value={node.data.size ?? "m"}
+            options={[
+              { key: "s", label: "S" },
+              { key: "m", label: "M" },
+              { key: "l", label: "L" },
+            ]}
+            onChange={(v) => onChange({ size: v as CardSize })}
+          />
+        </Field>
         <Field label="Details">
           <textarea
             value={node.data.details ?? ""}
@@ -392,6 +432,39 @@ function NodePanel({
         </button>
       </footer>
     </aside>
+  );
+}
+
+function Seg({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { key: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-lg border border-line bg-bg p-1">
+      {options.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            className={
+              "flex-1 rounded-md px-2 py-1 text-[12px] font-medium transition " +
+              (active
+                ? "bg-accent text-ink"
+                : "text-muted hover:bg-line/40 hover:text-fg")
+            }
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

@@ -16,6 +16,8 @@ export type I2Node = {
     inputs?: string;
     outputs?: string;
     color?: string;
+    size?: "s" | "m" | "l";
+    shape?: "square" | "circle" | "rect";
   };
 };
 
@@ -102,11 +104,21 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       inputs?: unknown;
       outputs?: unknown;
       color?: unknown;
+      size?: unknown;
+      shape?: unknown;
     } | undefined;
     const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
     const color =
       typeof data?.color === "string" && /^#[0-9a-fA-F]{6}$/.test(data.color)
         ? data.color
+        : undefined;
+    const size =
+      data?.size === "s" || data?.size === "m" || data?.size === "l"
+        ? data.size
+        : undefined;
+    const shape =
+      data?.shape === "square" || data?.shape === "circle" || data?.shape === "rect"
+        ? data.shape
         : undefined;
     nodes.push({
       id: n.id,
@@ -121,6 +133,8 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
         inputs: str(data?.inputs),
         outputs: str(data?.outputs),
         color,
+        size,
+        shape,
       },
     });
   }
