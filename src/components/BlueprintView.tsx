@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Iteration2Canvas from "./Iteration2Canvas";
+import type { I2Graph } from "@/lib/iteration2";
 
 /* -----------------------------------------------------------------------------
  * Content — kept as plain data so it's trivial to tweak later.
@@ -318,11 +320,23 @@ const TRANSFORM_STAGES: TransformStage[] = [
 
 /* -------------------------------------------------------------------------- */
 
-export default function BlueprintView() {
-  const [tab, setTab] = useState<"layers" | "transform">("transform");
+export default function BlueprintView({
+  iteration2Graph,
+}: {
+  iteration2Graph: I2Graph;
+}) {
+  const [tab, setTab] = useState<"layers" | "transform" | "iteration2">(
+    "transform"
+  );
+
+  const wide = tab === "iteration2";
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-10">
+    <div
+      className={
+        "mx-auto w-full px-6 py-10 " + (wide ? "max-w-[1400px]" : "max-w-6xl")
+      }
+    >
       {/* Hero — minimal */}
       <header className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
@@ -340,11 +354,31 @@ export default function BlueprintView() {
           <TabButton active={tab === "layers"} onClick={() => setTab("layers")}>
             Details
           </TabButton>
+          <TabButton
+            active={tab === "iteration2"}
+            onClick={() => setTab("iteration2")}
+          >
+            Iteration 2
+          </TabButton>
         </div>
       </div>
 
       {tab === "layers" && <LayersTab />}
       {tab === "transform" && <TransformTab />}
+      {tab === "iteration2" && (
+        <section>
+          <div className="mb-4">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+              &quot;(Almost) self-improving product&quot;
+            </div>
+            <p className="mt-1 max-w-2xl text-[13.5px] text-muted">
+              A living map of the next iteration. Drag the boxes, connect them,
+              double-click to rename, and add your own stages — it saves as you go.
+            </p>
+          </div>
+          <Iteration2Canvas initialGraph={iteration2Graph} />
+        </section>
+      )}
     </div>
   );
 }

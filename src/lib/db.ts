@@ -207,6 +207,14 @@ async function ensureSchema(db: Client) {
       updated_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_pilot_tasks_initiative ON pilot_tasks(initiative_id);
+
+    /* Iteration 2 canvas — a single free-form node/edge graph stored as
+     * one JSON document. Row id is always 'canvas'. */
+    CREATE TABLE IF NOT EXISTS iteration2 (
+      id TEXT PRIMARY KEY,
+      graph TEXT,
+      updated_at INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   // Migration: add order_index to processes if it doesn't exist yet
