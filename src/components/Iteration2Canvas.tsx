@@ -50,6 +50,16 @@ function cardDims(shape: CardShape, size: CardSize) {
   }
   return { width: b, height: b, radius: shape === "circle" ? 9999 : 18 };
 }
+
+/** Pick readable text color (dark or white) for a solid background color. */
+function textOn(hex: string) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.62 ? "#14161f" : "#ffffff";
+}
 const CARD_COLORS = [
   "#7c5cff",
   "#22d3ee",
@@ -142,20 +152,20 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
   const hasMore = !!(data.details || data.inputs || data.outputs);
   const c = data.color || DEFAULT_COLOR;
   const dims = cardDims(data.shape ?? "square", data.size ?? "m");
+  const txt = textOn(c);
+  const ownerColor =
+    txt === "#ffffff" ? "rgba(255,255,255,0.82)" : "rgba(20,22,31,0.7)";
   return (
     <div
-      className="group relative grid place-items-center border transition"
+      className="group relative grid place-items-center border-2 transition"
       style={{
         width: dims.width,
         height: dims.height,
         borderRadius: dims.radius,
-        borderColor: selected ? c : `${c}99`,
-        // Opaque, colored fill over a dark slate base: the card glows in its
-        // color and fully covers any line passing beneath it.
-        background: `radial-gradient(circle at 50% 32%, ${c}66, ${c}22), #161a2c`,
-        boxShadow: selected
-          ? `0 0 0 2px ${c}, 0 0 36px ${c}99`
-          : `0 0 26px ${c}55`,
+        borderColor: selected ? txt : "rgba(255,255,255,0.28)",
+        // Simple solid color fill — clear, and opaque so lines pass behind.
+        background: c,
+        boxShadow: selected ? `0 8px 22px ${c}99` : `0 4px 14px ${c}55`,
       }}
     >
       {SIDES.map((s) => (
@@ -176,15 +186,15 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
       ))}
       <div className="flex flex-col items-center gap-0.5 px-2 text-center">
         <span
-          className="text-[13px] font-semibold uppercase tracking-[0.2em]"
-          style={{ color: "#f2f3fb" }}
+          className="text-[13px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: txt }}
         >
           {data.title || "—"}
         </span>
         {data.owner && (
           <span
-            className="max-w-[96px] truncate text-[10px] font-medium"
-            style={{ color: "rgba(255,255,255,0.66)" }}
+            className="max-w-[100px] truncate text-[10px] font-medium"
+            style={{ color: ownerColor }}
           >
             {data.owner}
           </span>
@@ -193,7 +203,7 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
       {hasMore && (
         <span
           className="absolute bottom-3 h-1 w-1 rounded-full"
-          style={{ background: c }}
+          style={{ background: ownerColor }}
           aria-hidden
         />
       )}
@@ -622,8 +632,8 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-2xl border border-line"
-      style={{ height: isFull ? "100vh" : "76vh", background: "#0b0e1a" }}
+      className="relative w-full overflow-hidden rounded-2xl border border-line bg-bg"
+      style={{ height: isFull ? "100vh" : "76vh" }}
     >
       {/* Toolbar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-2 p-3">
@@ -674,7 +684,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
         deleteKeyCode={["Backspace", "Delete"]}
         fitView
         fitViewOptions={{ padding: 0.25 }}
-        colorMode="dark"
+        colorMode="system"
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{ type: "editable", markerEnd: ARROW }}
       >
