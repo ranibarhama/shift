@@ -24,9 +24,11 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import { SEED_GRAPH, type I2Graph } from "@/lib/iteration2";
+import { useConfirm } from "./ConfirmProvider";
 
 type NodeData = {
   title: string;
+  owner?: string;
   details?: string;
   inputs?: string;
   outputs?: string;
@@ -90,6 +92,7 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
       position: { x: n.position.x, y: n.position.y },
       data: {
         title: n.data.title ?? "",
+        owner: n.data.owner,
         details: n.data.details,
         inputs: n.data.inputs,
         outputs: n.data.outputs,
@@ -151,9 +154,16 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
           />
         </Fragment>
       ))}
-      <span className="px-2 text-center text-[13px] font-semibold uppercase tracking-[0.2em] text-fg">
-        {data.title || "—"}
-      </span>
+      <div className="flex flex-col items-center gap-0.5 px-2 text-center">
+        <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-fg">
+          {data.title || "—"}
+        </span>
+        {data.owner && (
+          <span className="max-w-[96px] truncate text-[10px] font-medium text-muted">
+            {data.owner}
+          </span>
+        )}
+      </div>
       {hasMore && (
         <span
           className="absolute bottom-3 h-1 w-1 rounded-full"
@@ -312,6 +322,14 @@ function NodePanel({
             className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-fg focus:border-accent focus:outline-none"
           />
         </Field>
+        <Field label="Stage owner">
+          <input
+            value={node.data.owner ?? ""}
+            onChange={(e) => onChange({ owner: e.target.value })}
+            placeholder="Who owns this stage"
+            className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+          />
+        </Field>
         <Field label="Color">
           <div className="flex flex-wrap gap-2">
             {CARD_COLORS.map((col) => {
@@ -415,6 +433,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const { screenToFlowPosition } = useReactFlow();
+  const confirm = useConfirm();
   const firstRender = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -505,7 +524,15 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
     setEditingId(id);
   }
 
-  function reset() {
+  async function reset() {
+    const ok = await confirm({
+      title: "Reset to the template?",
+      message:
+        "This replaces the current canvas with the original Use → Learn → Build → Ship loop. Every card, edit and connection you added will be lost. This cannot be undone.",
+      confirmLabel: "Reset to template",
+      danger: true,
+    });
+    if (!ok) return;
     setNodes(toRfNodes(SEED_GRAPH));
     setEdges(toRfEdges(SEED_GRAPH));
     setEditingId(null);
