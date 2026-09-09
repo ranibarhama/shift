@@ -150,7 +150,9 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
         height: dims.height,
         borderRadius: dims.radius,
         borderColor: selected ? c : `${c}88`,
-        background: `radial-gradient(circle at 50% 35%, ${c}3d, rgba(18,22,40,0.55))`,
+        // Opaque base under the colored glow so lines/edges passing beneath
+        // the card are fully covered instead of showing through.
+        background: `radial-gradient(circle at 50% 35%, ${c}59, ${c}12), #0e1220`,
         boxShadow: selected
           ? `0 0 0 2px ${c}, 0 0 34px ${c}88`
           : `0 0 24px ${c}3d`,
