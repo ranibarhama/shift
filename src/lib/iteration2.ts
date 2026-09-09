@@ -33,6 +33,8 @@ export type I2Edge = {
   dashed?: boolean;
   /** true = arrows on both ends (two-way); false/undefined = one-way. */
   bidirectional?: boolean;
+  /** line + arrow color, e.g. "#8b9cff". Falls back to the default. */
+  color?: string;
 };
 
 export type I2Graph = {
@@ -147,6 +149,10 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
     if (!e || typeof e.id !== "string" || typeof e.source !== "string" || typeof e.target !== "string") {
       continue;
     }
+    const edgeColor =
+      typeof e.color === "string" && /^#[0-9a-fA-F]{6}$/.test(e.color)
+        ? e.color
+        : undefined;
     edges.push({
       id: e.id,
       source: e.source,
@@ -157,6 +163,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       animated: !!e.animated,
       dashed: !!e.dashed,
       bidirectional: !!e.bidirectional,
+      color: edgeColor,
     });
   }
 

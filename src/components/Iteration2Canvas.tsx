@@ -72,8 +72,24 @@ const CARD_COLORS = [
   "#a855f7",
 ];
 
-const ARROW = { type: MarkerType.ArrowClosed, width: 18, height: 18 } as const;
 const EDGE_COLOR = "#8b9cff";
+const ARROW = { type: MarkerType.ArrowClosed, width: 18, height: 18, color: EDGE_COLOR } as const;
+const LINE_COLORS = [
+  "#8b9cff",
+  "#64748b",
+  "#22d3ee",
+  "#3b82f6",
+  "#10b981",
+  "#eab308",
+  "#f97316",
+  "#ef4444",
+  "#a855f7",
+];
+
+/** Arrow marker in a given color (falls back to the default line color). */
+function arrow(color?: string) {
+  return { ...ARROW, color: color || EDGE_COLOR };
+}
 
 /* ---------- Graph <-> React Flow ---------- */
 
@@ -86,9 +102,9 @@ function toRfNodes(g: I2Graph): Node<NodeData>[] {
   }));
 }
 
-function edgeStyle(dashed?: boolean) {
+function edgeStyle(dashed?: boolean, color?: string) {
   return {
-    stroke: EDGE_COLOR,
+    stroke: color || EDGE_COLOR,
     strokeWidth: 2,
     ...(dashed ? { strokeDasharray: "1 9", strokeLinecap: "round" as const } : {}),
   };
@@ -104,9 +120,9 @@ function toRfEdges(g: I2Graph): Edge[] {
     targetHandle: e.targetHandle ?? undefined,
     label: e.label,
     animated: e.animated,
-    markerEnd: ARROW,
-    markerStart: e.bidirectional ? ARROW : undefined,
-    style: edgeStyle(e.dashed),
+    markerEnd: arrow(e.color),
+    markerStart: e.bidirectional ? arrow(e.color) : undefined,
+    style: edgeStyle(e.dashed, e.color),
   }));
 }
 
@@ -137,6 +153,10 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
       animated: !!e.animated,
       dashed: !!(e.style && (e.style as { strokeDasharray?: string }).strokeDasharray),
       bidirectional: !!e.markerStart,
+      color:
+        e.style && typeof (e.style as { stroke?: string }).stroke === "string"
+          ? (e.style as { stroke?: string }).stroke
+          : undefined,
     })),
   };
 }
@@ -243,6 +263,7 @@ function EditableEdge({
   label,
 }: EdgeProps) {
   const { setEdges } = useReactFlow();
+  const [showColors, setShowColors] = useState(false);
   const [path, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -252,15 +273,39 @@ function EditableEdge({
     targetPosition,
   });
   const bidi = !!markerStart;
+  const curColor = ((style as { stroke?: string } | undefined)?.stroke as string) || EDGE_COLOR;
 
   function toggleDirection() {
     setEdges((eds) =>
-      eds.map((e) => (e.id === id ? { ...e, markerStart: bidi ? undefined : ARROW } : e))
+      eds.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              markerStart: bidi
+                ? undefined
+                : arrow((e.style as { stroke?: string } | undefined)?.stroke),
+            }
+          : e
+      )
     );
   }
   function toggleAnimated() {
     setEdges((eds) =>
       eds.map((e) => (e.id === id ? { ...e, animated: !e.animated } : e))
+    );
+  }
+  function setColor(col: string) {
+    setEdges((eds) =>
+      eds.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              style: { ...(e.style || {}), stroke: col },
+              markerEnd: e.markerEnd ? arrow(col) : e.markerEnd,
+              markerStart: e.markerStart ? arrow(col) : e.markerStart,
+            }
+          : e
+      )
     );
   }
   function remove() {
@@ -293,7 +338,46 @@ function EditableEdge({
           >
             <EdgeBtn onClick={toggleDirection} title={bidi ? "Make one-way" : "Make two-way"} label={bidi ? "↔" : "→"} />
             <EdgeBtn onClick={toggleAnimated} title={animated ? "Stop animation" : "Animate flow"} label="⟿" active={!!animated} />
+            <button
+              type="button"
+              onClick={() => setShowColors((v) => !v)}
+              title="Line color"
+              aria-label="Line color"
+              className="grid h-6 w-6 place-items-center rounded-full transition hover:bg-line/50"
+            >
+              <span
+                className="h-3.5 w-3.5 rounded-full border border-line"
+                style={{ background: curColor }}
+              />
+            </button>
             <EdgeBtn onClick={remove} title="Delete connection" label="✕" danger />
+
+            {showColors && (
+              <div className="nodrag nopan absolute left-1/2 top-full z-10 mt-1.5 flex -translate-x-1/2 items-center gap-1 rounded-full border border-line bg-card px-1.5 py-1 shadow-card">
+                {LINE_COLORS.map((col) => {
+                  const active = curColor.toLowerCase() === col.toLowerCase();
+                  return (
+                    <button
+                      key={col}
+                      type="button"
+                      onClick={() => {
+                        setColor(col);
+                        setShowColors(false);
+                      }}
+                      aria-label={`Line color ${col}`}
+                      className={
+                        "h-5 w-5 rounded-full border-2 transition " +
+                        (active ? "scale-110" : "opacity-85 hover:opacity-100")
+                      }
+                      style={{
+                        background: col,
+                        borderColor: active ? "rgb(var(--fg))" : "transparent",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </EdgeLabelRenderer>
@@ -787,7 +871,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
 
       {/* Hint */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-line bg-card/80 px-3 py-1 text-center text-[10.5px] text-muted shadow-card backdrop-blur">
-        Click a card for its inputs &amp; outputs · double-click to edit · drag to move · drag a dot to connect · click a line for direction / animation / delete
+        Click a card for its inputs &amp; outputs · double-click to edit · drag to move · drag a dot to connect · click a line for direction / color / animation / delete
       </div>
 
       <ReactFlow
