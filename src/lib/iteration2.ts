@@ -19,6 +19,8 @@ export type I2Node = {
     color?: string;
     size?: "s" | "m" | "l";
     shape?: "square" | "circle" | "rect";
+    /** hidden from the canvas (its connections hide too). */
+    hidden?: boolean;
   };
 };
 
@@ -110,6 +112,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       color?: unknown;
       size?: unknown;
       shape?: unknown;
+      hidden?: unknown;
     } | undefined;
     const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
     const color =
@@ -140,6 +143,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
         color,
         size,
         shape,
+        hidden: data?.hidden === true ? true : undefined,
       },
     });
   }

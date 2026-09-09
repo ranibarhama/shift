@@ -98,6 +98,7 @@ function toRfNodes(g: I2Graph): Node<NodeData>[] {
     id: n.id,
     type: "card",
     position: n.position,
+    hidden: !!n.data.hidden,
     data: { ...n.data },
   }));
 }
@@ -141,6 +142,7 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
         color: n.data.color,
         size: n.data.size,
         shape: n.data.shape,
+        hidden: n.hidden ? true : undefined,
       },
     })),
     edges: edges.map((e) => ({
@@ -423,11 +425,13 @@ function EdgeBtn({
 function NodePanel({
   node,
   onChange,
+  onHide,
   onDelete,
   onClose,
 }: {
   node: Node<NodeData>;
   onChange: (patch: Partial<NodeData>) => void;
+  onHide: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -546,7 +550,14 @@ function NodePanel({
         </Field>
       </div>
 
-      <footer className="border-t border-line p-4">
+      <footer className="space-y-2 border-t border-line p-4">
+        <button
+          type="button"
+          onClick={onHide}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line py-2 text-sm font-semibold text-muted transition hover:border-accent/50 hover:text-fg"
+        >
+          <EyeOff /> Hide card
+        </button>
         <button
           type="button"
           onClick={onDelete}
@@ -639,10 +650,12 @@ function InfoLines({ text }: { text: string }) {
 function InfoCard({
   node,
   onEdit,
+  onHide,
   onClose,
 }: {
   node: Node<NodeData>;
   onEdit: () => void;
+  onHide: () => void;
   onClose: () => void;
 }) {
   const d = node.data;
@@ -718,14 +731,45 @@ function InfoCard({
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={onEdit}
-        className="mt-3 w-full rounded-lg border border-line bg-bg py-1.5 text-[12px] font-semibold text-fg transition hover:border-accent/50 hover:text-accent"
-      >
-        Edit card
-      </button>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex-1 rounded-lg border border-line bg-bg py-1.5 text-[12px] font-semibold text-fg transition hover:border-accent/50 hover:text-accent"
+        >
+          Edit card
+        </button>
+        <button
+          type="button"
+          onClick={onHide}
+          title="Hide this card and its connections"
+          className="inline-flex items-center gap-1 rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[12px] font-semibold text-muted transition hover:border-accent/50 hover:text-fg"
+        >
+          <EyeOff /> Hide
+        </button>
+      </div>
     </div>
+  );
+}
+
+function EyeOff() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
   );
 }
 
@@ -744,6 +788,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(toRfEdges(initialGraph));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [infoId, setInfoId] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const { screenToFlowPosition } = useReactFlow();
   const firstRender = useRef(true);
@@ -771,6 +816,21 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
 
   const editingNode = nodes.find((n) => n.id === editingId) ?? null;
   const infoNode = nodes.find((n) => n.id === infoId) ?? null;
+
+  // Hidden cards, and edges hidden along with them.
+  const hiddenNodes = useMemo(() => nodes.filter((n) => n.hidden), [nodes]);
+  const hiddenNodeIds = useMemo(
+    () => new Set(hiddenNodes.map((n) => n.id)),
+    [hiddenNodes]
+  );
+  const displayEdges = useMemo(
+    () =>
+      edges.map((e) => {
+        const shouldHide = hiddenNodeIds.has(e.source) || hiddenNodeIds.has(e.target);
+        return shouldHide === !!e.hidden ? e : { ...e, hidden: shouldHide };
+      }),
+    [edges, hiddenNodeIds]
+  );
 
   const onConnect = useCallback(
     (c: Connection) =>
@@ -825,6 +885,19 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
     setInfoId(null);
   }
 
+  function setNodeHidden(id: string, hidden: boolean) {
+    setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, hidden } : n)));
+    if (hidden) {
+      setInfoId((cur) => (cur === id ? null : cur));
+      setEditingId((cur) => (cur === id ? null : cur));
+    }
+  }
+
+  function showAllCards() {
+    setNodes((nds) => nds.map((n) => (n.hidden ? { ...n, hidden: false } : n)));
+    setShowHidden(false);
+  }
+
   function addCard() {
     const pos = screenToFlowPosition({
       x: window.innerWidth / 2,
@@ -862,6 +935,52 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
           >
             {isFull ? "Exit full screen" : "Full screen"}
           </button>
+          {hiddenNodes.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowHidden((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card/90 px-3 py-1.5 text-xs font-medium text-muted shadow-card backdrop-blur transition hover:border-accent/40 hover:text-fg"
+              >
+                <EyeOff /> Hidden {hiddenNodes.length}
+              </button>
+              {showHidden && (
+                <div className="absolute left-0 top-full z-20 mt-1.5 w-60 rounded-xl border border-line bg-card p-2 shadow-xl">
+                  <div className="flex items-center justify-between px-1.5 pb-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+                      Hidden cards
+                    </span>
+                    <button
+                      type="button"
+                      onClick={showAllCards}
+                      className="text-[11px] font-semibold text-accent transition hover:underline"
+                    >
+                      Show all
+                    </button>
+                  </div>
+                  <ul className="max-h-56 space-y-0.5 overflow-y-auto">
+                    {hiddenNodes.map((n) => (
+                      <li key={n.id}>
+                        <button
+                          type="button"
+                          onClick={() => setNodeHidden(n.id, false)}
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-fg transition hover:bg-line/40"
+                        >
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ background: n.data.color || DEFAULT_COLOR }}
+                            aria-hidden
+                          />
+                          <span className="flex-1 truncate">{n.data.title || "—"}</span>
+                          <span className="text-[10px] font-semibold text-accent">Show</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-line bg-card/90 px-3 py-1.5 text-[11px] shadow-card backdrop-blur">
           <SaveDot state={saveState} />
@@ -876,7 +995,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
 
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -917,6 +1036,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
                 setInfoId(null);
                 setEditingId(infoNode.id);
               }}
+              onHide={() => setNodeHidden(infoNode.id, true)}
               onClose={() => setInfoId(null)}
             />
           </NodeToolbar>
@@ -927,6 +1047,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
         <NodePanel
           node={editingNode}
           onChange={(patch) => updateNodeData(editingNode.id, patch)}
+          onHide={() => setNodeHidden(editingNode.id, true)}
           onDelete={() => deleteNode(editingNode.id)}
           onClose={() => setEditingId(null)}
         />
