@@ -189,11 +189,11 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
       <div className="flex flex-col items-center gap-1 px-2 text-center">
         {data.system && (
           <span
-            className="max-w-[104px] truncate rounded-full px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider"
+            className="max-w-[110px] truncate rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
             style={{
-              color: txt,
+              color: txt === "#ffffff" ? "#14161f" : "#ffffff",
               background:
-                txt === "#ffffff" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)",
+                txt === "#ffffff" ? "rgba(255,255,255,0.95)" : "rgba(18,20,28,0.85)",
             }}
           >
             {data.system}
