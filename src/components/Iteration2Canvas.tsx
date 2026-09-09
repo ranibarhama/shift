@@ -149,13 +149,13 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
         width: dims.width,
         height: dims.height,
         borderRadius: dims.radius,
-        borderColor: selected ? c : `${c}88`,
-        // Opaque base under the colored glow so lines/edges passing beneath
-        // the card are fully covered instead of showing through.
-        background: `radial-gradient(circle at 50% 35%, ${c}59, ${c}12), #0e1220`,
+        borderColor: selected ? c : `${c}99`,
+        // Opaque, colored fill over a dark slate base: the card glows in its
+        // color and fully covers any line passing beneath it.
+        background: `radial-gradient(circle at 50% 32%, ${c}66, ${c}22), #161a2c`,
         boxShadow: selected
-          ? `0 0 0 2px ${c}, 0 0 34px ${c}88`
-          : `0 0 24px ${c}3d`,
+          ? `0 0 0 2px ${c}, 0 0 36px ${c}99`
+          : `0 0 26px ${c}55`,
       }}
     >
       {SIDES.map((s) => (
@@ -175,11 +175,17 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
         </Fragment>
       ))}
       <div className="flex flex-col items-center gap-0.5 px-2 text-center">
-        <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-fg">
+        <span
+          className="text-[13px] font-semibold uppercase tracking-[0.2em]"
+          style={{ color: "#f2f3fb" }}
+        >
           {data.title || "—"}
         </span>
         {data.owner && (
-          <span className="max-w-[96px] truncate text-[10px] font-medium text-muted">
+          <span
+            className="max-w-[96px] truncate text-[10px] font-medium"
+            style={{ color: "rgba(255,255,255,0.66)" }}
+          >
             {data.owner}
           </span>
         )}
@@ -616,8 +622,8 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-2xl border border-line bg-bg"
-      style={{ height: isFull ? "100vh" : "76vh" }}
+      className="relative w-full overflow-hidden rounded-2xl border border-line"
+      style={{ height: isFull ? "100vh" : "76vh", background: "#0b0e1a" }}
     >
       {/* Toolbar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-2 p-3">
@@ -668,7 +674,7 @@ function CanvasInner({ initialGraph }: { initialGraph: I2Graph }) {
         deleteKeyCode={["Backspace", "Delete"]}
         fitView
         fitViewOptions={{ padding: 0.25 }}
-        colorMode="system"
+        colorMode="dark"
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{ type: "editable", markerEnd: ARROW }}
       >
