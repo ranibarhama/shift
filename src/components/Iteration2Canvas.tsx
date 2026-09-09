@@ -32,6 +32,7 @@ type CardShape = "square" | "circle" | "rect";
 type NodeData = {
   title: string;
   owner?: string;
+  system?: string;
   details?: string;
   inputs?: string;
   outputs?: string;
@@ -117,6 +118,7 @@ function toGraph(nodes: Node<NodeData>[], edges: Edge[]): I2Graph {
       data: {
         title: n.data.title ?? "",
         owner: n.data.owner,
+        system: n.data.system,
         details: n.data.details,
         inputs: n.data.inputs,
         outputs: n.data.outputs,
@@ -184,7 +186,19 @@ function CardNode({ data, selected }: NodeProps<Node<NodeData>>) {
           />
         </Fragment>
       ))}
-      <div className="flex flex-col items-center gap-0.5 px-2 text-center">
+      <div className="flex flex-col items-center gap-1 px-2 text-center">
+        {data.system && (
+          <span
+            className="max-w-[104px] truncate rounded-full px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider"
+            style={{
+              color: txt,
+              background:
+                txt === "#ffffff" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)",
+            }}
+          >
+            {data.system}
+          </span>
+        )}
         <span
           className="text-[13px] font-bold uppercase tracking-[0.16em]"
           style={{ color: txt }}
@@ -363,6 +377,14 @@ function NodePanel({
             value={node.data.owner ?? ""}
             onChange={(e) => onChange({ owner: e.target.value })}
             placeholder="Who owns this stage"
+            className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
+          />
+        </Field>
+        <Field label="Main system" help="shown as a tag on the card">
+          <input
+            value={node.data.system ?? ""}
+            onChange={(e) => onChange({ system: e.target.value })}
+            placeholder="e.g. Data HUB, Ignis, GTM"
             className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
           />
         </Field>

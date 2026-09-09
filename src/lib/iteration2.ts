@@ -12,6 +12,7 @@ export type I2Node = {
   data: {
     title: string;
     owner?: string;
+    system?: string;
     details?: string;
     inputs?: string;
     outputs?: string;
@@ -100,6 +101,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
     const data = n.data as {
       title?: unknown;
       owner?: unknown;
+      system?: unknown;
       details?: unknown;
       inputs?: unknown;
       outputs?: unknown;
@@ -129,6 +131,7 @@ export function sanitizeGraph(input: unknown): I2Graph | null {
       data: {
         title: typeof data?.title === "string" ? data.title : "",
         owner: str(data?.owner),
+        system: str(data?.system),
         details: str(data?.details),
         inputs: str(data?.inputs),
         outputs: str(data?.outputs),
