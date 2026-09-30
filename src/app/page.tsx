@@ -58,6 +58,29 @@ export default async function Home() {
         </Link>
       </section>
 
+      {/* Pilot results — open to everyone, no sign-in */}
+      <section className="mb-3 w-full">
+        <Link
+          href="/pilot-results"
+          className="group flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl border border-line bg-card/60 p-5 transition hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg sm:p-6"
+        >
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+              Pilot results · Open to everyone
+            </div>
+            <div className="mt-1 text-lg font-semibold text-fg sm:text-xl">
+              AI-Native PM → Production Pipeline — what the pilot delivered
+            </div>
+            <div className="mt-0.5 text-xs text-muted">
+              The dashboard and the full story — no sign-in needed
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/60 bg-card px-3 py-1.5 text-xs font-medium text-accent transition group-hover:bg-accent group-hover:text-ink">
+            See results →
+          </span>
+        </Link>
+      </section>
+
       {/* Meeting CTAs */}
       <section className="mb-14 w-full space-y-3">
         <Link
