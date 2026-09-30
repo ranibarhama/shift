@@ -42,6 +42,30 @@
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Light theme — driven by the parent Shift site theme (data-theme on <html>). */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --page-bg: #f6f7fb;
+  --page-bg-2: #eef1f8;
+  --surface: #ffffff;
+  --surface-2: #f3f5fa;
+  --border: rgba(15,18,40,0.10);
+  --border-strong: rgba(15,18,40,0.20);
+
+  --text-primary: #14161f;
+  --text-secondary: #3f4351;
+  --text-muted: #5c6070;
+
+  --chart-surface: #ffffff;
+  --status-good-text: #0a8a25;
+
+  --kicker-before: #6b6f80;
+  --kicker-pilot: #a86a00;
+  --kicker-now: #0e8a5c;
+  --kicker-future: #6d5fd0;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -1212,6 +1236,25 @@ html, body {
 }
 
 </style>
+<script>
+/* Follow the parent Shift site's light/dark theme. */
+(function () {
+  function apply(t) {
+    var d = document.documentElement;
+    d.setAttribute("data-theme", t);
+    d.style.colorScheme = t;
+    try { localStorage.setItem("shiftPilotTheme", t); } catch (e) {}
+  }
+  var q = new URLSearchParams(location.search).get("theme");
+  var ls = null;
+  try { ls = localStorage.getItem("shiftPilotTheme"); } catch (e) {}
+  apply((q || ls) === "light" ? "light" : "dark");
+  window.addEventListener("message", function (e) {
+    var d = e && e.data;
+    if (d && d.type === "shift-theme") apply(d.theme === "light" ? "light" : "dark");
+  });
+})();
+</script>
 </head>
 <body>
 <div class="bg-glow" aria-hidden="true"></div>
@@ -1885,6 +1928,29 @@ html, body {
   commitStage(0);
 })();
 
+</script>
+<script>
+/* Report content height to the Shift app so the embedding iframe can auto-size. */
+(function () {
+  function postH() {
+    try {
+      var h = Math.max(
+        document.body ? document.body.scrollHeight : 0,
+        document.documentElement.scrollHeight
+      );
+      parent.postMessage({ type: "pilot-height", height: h }, "*");
+    } catch (e) {}
+  }
+  window.addEventListener("load", function () { postH(); setTimeout(postH, 250); });
+  window.addEventListener("resize", postH);
+  if (window.ResizeObserver) {
+    try { new ResizeObserver(postH).observe(document.body); } catch (e) {}
+  }
+  document.addEventListener("click", function () {
+    setTimeout(postH, 80);
+    setTimeout(postH, 320);
+  });
+})();
 </script>
 </body>
 </html>

@@ -53,29 +53,7 @@ export default async function Topbar() {
           <NavArrow />
           <NavLink href="/pilot-board">Pilot Board</NavLink>
           <NavArrow />
-          <a
-            href="/shift-pilot-dashboard-standalone.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Pilot results — dashboard & full story (opens in a new tab)"
-            className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
-          >
-            Pilot results
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M7 17 17 7" />
-              <path d="M8 7h9v9" />
-            </svg>
-          </a>
+          <NavLink href="/pilot-results">Pilot results</NavLink>
         </nav>
       </div>
       <div className="flex items-center gap-2">

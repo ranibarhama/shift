@@ -11,6 +11,16 @@ export default function ThemeToggle({ initial }: { initial: Theme }) {
     if (theme === "dark") html.classList.add("dark");
     else html.classList.remove("dark");
     html.style.colorScheme = theme;
+    // Keep any embedded microsite iframes (e.g. Pilot results) in sync.
+    document
+      .querySelectorAll<HTMLIFrameElement>("iframe[data-theme-sync]")
+      .forEach((f) => {
+        try {
+          f.contentWindow?.postMessage({ type: "shift-theme", theme }, "*");
+        } catch {
+          /* cross-origin or not ready — ignored */
+        }
+      });
   }, [theme]);
 
   const toggle = () => {
