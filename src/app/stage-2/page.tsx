@@ -87,7 +87,7 @@ export default function Stage2Page() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Topbar />
+      <Topbar stage={2} />
       <main className="mx-auto w-full max-w-[1280px] px-6 py-10">
         {/* Header */}
         <header className="mb-10">

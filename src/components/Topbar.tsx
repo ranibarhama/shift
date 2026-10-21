@@ -6,30 +6,51 @@ import ThemeToggle from "./ThemeToggle";
 import NavLink from "./NavLink";
 import DepartmentsDropdown from "./DepartmentsDropdown";
 
-export default async function Topbar() {
+export type Stage = 1 | 2;
+
+const STAGE_HEX: Record<Stage, string> = { 1: "#7c5cff", 2: "#16a34a" };
+
+/**
+ * Site header. `stage` picks the nav: Stage 1 is the original journey nav;
+ * Stage 2 has its own nav and no role (it's open to everyone).
+ */
+export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
   const roleKey = await getCurrentRole();
   const role = roleKey ? getRole(roleKey) : null;
   const theme = await getCurrentTheme();
   const userRole: RoleKey | null = role ? (role.key as RoleKey) : null;
+  const isStage2 = stage === 2;
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-line/70 bg-bg/80 px-5 backdrop-blur">
       <div className="flex min-w-0 items-center gap-6">
-        <Link
-          href="/main"
-          className="group flex shrink-0 items-center gap-2.5 text-fg"
-          aria-label="Shift — B2C AI Implementation Playbook"
-        >
-          <ShiftMark />
-          <span className="text-sm font-semibold tracking-tight">
-            Shift
-            <span className="ml-1 hidden text-[10px] font-medium uppercase tracking-[0.18em] text-muted sm:inline">
-              · B2C
+        <div className="flex shrink-0 items-center gap-2.5">
+          <Link
+            href={isStage2 ? "/stage-2" : "/main"}
+            className="group flex shrink-0 items-center gap-2.5 text-fg"
+            aria-label="Shift — B2C AI Implementation Playbook"
+          >
+            <ShiftMark />
+            <span className="text-sm font-semibold tracking-tight">
+              Shift
+              <span className="ml-1 hidden text-[10px] font-medium uppercase tracking-[0.18em] text-muted sm:inline">
+                · B2C
+              </span>
             </span>
-          </span>
-        </Link>
-        {/* Nav reads left-to-right as the order we did things:
-            map → departments → backlog → drop → target → stones → handoff → pilot */}
+          </Link>
+          <StageBadge stage={stage} />
+        </div>
+        {isStage2 ? (
+          <nav className="flex items-center gap-0.5 text-sm" aria-label="Stage 2">
+            <NavLink href="/stage-2" exact>
+              Process so far
+            </NavLink>
+            <NavArrow />
+            <NavLink href="/stage-2/session-1">Session 1</NavLink>
+          </nav>
+        ) : (
+        /* Nav reads left-to-right as the order we did things:
+            map → departments → backlog → drop → target → stones → handoff → pilot */
         <nav className="flex items-center gap-0.5 text-sm" aria-label="Journey">
           <NavLink href="/main">B2C main workflow</NavLink>
           <NavArrow />
@@ -55,9 +76,15 @@ export default async function Topbar() {
           <NavArrow />
           <NavLink href="/pilot-results">Pilot results</NavLink>
         </nav>
+        )}
       </div>
       <div className="flex items-center gap-2">
-        {role ? (
+        {isStage2 ? (
+          <>
+            <HomeLink />
+            <ThemeToggle initial={theme} />
+          </>
+        ) : role ? (
           <>
             <div className="flex items-center gap-2 rounded-full border border-line bg-card/60 py-1 pl-1 pr-3 text-xs">
               <span
@@ -68,14 +95,7 @@ export default async function Topbar() {
               </span>
               <span className="text-fg">{role.label}</span>
             </div>
-            <Link
-              href="/"
-              aria-label="Home"
-              title="Home"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line text-muted hover:bg-line/40 hover:text-fg"
-            >
-              <HomeIcon />
-            </Link>
+            <HomeLink />
             <ThemeToggle initial={theme} />
           </>
         ) : (
@@ -91,6 +111,34 @@ export default async function Topbar() {
         )}
       </div>
     </header>
+  );
+}
+
+/** "Stage N" pill next to the logo — click to go back and switch stage. */
+function StageBadge({ stage }: { stage: Stage }) {
+  const hex = STAGE_HEX[stage];
+  return (
+    <Link
+      href="/"
+      title="Switch stage"
+      className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] transition hover:brightness-110"
+      style={{ background: `${hex}1f`, color: hex, border: `1px solid ${hex}55` }}
+    >
+      Stage {stage}
+    </Link>
+  );
+}
+
+function HomeLink() {
+  return (
+    <Link
+      href="/"
+      aria-label="Home"
+      title="Home"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line text-muted hover:bg-line/40 hover:text-fg"
+    >
+      <HomeIcon />
+    </Link>
   );
 }
 

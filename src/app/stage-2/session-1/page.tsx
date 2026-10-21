@@ -9,7 +9,7 @@ export const metadata = {
 export default function Stage2Session1Page() {
   return (
     <div className="flex flex-1 flex-col">
-      <Topbar />
+      <Topbar stage={2} />
       <main className="mx-auto w-full max-w-4xl px-6 py-10">
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-xs text-muted">
           <Link href="/" className="hover:text-fg">

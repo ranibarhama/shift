@@ -7,12 +7,16 @@ type Props = {
   href: string;
   children: React.ReactNode;
   matchPrefix?: string;
+  /** Only active on this exact path, not on its sub-pages. */
+  exact?: boolean;
 };
 
-export default function NavLink({ href, children, matchPrefix }: Props) {
+export default function NavLink({ href, children, matchPrefix, exact }: Props) {
   const pathname = usePathname() ?? "";
   const prefix = matchPrefix ?? href;
-  const active = pathname === prefix || pathname.startsWith(prefix + "/");
+  const active = exact
+    ? pathname === prefix
+    : pathname === prefix || pathname.startsWith(prefix + "/");
 
   return (
     <Link
