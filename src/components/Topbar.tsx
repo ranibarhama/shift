@@ -46,7 +46,9 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
               Process so far
             </NavLink>
             <NavArrow />
-            <NavLink href="/stage-2/session-1">Session 1</NavLink>
+            <NavLink href="/stage-2/session-1">
+              Session 1 · How good looks like – HL
+            </NavLink>
           </nav>
         ) : (
         /* Nav reads left-to-right as the order we did things:
