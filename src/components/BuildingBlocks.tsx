@@ -722,7 +722,7 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
         <>
           <div className="overflow-x-auto">
             <svg
-              viewBox={`0 ${top} 700 ${215 - top}`}
+              viewBox={`0 ${top} 700 ${224 - top}`}
               className="mx-auto w-full min-w-[560px] max-w-3xl"
               role="img"
               aria-label="Connections between building blocks"
@@ -791,12 +791,16 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
                   </text>
                   <text
                     x={x(i)}
-                    y={BASE + 30}
+                    y={BASE + 28}
                     textAnchor="middle"
                     fontSize="11"
                     className="fill-current text-fg"
                   >
-                    {b.key === "learning" ? "Cont. learning" : b.label}
+                    {b.mapLines.map((line, li) => (
+                      <tspan key={line} x={x(i)} dy={li === 0 ? 0 : 13}>
+                        {line}
+                      </tspan>
+                    ))}
                   </text>
                 </g>
               ))}

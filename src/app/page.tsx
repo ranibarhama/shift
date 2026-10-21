@@ -42,8 +42,8 @@ export default async function Home() {
           stage="Stage 2"
           status="Up next"
           title="Shift Stage 2"
-          desc="The next phase. See the process we ran so far on one diagram, then jump into Session 1 — How good looks like, high level."
-          chips={["Process so far", "Session 1 · How good looks like – HL"]}
+          desc="The next phase. See the process we ran so far on one diagram, then jump into Session 1 — mapping today's status and gaps, block by block."
+          chips={["Process so far", "Session 1 · Today's status – Gap Mapping"]}
           cta="Open Stage 2"
           hex="#16a34a"
           highlight

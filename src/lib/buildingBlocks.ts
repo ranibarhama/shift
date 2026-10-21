@@ -12,14 +12,26 @@
 
 import { LEADER_NAMES } from "./stoneBriefs";
 
+// Keys are stored with each entry — rename `label` freely, never `key`.
+// `mapLines` is the (possibly wrapped) label under each dot in the connections map.
 export const BUILDING_BLOCKS = [
-  { key: "research", label: "Research", hex: "#22d3ee" },
-  { key: "planning", label: "Planning", hex: "#a855f7" },
-  { key: "development", label: "Development", hex: "#3b82f6" },
-  { key: "launch", label: "Launch", hex: "#10b981" },
-  { key: "growth", label: "Growth", hex: "#f59e0b" },
-  { key: "feedback", label: "Feedback", hex: "#ef4444" },
-  { key: "learning", label: "Continuous learning", hex: "#7c5cff" },
+  { key: "research", label: "Data insights", mapLines: ["Data insights"], hex: "#22d3ee" },
+  {
+    key: "planning",
+    label: "Planning & Prioritisations",
+    mapLines: ["Planning &", "Prioritisations"],
+    hex: "#a855f7",
+  },
+  { key: "development", label: "Development", mapLines: ["Development"], hex: "#3b82f6" },
+  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#10b981" },
+  { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#f59e0b" },
+  { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#ef4444" },
+  {
+    key: "learning",
+    label: "Continuous learning",
+    mapLines: ["Continuous", "learning"],
+    hex: "#7c5cff",
+  },
 ] as const;
 
 export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];

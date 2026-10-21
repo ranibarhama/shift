@@ -73,7 +73,7 @@ const TIMELINE: { when: string; name: string; next?: boolean }[] = [
   { when: "Session 2", name: "Pilot Definition Meeting" },
   { when: "Kickoff", name: "AI Pilot Kickoff" },
   { when: "Pilot", name: "Pilot run & results" },
-  { when: "Stage 2 · Session 1", name: "How good looks like – HL", next: true },
+  { when: "Stage 2 · Session 1", name: "Today's status – Gap Mapping", next: true },
 ];
 
 const SESSION_1_HREF = "/stage-2/session-1";
@@ -181,10 +181,11 @@ export default function Stage2Page() {
               Up next
             </div>
             <div className="mt-1 text-xl font-semibold text-fg">
-              Session 1 · How good looks like – HL
+              Session 1 · Today&apos;s status – Gap Mapping
             </div>
             <div className="mt-0.5 text-xs text-muted">
-              The transformation structure and the details behind it, as a graphic presentation.
+              Map what we have, what&apos;s missing and what needs connecting — block by block —
+              then see how good looks like.
             </div>
           </div>
           <span
@@ -293,7 +294,9 @@ function NextCard() {
         Stage 2
       </span>
       <span className="mt-1 text-[15px] font-semibold text-fg">Session 1</span>
-      <span className="mt-0.5 text-[12px] font-medium text-fg/80">How good looks like – HL</span>
+      <span className="mt-0.5 text-[12px] font-medium text-fg/80">
+        Today&apos;s status – Gap Mapping
+      </span>
       <span className="mt-1 text-[11px] text-muted">Where we pick up next</span>
       <span className="mt-3 text-xs font-semibold text-automate transition group-hover:translate-x-0.5">
         Open →

@@ -206,12 +206,12 @@ function Deck() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="How good looks like — HL presentation"
+          aria-label="Today's status – Gap Mapping presentation"
           className="fixed inset-0 z-50 flex flex-col bg-bg"
         >
           <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-2.5">
             <div className="truncate text-xs text-muted">
-              <span className="font-semibold text-fg">How good looks like · HL</span>
+              <span className="font-semibold text-fg">Today&apos;s status – Gap Mapping</span>
               <span className="mx-2">·</span>
               {slides[current].kicker}
             </div>

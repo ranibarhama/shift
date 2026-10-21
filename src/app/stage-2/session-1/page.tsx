@@ -5,11 +5,11 @@ import { listBlockInputs } from "@/lib/buildingBlocksDb";
 import type { BlockInput } from "@/lib/buildingBlocks";
 
 export const metadata = {
-  title: "Session 1 · How good looks like – HL · Shift",
+  title: "Session 1 · Today's status – Gap Mapping · Shift",
 };
 export const dynamic = "force-dynamic";
 
-/** Stage 2 · Session 1 — "How good looks like" at a high level (HL). */
+/** Stage 2 · Session 1 — Today's status (gap mapping), then How good looks like (HL). */
 export default async function Stage2Session1Page() {
   let blockInputs: BlockInput[] = [];
   try {
@@ -38,14 +38,15 @@ export default async function Stage2Session1Page() {
             Shift · Stage 2 · Session 1
           </div>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            How good looks like – HL
+            Today&apos;s status – Gap Mapping
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
             Start at <span className="font-semibold text-fg">screen 00</span>: every team
-            member adds, per building block, what we have, what&apos;s missing and what needs
-            connecting. Then the high-level picture — the transformation structure and the
-            details behind it. Hit <span className="font-semibold text-fg">Present</span> to
-            run it full screen (← → to move, Esc to exit).
+            member maps today&apos;s status per building block — what we have, what&apos;s
+            missing and what needs connecting. Then the high-level picture of how good looks
+            like — the transformation structure and the details behind it. Hit{" "}
+            <span className="font-semibold text-fg">Present</span> to run it full screen
+            (← → to move, Esc to exit).
           </p>
         </header>
 
