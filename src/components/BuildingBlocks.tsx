@@ -37,7 +37,6 @@ import {
 
 const MEMBER_KEY = "shift_member";
 const POLL_MS = 10_000;
-const OTHER = "__other";
 
 const KIND_META: Record<InputKind, { label: string; short: string; hex: string; glyph: string }> = {
   have: { label: "What we have now", short: "have", hex: "#22c55e", glyph: "✓" },
@@ -46,6 +45,9 @@ const KIND_META: Record<InputKind, { label: string; short: string; hex: string; 
 };
 
 /* ============================== State ============================== */
+
+/** Where an item needs to connect: one or more places, or "not sure". */
+type Where = { targets: string[]; unsure: boolean };
 
 type BlocksCtx = {
   entries: BlockInput[];
@@ -56,7 +58,7 @@ type BlocksCtx = {
     kind: InputKind,
     text: string,
     category: CategoryKey,
-    target?: string
+    where?: Where
   ) => Promise<string | null>;
   remove: (id: string) => Promise<string | null>;
 };
@@ -133,13 +135,21 @@ export function BlocksProvider({
       kind: InputKind,
       text: string,
       category: CategoryKey,
-      target?: string
+      where?: Where
     ) => {
       try {
         const r = await fetch("/api/building-blocks", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ block, kind, text, category, target, member }),
+          body: JSON.stringify({
+            block,
+            kind,
+            text,
+            category,
+            targets: where?.targets ?? [],
+            unsure: where?.unsure ?? false,
+            member,
+          }),
         });
         const d = (await r.json().catch(() => ({}))) as { input?: BlockInput; error?: string };
         if (!r.ok || !d.input) return d.error ?? "Couldn't save — try again";
@@ -429,7 +439,7 @@ function BlocksFlow({
           <path d="M21 12a9 9 0 1 1-3-6.7" />
           <polyline points="21 3 21 9 15 9" />
         </svg>
-        Continuous learning feeds the next round of research
+        …and the cycle starts again at Data insights
       </div>
     </div>
   );
@@ -511,6 +521,7 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
               block={block}
               kind="missing"
               placeholder="e.g. One view of user feedback"
+              where="missing"
               blockedNote={
                 myMissing >= MAX_MISSING
                   ? `You've listed your top ${MAX_MISSING} — remove one to change it.`
@@ -526,7 +537,9 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
                 {who === member ? `${who} (you)` : who}
               </div>
               {list.map((e, i) => (
-                <EntryRow key={e.id} entry={e} rank={i + 1} hideMember />
+                <EntryRow key={e.id} entry={e} rank={i + 1} hideMember>
+                  <TargetList targets={e.targets} unsure={e.unsure} />
+                </EntryRow>
               ))}
             </div>
           ))}
@@ -534,12 +547,14 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
 
         <Column
           kind="connect"
-          footer={<AddForm block={block} kind="connect" placeholder="e.g. Support tickets data" withTarget />}
+          footer={
+            <AddForm block={block} kind="connect" placeholder="e.g. Support tickets data" where="connect" />
+          }
         >
           {of("connect").length === 0 && <Empty />}
           {of("connect").map((e) => (
             <EntryRow key={e.id} entry={e}>
-              <TargetPill target={e.target} />
+              <TargetList targets={e.targets} unsure={false} />
             </EntryRow>
           ))}
         </Column>
@@ -625,22 +640,35 @@ function EntryRow({
   );
 }
 
-function TargetPill({ target }: { target: string | null }) {
-  if (!target) return null;
+/** "→ [Planning] [Salesforce]", or "→ Not sure where". */
+function TargetList({ targets, unsure }: { targets: string[]; unsure: boolean }) {
+  if (!unsure && targets.length === 0) return null;
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+      <span className="text-muted">→</span>
+      {unsure ? (
+        <span className="rounded-full border border-dashed border-line px-1.5 py-px italic text-muted">
+          Not sure where
+        </span>
+      ) : (
+        targets.map((t) => <TargetPill key={t} target={t} />)
+      )}
+    </span>
+  );
+}
+
+function TargetPill({ target }: { target: string }) {
   const b = isBlockKey(target) ? blockDef(target) : null;
   return (
-    <span className="ml-1.5 inline-flex items-center gap-1 whitespace-nowrap align-middle text-[11px]">
-      <span className="text-muted">→</span>
-      <span
-        className="rounded-full px-1.5 py-px font-semibold"
-        style={
-          b
-            ? { background: `${b.hex}1f`, color: b.hex }
-            : { background: "rgb(var(--line) / 0.6)", color: "rgb(var(--fg))" }
-        }
-      >
-        {b ? b.label : target}
-      </span>
+    <span
+      className="whitespace-nowrap rounded-full px-1.5 py-px font-semibold"
+      style={
+        b
+          ? { background: `${b.hex}1f`, color: b.hex }
+          : { background: "rgb(var(--line) / 0.6)", color: "rgb(var(--fg))" }
+      }
+    >
+      {b ? b.label : target}
     </span>
   );
 }
@@ -649,20 +677,23 @@ function AddForm({
   block,
   kind,
   placeholder,
-  withTarget,
+  where,
   blockedNote,
 }: {
   block: BlockKey;
   kind: InputKind;
   placeholder: string;
-  withTarget?: boolean;
+  /** Ask where it needs to connect: required ("connect") or places-or-not-sure ("missing"). */
+  where?: "connect" | "missing";
   blockedNote?: string;
 }) {
   const { member, add } = useBlocks();
   const [text, setText] = useState("");
   const [category, setCategory] = useState<CategoryKey | "">("");
-  const [target, setTarget] = useState("");
-  const [otherTarget, setOtherTarget] = useState("");
+  const [places, setPlaces] = useState<BlockKey[]>([]);
+  const [otherOn, setOtherOn] = useState(false);
+  const [otherText, setOtherText] = useState("");
+  const [unsure, setUnsure] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -673,6 +704,12 @@ function AddForm({
     return <p className="text-[11px] text-muted">{blockedNote}</p>;
   }
 
+  function togglePlace(k: BlockKey) {
+    setUnsure(false);
+    setError(null);
+    setPlaces((ps) => (ps.includes(k) ? ps.filter((p) => p !== k) : [...ps, k]));
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const t = text.trim();
@@ -681,25 +718,44 @@ function AddForm({
       setError("Pick a category first");
       return;
     }
-    const where = withTarget ? (target === OTHER ? otherTarget.trim() : target) : undefined;
-    if (withTarget && !where) {
-      setError("Choose where it needs to connect");
-      return;
+    let target: Where | undefined;
+    if (where) {
+      const others = otherOn
+        ? otherText.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      const targets = [
+        ...BUILDING_BLOCKS.filter((b) => places.includes(b.key)).map((b) => b.key as string),
+        ...others,
+      ];
+      if (where === "connect" && targets.length === 0) {
+        setError("Choose where it needs to connect");
+        return;
+      }
+      if (where === "missing" && targets.length === 0 && !unsure) {
+        setError("Choose where it should connect — or “I'm not sure”");
+        return;
+      }
+      target = { targets, unsure: where === "missing" && unsure };
     }
     setBusy(true);
-    const err = await add(block, kind, t, category, where);
+    const err = await add(block, kind, t, category, target);
     setBusy(false);
     if (err) {
       setError(err);
     } else {
       setText("");
-      setOtherTarget("");
+      setPlaces([]);
+      setOtherOn(false);
+      setOtherText("");
+      setUnsure(false);
       setError(null);
     }
   }
 
   const inputCls =
     "w-full rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[12.5px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none";
+  const chipCls =
+    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold transition ";
 
   return (
     <form onSubmit={submit} className="space-y-1.5">
@@ -716,10 +772,7 @@ function AddForm({
                 setCategory(c.key);
                 setError(null);
               }}
-              className={
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold transition " +
-                (on ? "text-fg" : "border-line text-muted hover:text-fg")
-              }
+              className={chipCls + (on ? "text-fg" : "border-line text-muted hover:text-fg")}
               style={on ? { borderColor: c.hex, background: `${c.hex}24` } : undefined}
             >
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.hex }} />
@@ -736,33 +789,77 @@ function AddForm({
         aria-label={KIND_META[kind].label}
         className={inputCls}
       />
-      {withTarget && (
-        <>
-          <select
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            aria-label="Needs to connect to"
-            className={inputCls}
-          >
-            <option value="">Needs to connect to…</option>
-            {BUILDING_BLOCKS.filter((b) => b.key !== block).map((b) => (
-              <option key={b.key} value={b.key}>
-                {b.label}
-              </option>
-            ))}
-            <option value={OTHER}>Somewhere else (a system, a team…)</option>
-          </select>
-          {target === OTHER && (
+      {where && (
+        <div className="space-y-1 rounded-lg border border-line/70 bg-bg/40 p-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+            {where === "connect"
+              ? "Needs to connect to — pick one or more"
+              : "Should connect to, in your view — one or more"}
+          </div>
+          <div role="group" aria-label="Connect to" className="flex flex-wrap gap-1">
+            {BUILDING_BLOCKS.filter((b) => b.key !== block).map((b) => {
+              const on = places.includes(b.key);
+              return (
+                <button
+                  key={b.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => togglePlace(b.key)}
+                  className={chipCls + (on ? "text-fg" : "border-line text-muted hover:text-fg")}
+                  style={on ? { borderColor: b.hex, background: `${b.hex}24` } : undefined}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: b.hex }} />
+                  {b.label}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              aria-pressed={otherOn}
+              onClick={() => {
+                setOtherOn((v) => !v);
+                setUnsure(false);
+                setError(null);
+              }}
+              className={
+                chipCls +
+                "border-dashed " +
+                (otherOn ? "border-fg/50 bg-line/50 text-fg" : "border-line text-muted hover:text-fg")
+              }
+            >
+              + Somewhere else
+            </button>
+            {where === "missing" && (
+              <button
+                type="button"
+                aria-pressed={unsure}
+                onClick={() => {
+                  setUnsure((v) => !v);
+                  setPlaces([]);
+                  setOtherOn(false);
+                  setError(null);
+                }}
+                className={
+                  chipCls +
+                  "italic " +
+                  (unsure ? "border-fg/50 bg-line/60 text-fg" : "border-line text-muted hover:text-fg")
+                }
+              >
+                I&apos;m not sure
+              </button>
+            )}
+          </div>
+          {otherOn && (
             <input
-              value={otherTarget}
-              onChange={(e) => setOtherTarget(e.target.value)}
-              maxLength={MAX_TARGET}
-              placeholder="e.g. Salesforce, the Data team"
-              aria-label="Where it needs to connect"
+              value={otherText}
+              onChange={(e) => setOtherText(e.target.value)}
+              maxLength={MAX_TARGET * 4}
+              placeholder="e.g. Salesforce, the Data team (comma-separated)"
+              aria-label="Somewhere else"
               className={inputCls}
             />
           )}
-        </>
+        </div>
       )}
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-[11px] text-drop">{error}</span>
@@ -780,27 +877,46 @@ function AddForm({
 
 /* ---------- Connections map ---------- */
 
+type MapFilter = "all" | "connect" | "missing";
+
+const MAP_FILTERS: { key: MapFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "connect", label: "Needs a connection" },
+  { key: "missing", label: "Missing" },
+];
+
 function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
-  const { links, outside } = useMemo(() => {
+  const [filter, setFilter] = useState<MapFilter>("all");
+
+  const { links, outside, unsure } = useMemo(() => {
     const blockLinks = new Map<string, { from: number; to: number; n: number }>();
     const elsewhere = new Map<string, { from: BlockKey; to: string; n: number }>();
     const idx = (k: string) => BUILDING_BLOCKS.findIndex((b) => b.key === k);
+    let notSure = 0;
     for (const e of entries) {
-      if (e.kind !== "connect" || !e.target) continue;
-      if (isBlockKey(e.target)) {
-        const key = `${e.block}>${e.target}`;
-        const cur = blockLinks.get(key);
-        if (cur) cur.n += 1;
-        else blockLinks.set(key, { from: idx(e.block), to: idx(e.target), n: 1 });
-      } else {
-        const key = `${e.block}>${e.target.toLowerCase()}`;
-        const cur = elsewhere.get(key);
-        if (cur) cur.n += 1;
-        else elsewhere.set(key, { from: e.block, to: e.target, n: 1 });
+      if (e.kind === "have") continue;
+      if (filter !== "all" && e.kind !== filter) continue;
+      if (e.unsure) notSure += 1;
+      for (const t of e.targets) {
+        if (isBlockKey(t)) {
+          const key = `${e.block}>${t}`;
+          const cur = blockLinks.get(key);
+          if (cur) cur.n += 1;
+          else blockLinks.set(key, { from: idx(e.block), to: idx(t), n: 1 });
+        } else {
+          const key = `${e.block}>${t.toLowerCase()}`;
+          const cur = elsewhere.get(key);
+          if (cur) cur.n += 1;
+          else elsewhere.set(key, { from: e.block, to: t, n: 1 });
+        }
       }
     }
-    return { links: [...blockLinks.values()], outside: [...elsewhere.values()] };
-  }, [entries]);
+    return {
+      links: [...blockLinks.values()],
+      outside: [...elsewhere.values()],
+      unsure: notSure,
+    };
+  }, [entries, filter]);
 
   const BASE = 168;
   const Y0 = BASE - 13;
@@ -815,17 +931,36 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
 
   return (
     <div className="rounded-2xl border border-line bg-bg/40 p-4">
-      <div className="mb-1 flex items-center gap-2">
+      <div className="mb-1 flex flex-wrap items-center gap-2">
         <Glyph kind="connect" />
         <span className="text-[12.5px] font-semibold text-fg">Connections map</span>
-        <span className="text-[11px] text-muted">
-          · what we have, and where it needs to connect
-        </span>
+        <span className="text-[11px] text-muted">· where things need to connect</span>
+        <div role="radiogroup" aria-label="Show" className="ml-auto flex gap-1">
+          {MAP_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              role="radio"
+              aria-checked={filter === f.key}
+              onClick={() => setFilter(f.key)}
+              className={
+                "rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold transition " +
+                (filter === f.key
+                  ? "border-accent bg-accent/15 text-fg"
+                  : "border-line text-muted hover:text-fg")
+              }
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {links.length === 0 && outside.length === 0 ? (
+      {links.length === 0 && outside.length === 0 && unsure === 0 ? (
         <p className="py-4 text-[12px] text-muted">
-          Connections between blocks will be drawn here as the team adds them.
+          {filter === "all"
+            ? "Connections between blocks will be drawn here as the team adds them."
+            : "Nothing to show for this filter yet."}
         </p>
       ) : (
         <>
@@ -938,9 +1073,19 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
               })}
             </div>
           )}
+          {unsure > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line/60 pt-3">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+                Still open
+              </span>
+              <span className="rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] italic text-muted">
+                {unsure} missing item{unsure > 1 ? "s" : ""} — not sure where to connect
+              </span>
+            </div>
+          )}
           <p className="mt-2 text-[10.5px] text-muted">
-            Solid arcs point forward in the flow, dashed arcs point back. Thicker = more people
-            flagged it.
+            Solid arcs point forward in the flow, dashed arcs point back. Thicker = more items
+            point there.
           </p>
         </>
       )}

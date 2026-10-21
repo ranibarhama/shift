@@ -223,7 +223,10 @@ async function ensureSchema(db: Client) {
     );
 
     /* Stage 2 · Session 1 building blocks — one row per team-member entry.
-     * kind: have | missing | connect. target is set for connect only.
+     * kind: have | missing | connect.
+     * targets: JSON array of where it needs to connect (block keys or free
+     *   text) — connect and missing items. target is the legacy single value.
+     * unsure: 1 when a missing item's connection is "I'm not sure".
      * category: system | tool | process | infrastructure. */
     CREATE TABLE IF NOT EXISTS block_inputs (
       id TEXT PRIMARY KEY,
@@ -232,6 +235,8 @@ async function ensureSchema(db: Client) {
       kind TEXT NOT NULL,
       text TEXT NOT NULL,
       target TEXT,
+      targets TEXT,
+      unsure INTEGER NOT NULL DEFAULT 0,
       category TEXT,
       created_at INTEGER NOT NULL
     );
@@ -254,12 +259,28 @@ async function ensureSchema(db: Client) {
     });
   }
 
-  // Migration: add category to block_inputs (tables created before it existed)
-  const blockCols = await db.execute("PRAGMA table_info(block_inputs)");
-  if (
-    !blockCols.rows.some((r) => (r as unknown as { name: string }).name === "category")
-  ) {
+  // Migrations: block_inputs columns added after the table first shipped.
+  const blockCols = (await db.execute("PRAGMA table_info(block_inputs)")).rows.map(
+    (r) => (r as unknown as { name: string }).name
+  );
+  if (!blockCols.includes("category")) {
     await db.execute("ALTER TABLE block_inputs ADD COLUMN category TEXT");
+  }
+  if (!blockCols.includes("unsure")) {
+    await db.execute("ALTER TABLE block_inputs ADD COLUMN unsure INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!blockCols.includes("targets")) {
+    await db.execute("ALTER TABLE block_inputs ADD COLUMN targets TEXT");
+    // Carry each legacy single target over into the new list.
+    const legacy = await db.execute(
+      "SELECT id, target FROM block_inputs WHERE target IS NOT NULL AND targets IS NULL"
+    );
+    for (const r of legacy.rows as unknown as { id: string; target: string }[]) {
+      await db.execute({
+        sql: "UPDATE block_inputs SET targets = ? WHERE id = ?",
+        args: [JSON.stringify([r.target]), r.id],
+      });
+    }
   }
 
   // Migration: add order_index to processes if it doesn't exist yet

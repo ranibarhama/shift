@@ -7,6 +7,7 @@ import {
   MAX_MEMBER,
   MAX_MISSING,
   MAX_TARGET,
+  MAX_TARGETS,
   MAX_TEXT,
   isBlockKey,
   isCategoryKey,
@@ -35,7 +36,21 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
   const { block, kind, category } = body;
   const member = typeof body.member === "string" ? body.member.trim() : "";
   const text = typeof body.text === "string" ? body.text.trim() : "";
-  const rawTarget = typeof body.target === "string" ? body.target.trim() : "";
+  // Where it needs to connect: `targets` (list), or the legacy single `target`.
+  const rawTargets: unknown[] = Array.isArray(body.targets)
+    ? body.targets
+    : typeof body.target === "string"
+      ? [body.target]
+      : [];
+  let targets = [
+    ...new Set(
+      rawTargets
+        .filter((t): t is string => typeof t === "string")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    ),
+  ];
+  let unsure = body.unsure === true;
 
   if (!isBlockKey(block)) return { ok: false, error: "unknown building block", status: 400 };
   if (!isInputKind(kind)) return { ok: false, error: "unknown input type", status: 400 };
@@ -53,15 +68,37 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
     };
   }
 
-  let target: string | null = null;
-  if (kind === "connect") {
-    if (!rawTarget || rawTarget.length > MAX_TARGET) {
-      return { ok: false, error: "say where it needs to connect", status: 400 };
+  if (kind === "have") {
+    targets = [];
+    unsure = false;
+  } else {
+    if (targets.some((t) => t.length > MAX_TARGET)) {
+      return { ok: false, error: `keep each place under ${MAX_TARGET} characters`, status: 400 };
     }
-    if (rawTarget === block) {
+    if (targets.length > MAX_TARGETS) {
+      return { ok: false, error: `pick up to ${MAX_TARGETS} places`, status: 400 };
+    }
+    if (targets.includes(block)) {
       return { ok: false, error: "pick a different block to connect to", status: 400 };
     }
-    target = rawTarget;
+    if (kind === "connect") {
+      unsure = false;
+      if (targets.length === 0) {
+        return { ok: false, error: "say where it needs to connect", status: 400 };
+      }
+    } else {
+      // missing: places, or "I'm not sure" — exactly one of the two.
+      if (unsure && targets.length > 0) {
+        return { ok: false, error: "choose places or “I'm not sure”, not both", status: 400 };
+      }
+      if (!unsure && targets.length === 0) {
+        return {
+          ok: false,
+          error: "say where it should connect, or choose “I'm not sure”",
+          status: 400,
+        };
+      }
+    }
   }
 
   if (kind === "missing") {
@@ -80,9 +117,20 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
 
   const id = genId("blk");
   await run(
-    `INSERT INTO block_inputs (id, block, member, kind, text, target, category, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, block, member, kind, text, target, category, Date.now()]
+    `INSERT INTO block_inputs
+       (id, block, member, kind, text, target, targets, unsure, category, created_at)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+    [
+      id,
+      block,
+      member,
+      kind,
+      text,
+      targets.length ? JSON.stringify(targets) : null,
+      unsure ? 1 : 0,
+      category,
+      Date.now(),
+    ]
   );
   const fresh = await row<BlockInputRow>("SELECT * FROM block_inputs WHERE id = ?", [id]);
   return { ok: true, input: parseBlockInput(fresh!) };

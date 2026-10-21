@@ -41,9 +41,10 @@ export const BUILDING_BLOCKS = [
   { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#f59e0b", owners: ["Ben"] },
   { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#ef4444", owners: ["Yossi"] },
   {
+    // Shown as "OPS" (was "Continuous learning"); key kept so saved input stays attached.
     key: "learning",
-    label: "Continuous learning",
-    mapLines: ["Continuous", "learning"],
+    label: "OPS",
+    mapLines: ["OPS"],
     hex: "#7c5cff",
     owners: ["Limor"],
   },
@@ -70,6 +71,8 @@ export const MAX_MISSING = 3;
 export const MAX_TEXT = 200;
 export const MAX_MEMBER = 40;
 export const MAX_TARGET = 80;
+/** Most places one item can point to. */
+export const MAX_TARGETS = 8;
 
 export type BlockInput = {
   id: string;
@@ -77,8 +80,11 @@ export type BlockInput = {
   member: string;
   kind: InputKind;
   text: string;
-  /** Only for `connect`: a block key, or free text (a system / team). */
-  target: string | null;
+  /** Where it needs to connect — block keys or free text (a system / team).
+   *  `connect`: at least one. `missing`: at least one, unless `unsure`. */
+  targets: string[];
+  /** `missing` only: "I'm not sure where it should connect". */
+  unsure: boolean;
   /** Required on new items; null only for rows created before categories existed. */
   category: CategoryKey | null;
   createdAt: number;
@@ -90,7 +96,11 @@ export type BlockInputRow = {
   member: string;
   kind: string;
   text: string;
+  /** Legacy single target (rows from before `targets`). */
   target: string | null;
+  /** JSON array of strings. */
+  targets: string | null;
+  unsure: number | null;
   category: string | null;
   created_at: number;
 };
@@ -119,6 +129,18 @@ export function blockDef(key: string) {
   return BUILDING_BLOCKS.find((b) => b.key === key) ?? null;
 }
 
+function parseTargets(r: BlockInputRow): string[] {
+  if (r.targets) {
+    try {
+      const v: unknown = JSON.parse(r.targets);
+      if (Array.isArray(v)) return v.filter((t): t is string => typeof t === "string");
+    } catch {
+      /* fall through to the legacy column */
+    }
+  }
+  return r.target ? [r.target] : [];
+}
+
 export function parseBlockInput(r: BlockInputRow): BlockInput {
   return {
     id: r.id,
@@ -126,7 +148,8 @@ export function parseBlockInput(r: BlockInputRow): BlockInput {
     member: r.member,
     kind: r.kind as InputKind,
     text: r.text,
-    target: r.target ?? null,
+    targets: parseTargets(r),
+    unsure: Number(r.unsure ?? 0) === 1,
     category: isCategoryKey(r.category) ? r.category : null,
     createdAt: Number(r.created_at),
   };
