@@ -223,7 +223,8 @@ async function ensureSchema(db: Client) {
     );
 
     /* Stage 2 · Session 1 building blocks — one row per team-member entry.
-     * kind: have | missing | connect. target is set for connect only. */
+     * kind: have | missing | connect. target is set for connect only.
+     * category: system | tool | process | infrastructure. */
     CREATE TABLE IF NOT EXISTS block_inputs (
       id TEXT PRIMARY KEY,
       block TEXT NOT NULL,
@@ -231,6 +232,7 @@ async function ensureSchema(db: Client) {
       kind TEXT NOT NULL,
       text TEXT NOT NULL,
       target TEXT,
+      category TEXT,
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_block_inputs_block ON block_inputs(block);
@@ -250,6 +252,14 @@ async function ensureSchema(db: Client) {
       sql: "INSERT INTO app_meta (key, value) VALUES ('iteration2_seed', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
       args: [ITERATION2_SEED_VERSION],
     });
+  }
+
+  // Migration: add category to block_inputs (tables created before it existed)
+  const blockCols = await db.execute("PRAGMA table_info(block_inputs)");
+  if (
+    !blockCols.rows.some((r) => (r as unknown as { name: string }).name === "category")
+  ) {
+    await db.execute("ALTER TABLE block_inputs ADD COLUMN category TEXT");
   }
 
   // Migration: add order_index to processes if it doesn't exist yet

@@ -9,6 +9,7 @@ import {
   MAX_TARGET,
   MAX_TEXT,
   isBlockKey,
+  isCategoryKey,
   isInputKind,
   parseBlockInput,
   type BlockInput,
@@ -31,7 +32,7 @@ export async function listBlockInputs(): Promise<BlockInput[]> {
 export type AddResult = { ok: true; input: BlockInput } | { ok: false; error: string; status: number };
 
 export async function addBlockInput(body: Record<string, unknown>): Promise<AddResult> {
-  const { block, kind } = body;
+  const { block, kind, category } = body;
   const member = typeof body.member === "string" ? body.member.trim() : "";
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const rawTarget = typeof body.target === "string" ? body.target.trim() : "";
@@ -43,6 +44,13 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
   }
   if (!text || text.length > MAX_TEXT) {
     return { ok: false, error: `write 1–${MAX_TEXT} characters`, status: 400 };
+  }
+  if (!isCategoryKey(category)) {
+    return {
+      ok: false,
+      error: "pick a category: system, tool, process or infrastructure",
+      status: 400,
+    };
   }
 
   let target: string | null = null;
@@ -72,9 +80,9 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
 
   const id = genId("blk");
   await run(
-    `INSERT INTO block_inputs (id, block, member, kind, text, target, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, block, member, kind, text, target, Date.now()]
+    `INSERT INTO block_inputs (id, block, member, kind, text, target, category, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, block, member, kind, text, target, category, Date.now()]
   );
   const fresh = await row<BlockInputRow>("SELECT * FROM block_inputs WHERE id = ?", [id]);
   return { ok: true, input: parseBlockInput(fresh!) };

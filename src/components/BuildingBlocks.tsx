@@ -12,15 +12,18 @@ import {
 } from "react";
 import {
   BUILDING_BLOCKS,
+  CATEGORIES,
   MAX_MEMBER,
   MAX_MISSING,
   MAX_TARGET,
   MAX_TEXT,
   TEAM_MEMBERS,
   blockDef,
+  categoryDef,
   isBlockKey,
   type BlockInput,
   type BlockKey,
+  type CategoryKey,
   type InputKind,
 } from "@/lib/buildingBlocks";
 
@@ -48,7 +51,13 @@ type BlocksCtx = {
   entries: BlockInput[];
   member: string;
   setMember: (m: string) => void;
-  add: (block: BlockKey, kind: InputKind, text: string, target?: string) => Promise<string | null>;
+  add: (
+    block: BlockKey,
+    kind: InputKind,
+    text: string,
+    category: CategoryKey,
+    target?: string
+  ) => Promise<string | null>;
   remove: (id: string) => Promise<string | null>;
 };
 
@@ -119,12 +128,18 @@ export function BlocksProvider({
   }, [refresh]);
 
   const add = useCallback(
-    async (block: BlockKey, kind: InputKind, text: string, target?: string) => {
+    async (
+      block: BlockKey,
+      kind: InputKind,
+      text: string,
+      category: CategoryKey,
+      target?: string
+    ) => {
       try {
         const r = await fetch("/api/building-blocks", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ block, kind, text, target, member }),
+          body: JSON.stringify({ block, kind, text, category, target, member }),
         });
         const d = (await r.json().catch(() => ({}))) as { input?: BlockInput; error?: string };
         if (!r.ok || !d.input) return d.error ?? "Couldn't save — try again";
@@ -183,8 +198,16 @@ export function BuildingBlocksSlide() {
       <p className="max-w-3xl text-sm text-muted">
         The whole process, block by block. Pick your name, open a block, and add what we have
         today, what&apos;s missing (your top {MAX_MISSING}), and what we have that needs a
-        connection — and to where.
+        connection — and to where. Every item gets a category.
       </p>
+      <div className="flex flex-wrap items-center gap-y-1">
+        <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+          Categories
+        </span>
+        {CATEGORIES.map((c) => (
+          <CategoryTag key={c.key} category={c.key} />
+        ))}
+      </div>
       <MemberBar />
       <BlocksFlow byBlock={byBlock} selected={selected} onSelect={setSelected} />
       <BlockEditor key={selected} block={selected} entries={byBlock.get(selected) ?? []} />
@@ -351,6 +374,24 @@ function BlocksFlow({
                     </span>
                   ))}
                 </span>
+                {list.length > 0 && (
+                  <span
+                    className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-line/50"
+                    title={CATEGORIES.map(
+                      (c) => `${c.label}: ${list.filter((e) => e.category === c.key).length}`
+                    ).join(" · ")}
+                  >
+                    {CATEGORIES.map((c) => {
+                      const n = list.filter((e) => e.category === c.key).length;
+                      return n ? (
+                        <span
+                          key={c.key}
+                          style={{ width: `${(n / list.length) * 100}%`, background: c.hex }}
+                        />
+                      ) : null;
+                    })}
+                  </span>
+                )}
                 {people.length > 0 && (
                   <span className="mt-2 flex -space-x-1.5">
                     {people.slice(0, 4).map((p) => (
@@ -440,6 +481,20 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
             : "No input yet — be the first"}
         </span>
       </div>
+      {entries.length > 0 && (
+        <div className="-mt-2 mb-4 flex flex-wrap items-center gap-y-1">
+          <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+            By category
+          </span>
+          {CATEGORIES.map((c) => (
+            <CategoryTag
+              key={c.key}
+              category={c.key}
+              count={entries.filter((e) => e.category === c.key).length}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Column kind="have" footer={<AddForm block={block} kind="have" placeholder="e.g. Weekly competitor digest" />}>
@@ -536,6 +591,7 @@ function EntryRow({
         </span>
       )}
       <span className="min-w-0 flex-1 break-words">
+        <CategoryTag category={entry.category} />
         {entry.text}
         {children}
       </span>
@@ -604,6 +660,7 @@ function AddForm({
 }) {
   const { member, add } = useBlocks();
   const [text, setText] = useState("");
+  const [category, setCategory] = useState<CategoryKey | "">("");
   const [target, setTarget] = useState("");
   const [otherTarget, setOtherTarget] = useState("");
   const [busy, setBusy] = useState(false);
@@ -620,13 +677,17 @@ function AddForm({
     e.preventDefault();
     const t = text.trim();
     if (!t) return;
+    if (!category) {
+      setError("Pick a category first");
+      return;
+    }
     const where = withTarget ? (target === OTHER ? otherTarget.trim() : target) : undefined;
     if (withTarget && !where) {
       setError("Choose where it needs to connect");
       return;
     }
     setBusy(true);
-    const err = await add(block, kind, t, where);
+    const err = await add(block, kind, t, category, where);
     setBusy(false);
     if (err) {
       setError(err);
@@ -642,6 +703,31 @@ function AddForm({
 
   return (
     <form onSubmit={submit} className="space-y-1.5">
+      <div role="radiogroup" aria-label="Category" className="flex flex-wrap gap-1">
+        {CATEGORIES.map((c) => {
+          const on = category === c.key;
+          return (
+            <button
+              key={c.key}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => {
+                setCategory(c.key);
+                setError(null);
+              }}
+              className={
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold transition " +
+                (on ? "text-fg" : "border-line text-muted hover:text-fg")
+              }
+              style={on ? { borderColor: c.hex, background: `${c.hex}24` } : undefined}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.hex }} />
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -863,6 +949,24 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
 }
 
 /* ---------- Small bits ---------- */
+
+/** Category label with a colored dot (text uses the theme color so it stays readable). */
+function CategoryTag({ category, count }: { category: CategoryKey | null; count?: number }) {
+  const c = categoryDef(category);
+  return (
+    <span
+      className="mr-1.5 inline-flex items-center gap-1 rounded px-1.5 py-px align-middle text-[9.5px] font-bold uppercase tracking-wide text-fg"
+      style={{ background: c ? `${c.hex}22` : "rgb(var(--line) / 0.6)" }}
+    >
+      <span
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{ background: c ? c.hex : "rgb(var(--muted))" }}
+      />
+      {c ? c.label : "Uncategorized"}
+      {count !== undefined && <span className="tabular-nums text-muted">{count}</span>}
+    </span>
+  );
+}
 
 /** "Rani, Oren, Gal" — the viewer's own name highlighted. */
 function OwnerNames({ owners, member }: { owners: readonly string[]; member: string }) {

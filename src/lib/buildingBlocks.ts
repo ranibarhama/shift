@@ -52,6 +52,16 @@ export const BUILDING_BLOCKS = [
 export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];
 export type InputKind = "have" | "missing" | "connect";
 
+/** Every item is categorized as one of these. */
+export const CATEGORIES = [
+  { key: "system", label: "System", hex: "#0ea5e9" },
+  { key: "tool", label: "Tool", hex: "#14b8a6" },
+  { key: "process", label: "Process", hex: "#ec4899" },
+  { key: "infrastructure", label: "Infrastructure", hex: "#64748b" },
+] as const;
+
+export type CategoryKey = (typeof CATEGORIES)[number]["key"];
+
 /** Team roster offered as quick picks (anyone can also type another name).
  *  Includes every block owner, e.g. Oren (Development), who isn't a stone leader. */
 export const TEAM_MEMBERS: readonly string[] = [...LEADER_NAMES, "Oren"];
@@ -69,6 +79,8 @@ export type BlockInput = {
   text: string;
   /** Only for `connect`: a block key, or free text (a system / team). */
   target: string | null;
+  /** Required on new items; null only for rows created before categories existed. */
+  category: CategoryKey | null;
   createdAt: number;
 };
 
@@ -79,11 +91,21 @@ export type BlockInputRow = {
   kind: string;
   text: string;
   target: string | null;
+  category: string | null;
   created_at: number;
 };
 
 const BLOCK_KEYS = new Set<string>(BUILDING_BLOCKS.map((b) => b.key));
 const KINDS = new Set<string>(["have", "missing", "connect"]);
+const CATEGORY_KEYS = new Set<string>(CATEGORIES.map((c) => c.key));
+
+export function isCategoryKey(v: unknown): v is CategoryKey {
+  return typeof v === "string" && CATEGORY_KEYS.has(v);
+}
+
+export function categoryDef(key: string | null) {
+  return CATEGORIES.find((c) => c.key === key) ?? null;
+}
 
 export function isBlockKey(v: unknown): v is BlockKey {
   return typeof v === "string" && BLOCK_KEYS.has(v);
@@ -105,6 +127,7 @@ export function parseBlockInput(r: BlockInputRow): BlockInput {
     kind: r.kind as InputKind,
     text: r.text,
     target: r.target ?? null,
+    category: isCategoryKey(r.category) ? r.category : null,
     createdAt: Number(r.created_at),
   };
 }
