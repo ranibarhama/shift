@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   BUILDING_BLOCKS,
   CATEGORIES,
@@ -15,8 +15,9 @@ import { CategoryTag } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
  * Stage 2 · 2 · Backlog — the gaps the team mapped in 1 · Today's status:
- * headline numbers, the backlog itself, then a simple ranked list of where
- * things need to connect (one row per place, bar = how many items need it).
+ * headline numbers, the backlog itself, then where things need to connect —
+ * a simple map of the blocks (exists-needs-connecting above, missing below)
+ * and the from → to grid underneath to show where the focus is.
  * -------------------------------------------------------------------------- */
 
 const POLL_MS = 15_000;
@@ -208,7 +209,7 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
 
       <BacklogList items={filtered} ranks={ranks} total={backlog.length} />
 
-      <ConnectList items={filtered} />
+      <Connections items={filtered} />
     </div>
   );
 }
@@ -449,150 +450,492 @@ function BacklogList({
 
 /* ============================== Where things need to connect ============================== */
 
-type Place = {
-  key: string;
-  label: string;
-  kind: "block" | "ext" | "unsure";
-  items: BlockInput[];
-};
+type Focus = { type: "node"; key: BlockKey } | { type: "pair"; from: BlockKey; to: BlockKey };
+
+type Arc = { id: string; from: BlockKey; to: BlockKey; kind: BacklogKind; items: BlockInput[] };
 
 /**
- * One row per place things need to plug into, busiest first. The bar is how
- * many items need that place; "From" says which blocks they come from.
- * Click a row to see the items.
+ * A simple map of the blocks (in process order) and the links between them,
+ * with the from → to grid underneath to show where the focus is. Hovering a
+ * block, a line or a grid cell highlights the same thing in both.
  */
-function ConnectList({ items }: { items: BlockInput[] }) {
-  const [open, setOpen] = useState<Set<string>>(new Set());
+function Connections({ items }: { items: BlockInput[] }) {
+  const [hover, setHover] = useState<Focus | null>(null);
+  const [pinned, setPinned] = useState<Focus | null>(null);
+  const active = hover ?? pinned;
 
-  const places = useMemo(() => {
-    const m = new Map<string, Place>();
-    for (const e of items) {
-      for (const t of targetsOf(e)) {
-        const cur = m.get(t.key);
-        if (cur) cur.items.push(e);
-        else m.set(t.key, { key: t.key, label: t.label, kind: t.kind, items: [e] });
-      }
-    }
-    const list = [...m.values()];
-    const known = list
-      .filter((p) => p.kind !== "unsure")
-      .sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
-    const unsure = list.filter((p) => p.kind === "unsure");
-    return [...known, ...unsure]; // "Not sure yet" always last
-  }, [items]);
-
-  const max = Math.max(1, ...places.map((p) => p.items.length));
-
-  function toggle(key: string) {
-    setOpen((s) => {
-      const next = new Set(s);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  function toggle(f: Focus) {
+    setPinned((p) => (p && JSON.stringify(p) === JSON.stringify(f) ? null : f));
   }
 
   return (
-    <section className="rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
-      <div className="mb-3">
-        <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
-        <p className="text-[12px] text-muted">
-          Each row is a place things need to plug into, busiest first. The bar shows how many
-          backlog items need it. Click a row to see them.
-        </p>
+    <section className="space-y-4 rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
+          <p className="text-[12px] text-muted">
+            Hover a block or a line to see its connections. Click to keep it highlighted.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="28" height="8" aria-hidden>
+              <line x1="1" y1="4" x2="27" y2="4" style={{ stroke: "rgb(var(--fg))" }} strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            Exists — needs connecting
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="28" height="8" aria-hidden>
+              <line x1="1" y1="4" x2="27" y2="4" style={{ stroke: "rgb(var(--fg))" }} strokeWidth="2.5" strokeDasharray="6 5" strokeLinecap="round" />
+            </svg>
+            Missing — needed
+          </span>
+          <span>Thicker line = more items</span>
+          {pinned && (
+            <button
+              type="button"
+              onClick={() => setPinned(null)}
+              className="rounded-full border border-line px-2 py-0.5 text-[11px] text-fg hover:border-accent/50"
+            >
+              Clear highlight ✕
+            </button>
+          )}
+        </div>
       </div>
 
-      {places.length === 0 ? (
-        <p className="py-8 text-center text-[12px] text-muted">No connections in this view.</p>
-      ) : (
-        <ul className="divide-y divide-line/60">
-          {places.map((p) => {
-            const isOpen = open.has(p.key);
-            const n = p.items.length;
-            const from = BUILDING_BLOCKS.map((b) => ({
-              b,
-              n: p.items.filter((e) => e.block === b.key).length,
-            })).filter((x) => x.n);
-            return (
-              <li key={p.key}>
-                <button
-                  type="button"
-                  onClick={() => toggle(p.key)}
-                  aria-expanded={isOpen}
-                  className="grid w-full grid-cols-1 gap-x-4 gap-y-1.5 rounded-lg px-2 py-3 text-left transition hover:bg-card sm:grid-cols-[220px_minmax(0,1fr)]"
-                >
-                  <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-fg">
-                    <span
-                      className={"shrink-0 text-[10px] text-muted transition " + (isOpen ? "rotate-90" : "")}
-                      aria-hidden
-                    >
-                      ▶
-                    </span>
-                    {p.kind === "block" ? (
-                      <BlockDot block={p.key} />
-                    ) : p.kind === "unsure" ? (
-                      <span className="italic text-muted">Not sure yet</span>
-                    ) : (
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="truncate">{p.label}</span>
-                        <span className="shrink-0 rounded border border-line px-1 text-[9.5px] font-semibold uppercase tracking-wide text-muted">
-                          Outside
-                        </span>
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="relative h-2.5 flex-1">
-                      <span
-                        className={
-                          "absolute inset-y-0 left-0 rounded-r-[4px] " +
-                          (p.kind === "unsure" ? "border border-dashed border-muted/70" : "bg-fg/60")
-                        }
-                        style={{ width: `${Math.max(2, (n / max) * 100)}%` }}
-                      />
-                    </span>
-                    <span className="w-16 shrink-0 text-[12px] font-semibold text-fg">
-                      {n} item{n === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-muted sm:col-start-2">
-                    <span>From</span>
-                    {from.map(({ b, n: c }) => (
-                      <span key={b.key} className="inline-flex items-center gap-1 text-fg">
-                        <BlockDot block={b.key} />
-                        <span className="text-muted">{c}</span>
-                      </span>
-                    ))}
-                  </span>
-                </button>
-
-                {isOpen && (
-                  <ul className="mb-3 ml-2 space-y-1 sm:ml-[236px]">
-                    {p.items.map((e) => (
-                      <li key={e.id} className="rounded-lg bg-card/70 px-3 py-2 text-[12.5px] text-fg">
-                        <span className="text-muted" aria-hidden>
-                          {KIND_GLYPH[e.kind]}
-                        </span>{" "}
-                        {e.text}
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-                          <CategoryTag category={e.category} />
-                          <span>{KIND_LABEL[e.kind]}</span>
-                          <span>·</span>
-                          <span className="inline-flex items-center gap-1">
-                            from <BlockDot block={e.block} />
-                          </span>
-                          <span>·</span>
-                          <span>{e.member}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <SimpleMap items={items} active={active} onHover={setHover} onToggle={toggle} />
+      <FocusGrid items={items} active={active} onHover={setHover} onToggle={toggle} />
     </section>
+  );
+}
+
+const M_W = 1000;
+const M_PW = 124;
+const M_PH = 62;
+const M_GAP = 140;
+const M_X0 = 76;
+const mx = (i: number) => M_X0 + i * M_GAP;
+const mIndex = (k: string) => BUILDING_BLOCKS.findIndex((b) => b.key === k);
+const mArcH = (d: number) => 22 + d * 18;
+const mPort = (d: number) => 12 + d * 7;
+const mStroke = (n: number) => 1.75 + Math.min(n, 6) * 1.1;
+
+function arcMatches(a: Arc, f: Focus) {
+  return f.type === "node" ? a.from === f.key || a.to === f.key : a.from === f.from && a.to === f.to;
+}
+
+function SimpleMap({
+  items,
+  active,
+  onHover,
+  onToggle,
+}: {
+  items: BlockInput[];
+  active: Focus | null;
+  onHover: (f: Focus | null) => void;
+  onToggle: (f: Focus) => void;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; arc: Arc } | null>(null);
+
+  const { arcs, outside, unsure } = useMemo(() => {
+    const m = new Map<string, Arc>();
+    const outside = new Map<string, number>();
+    const unsure = new Map<string, number>();
+    for (const e of items) {
+      if (e.kind !== "missing" && e.kind !== "connect") continue;
+      if (e.unsure) {
+        unsure.set(e.block, (unsure.get(e.block) ?? 0) + 1);
+        continue;
+      }
+      for (const t of e.targets) {
+        if (!isBlockKey(t)) {
+          outside.set(e.block, (outside.get(e.block) ?? 0) + 1);
+          continue;
+        }
+        const id = `${e.kind}|${e.block}|${t}`;
+        const cur = m.get(id);
+        if (cur) cur.items.push(e);
+        else m.set(id, { id, from: e.block, to: t, kind: e.kind, items: [e] });
+      }
+    }
+    return { arcs: [...m.values()], outside, unsure };
+  }, [items]);
+
+  const top = arcs.filter((a) => a.kind === "connect");
+  const bottom = arcs.filter((a) => a.kind === "missing");
+  const topH = Math.max(0, ...top.map((a) => mArcH(Math.abs(mIndex(a.to) - mIndex(a.from)))));
+  const botH = Math.max(0, ...bottom.map((a) => mArcH(Math.abs(mIndex(a.to) - mIndex(a.from)))));
+  const Y0 = 34 + topH;
+  const H = Y0 + M_PH + botH + 34;
+
+  const related = (a: Arc) => (active ? arcMatches(a, active) : false);
+  const involved = (k: string) =>
+    !active ||
+    (active.type === "node"
+      ? active.key === k || arcs.some((a) => arcMatches(a, active) && (a.from === k || a.to === k))
+      : active.from === k || active.to === k);
+  const focusColor = (a: Arc) =>
+    active?.type === "node" ? blockDef(active.key)!.hex : blockDef(a.from)!.hex;
+
+  function showTip(ev: React.PointerEvent, arc: Arc) {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (r)
+      setTip({
+        // Keep the 260px tooltip inside the map's width.
+        x: Math.min(ev.clientX - r.left + 14, r.width - 270),
+        y: ev.clientY - r.top + 14,
+        arc,
+      });
+  }
+
+  function arcPath(a: Arc) {
+    const fi = mIndex(a.from);
+    const ti = mIndex(a.to);
+    const d = Math.abs(ti - fi);
+    const dir = Math.sign(ti - fi);
+    const h = mArcH(d);
+    const x1 = mx(fi) + dir * mPort(d);
+    const x2 = mx(ti) - dir * mPort(d);
+    const mid = (x1 + x2) / 2;
+    if (a.kind === "connect") {
+      return { d: `M${x1} ${Y0} Q${mid} ${Y0 - 2 * h} ${x2} ${Y0 - 3}`, badge: [mid, Y0 - h] as const };
+    }
+    const yb = Y0 + M_PH;
+    return { d: `M${x1} ${yb} Q${mid} ${yb + 2 * h} ${x2} ${yb + 3}`, badge: [mid, yb + h] as const };
+  }
+
+  return (
+    <div ref={wrapRef} className="relative" onPointerLeave={() => setTip(null)}>
+      <div className="overflow-x-auto">
+      <svg
+        viewBox={`0 0 ${M_W} ${H}`}
+        className="w-full min-w-[760px]"
+        role="img"
+        aria-label="Map of connections between the building blocks"
+      >
+        <defs>
+          {[["muted", "rgb(var(--muted))"], ...BUILDING_BLOCKS.map((b) => [b.key, b.hex])].map(
+            ([id, color]) => (
+              <marker
+                key={id}
+                id={`sm-arrow-${id}`}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto-start-reverse"
+              >
+                <path d="M0 0 L10 5 L0 10 Z" style={{ fill: color }} />
+              </marker>
+            )
+          )}
+        </defs>
+
+        {/* Zone labels */}
+        <text x={8} y={16} fontSize="11" fontWeight="600" style={{ fill: "rgb(var(--muted))" }}>
+          ▲ Exists — needs connecting{top.length ? "" : " · none yet"}
+        </text>
+        <text x={8} y={H - 10} fontSize="11" fontWeight="600" style={{ fill: "rgb(var(--muted))" }}>
+          ▼ Missing — needed{bottom.length ? "" : " · none yet"}
+        </text>
+
+        {/* Lines */}
+        {arcs.map((a) => {
+          const rel = related(a);
+          const dim = !!active && !rel;
+          const color = rel ? focusColor(a) : "rgb(var(--muted))";
+          const markerId = rel ? (active?.type === "node" ? active.key : a.from) : "muted";
+          const { d, badge } = arcPath(a);
+          const n = a.items.length;
+          const pair: Focus = { type: "pair", from: a.from, to: a.to };
+          return (
+            <g
+              key={a.id}
+              tabIndex={0}
+              role="button"
+              aria-label={`${blockDef(a.from)!.label} to ${blockDef(a.to)!.label}: ${n} ${
+                a.kind === "connect" ? "exist and need connecting" : "missing"
+              }`}
+              className="cursor-pointer outline-none"
+              style={{ opacity: dim ? 0.12 : 1, transition: "opacity 120ms" }}
+              onPointerEnter={(ev) => {
+                onHover(pair);
+                showTip(ev, a);
+              }}
+              onPointerMove={(ev) => showTip(ev, a)}
+              onPointerLeave={() => {
+                onHover(null);
+                setTip(null);
+              }}
+              onFocus={() => onHover(pair)}
+              onBlur={() => onHover(null)}
+              onClick={() => onToggle(pair)}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  onToggle(pair);
+                }
+              }}
+            >
+              <path
+                d={d}
+                fill="none"
+                style={{ stroke: color }}
+                strokeOpacity={rel ? 1 : 0.6}
+                strokeWidth={mStroke(n)}
+                strokeDasharray={a.kind === "missing" ? "7 6" : undefined}
+                strokeLinecap="round"
+                markerEnd={`url(#sm-arrow-${markerId})`}
+              />
+              <path d={d} fill="none" stroke="transparent" strokeWidth={16} />
+              {n > 1 && (
+                <g>
+                  <circle cx={badge[0]} cy={badge[1]} r="9" style={{ fill: "rgb(var(--card))", stroke: color }} strokeWidth="1.5" />
+                  <text x={badge[0]} y={badge[1] + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" style={{ fill: "rgb(var(--fg))" }}>
+                    {n}
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Blocks */}
+        {BUILDING_BLOCKS.map((b, i) => {
+          const f: Focus = { type: "node", key: b.key };
+          const x = mx(i) - M_PW / 2;
+          const on = active?.type === "node" && active.key === b.key;
+          const out = outside.get(b.key) ?? 0;
+          const ns = unsure.get(b.key) ?? 0;
+          const extra = [out ? `+${out} outside` : "", ns ? `${ns} not sure` : ""]
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <g
+              key={b.key}
+              tabIndex={0}
+              role="button"
+              aria-label={`${b.label}${extra ? `, ${extra}` : ""}`}
+              className="cursor-pointer outline-none"
+              style={{ opacity: involved(b.key) ? 1 : 0.35, transition: "opacity 120ms" }}
+              onPointerEnter={() => onHover(f)}
+              onPointerLeave={() => onHover(null)}
+              onFocus={() => onHover(f)}
+              onBlur={() => onHover(null)}
+              onClick={() => onToggle(f)}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  onToggle(f);
+                }
+              }}
+            >
+              <rect
+                x={x}
+                y={Y0}
+                width={M_PW}
+                height={M_PH}
+                rx="12"
+                style={{ fill: "rgb(var(--card))", stroke: on ? b.hex : "rgb(var(--line))" }}
+                strokeWidth={on ? 2 : 1}
+              />
+              <rect x={x + 10} y={Y0} width={M_PW - 20} height="3" rx="1.5" fill={b.hex} />
+              <circle cx={x + 14} cy={Y0 + 19} r="4.5" fill={b.hex} />
+              {b.mapLines.map((line, li) => (
+                <text key={line} x={x + 24} y={Y0 + 23 + li * 13} fontSize="11.5" fontWeight="600" style={{ fill: "rgb(var(--fg))" }}>
+                  {line}
+                </text>
+              ))}
+              {extra && (
+                <text x={x + 14} y={Y0 + M_PH - 9} fontSize="10" style={{ fill: "rgb(var(--muted))" }}>
+                  {extra}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      </div>
+
+      {tip && (
+        <div
+          className="pointer-events-none absolute z-10 w-[260px] rounded-lg border border-line bg-card px-3 py-2 shadow-card"
+          style={{ left: tip.x, top: tip.y }}
+          role="tooltip"
+        >
+          <div className="text-sm font-semibold text-fg">
+            {tip.arc.items.length} item{tip.arc.items.length === 1 ? "" : "s"}
+          </div>
+          <div className="text-[11px] text-muted">
+            {blockDef(tip.arc.from)!.label} → {blockDef(tip.arc.to)!.label} ·{" "}
+            {tip.arc.kind === "connect" ? "exists, needs connecting" : "missing, needed"}
+          </div>
+          <ul className="mt-1.5 space-y-0.5 text-[12px] text-fg">
+            {tip.arc.items.slice(0, 5).map((e) => (
+              <li key={e.id} className="truncate">
+                · {e.text} <span className="text-muted">({e.member})</span>
+              </li>
+            ))}
+            {tip.arc.items.length > 5 && (
+              <li className="text-muted">+{tip.arc.items.length - 5} more</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- The blocks grid: where the focus is ---------- */
+
+function FocusGrid({
+  items,
+  active,
+  onHover,
+  onToggle,
+}: {
+  items: BlockInput[];
+  active: Focus | null;
+  onHover: (f: Focus | null) => void;
+  onToggle: (f: Focus) => void;
+}) {
+  const cols = [
+    ...BUILDING_BLOCKS.map((b) => ({ key: b.key as string, label: b.label, block: true })),
+    { key: "outside", label: "Outside the blocks", block: false },
+    { key: "unsure", label: "Not sure yet", block: false },
+  ];
+
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of items) {
+      for (const t of targetsOf(e)) {
+        const col = t.kind === "ext" ? "outside" : t.key;
+        const k = `${e.block}|${col}`;
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [items]);
+
+  const cell = (r: string, c: string) => counts.get(`${r}|${c}`) ?? 0;
+  const rowTotal = (r: string) => cols.reduce((s, c) => s + cell(r, c.key), 0);
+  const colTotal = (c: string) => BUILDING_BLOCKS.reduce((s, b) => s + cell(b.key, c), 0);
+  const grand = BUILDING_BLOCKS.reduce((s, b) => s + rowTotal(b.key), 0);
+  const max = Math.max(0, ...counts.values());
+  const step = (n: number) => (n <= 0 || max === 0 ? 0 : Math.max(1, Math.ceil((n / max) * 6)));
+
+  const inFocus = (r: string, c: string) =>
+    !!active &&
+    (active.type === "node"
+      ? active.key === r || active.key === c
+      : active.from === r && active.to === c);
+
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-fg">Where the focus is</h3>
+          <p className="text-[12px] text-muted">
+            Rows: where the need comes from. Columns: where it needs to connect. Darker = more
+            backlog items.
+          </p>
+        </div>
+        {max > 0 && (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted" aria-hidden>
+            Fewer
+            {[1, 2, 3, 4, 5, 6].map((s) => (
+              <span key={s} className="h-3 w-5 rounded-sm" style={{ background: `var(--hm-${s})` }} />
+            ))}
+            More
+          </div>
+        )}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] border-separate text-[12px]" style={{ borderSpacing: 2 }}>
+          <thead>
+            <tr>
+              <th className="px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                From \ To
+              </th>
+              {cols.map((c) => (
+                <th key={c.key} scope="col" className="px-1 py-1.5 align-bottom font-semibold text-fg">
+                  <span className="flex flex-col items-center gap-1 text-center text-[11px] leading-tight">
+                    {c.block && (
+                      <span className="h-2 w-2 rounded-full" style={{ background: blockDef(c.key)!.hex }} aria-hidden />
+                    )}
+                    <span className={c.block ? "" : "italic text-muted"}>{c.label}</span>
+                  </span>
+                </th>
+              ))}
+              <th scope="col" className="px-2 py-1.5 align-bottom text-[11px] font-semibold text-fg">
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {BUILDING_BLOCKS.map((r) => (
+              <tr key={r.key}>
+                <th
+                  scope="row"
+                  className="cursor-pointer whitespace-nowrap px-2 py-1 text-left font-semibold text-fg"
+                  onPointerEnter={() => onHover({ type: "node", key: r.key })}
+                  onPointerLeave={() => onHover(null)}
+                  onClick={() => onToggle({ type: "node", key: r.key })}
+                >
+                  <BlockDot block={r.key} />
+                </th>
+                {cols.map((c) => {
+                  if (c.key === r.key) {
+                    return (
+                      <td key={c.key} className="rounded bg-line/30 text-center text-muted" aria-label="same block">
+                        —
+                      </td>
+                    );
+                  }
+                  const n = cell(r.key, c.key);
+                  const s = step(n);
+                  const pair: Focus | null =
+                    n && c.block ? { type: "pair", from: r.key, to: c.key as BlockKey } : null;
+                  return (
+                    <td
+                      key={c.key}
+                      tabIndex={n ? 0 : -1}
+                      aria-label={`${r.label} to ${c.label}: ${n}`}
+                      onPointerEnter={() => pair && onHover(pair)}
+                      onPointerLeave={() => onHover(null)}
+                      onFocus={() => pair && onHover(pair)}
+                      onBlur={() => onHover(null)}
+                      onClick={() => pair && onToggle(pair)}
+                      className={
+                        "h-9 rounded text-center font-semibold outline-none transition-shadow " +
+                        (n ? (pair ? "cursor-pointer" : "") : "text-muted/50") +
+                        (inFocus(r.key, c.key) && n ? " ring-2 ring-fg" : "")
+                      }
+                      style={s ? { background: `var(--hm-${s})`, color: `var(--hm-${s}-ink)` } : undefined}
+                    >
+                      {n || "·"}
+                    </td>
+                  );
+                })}
+                <td className="rounded bg-line/40 px-2 text-center font-bold text-fg">{rowTotal(r.key)}</td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row" className="px-2 py-1 text-left text-[11px] font-semibold text-fg">
+                Total
+              </th>
+              {cols.map((c) => (
+                <td key={c.key} className="h-9 rounded bg-line/40 text-center font-bold text-fg">
+                  {colTotal(c.key)}
+                </td>
+              ))}
+              <td className="rounded bg-line/60 px-2 text-center font-bold text-fg">{grand}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
