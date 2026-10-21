@@ -28,7 +28,11 @@ const POLL_MS = 15_000;
 /** Outside nodes shown before the tail folds into "+N more" (keeps labels readable). */
 const MAX_EXTERNALS = 7;
 
-type KindFilter = "all" | InputKind;
+/** A backlog item is something missing, or something we have that needs a connection.
+ *  Things we have that need no connection are inventory — not backlog. */
+type BacklogKind = "missing" | "connect";
+type KindFilter = "all" | BacklogKind;
+const isBacklogItem = (e: BlockInput) => e.kind === "missing" || e.kind === "connect";
 type Focus = { type: "node"; key: string } | { type: "pair"; from: string; to: string };
 
 type Target = { key: string; label: string; kind: "block" | "ext" | "unsure" };
@@ -107,15 +111,16 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
     };
   }, []);
 
+  const backlog = useMemo(() => entries.filter(isBacklogItem), [entries]);
   const people = useMemo(
-    () => [...new Set(entries.map((e) => e.member))].sort((a, b) => a.localeCompare(b)),
-    [entries]
+    () => [...new Set(backlog.map((e) => e.member))].sort((a, b) => a.localeCompare(b)),
+    [backlog]
   );
-  const ranks = useMemo(() => missingRanks(entries), [entries]);
+  const ranks = useMemo(() => missingRanks(backlog), [backlog]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return entries.filter((e) => {
+    return backlog.filter((e) => {
       if (kind !== "all" && e.kind !== kind) return false;
       if (block !== "all" && e.block !== block) return false;
       if (category !== "all" && e.category !== category) return false;
@@ -128,7 +133,7 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
       }
       return true;
     });
-  }, [entries, kind, block, category, person, q]);
+  }, [backlog, kind, block, category, person, q]);
 
   const anyFilter = kind !== "all" || block !== "all" || category !== "all" || person !== "all" || !!q;
   const active = hover ?? pinned;
@@ -137,13 +142,14 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
     setPinned((p) => (p && sameFocus(p, f) ? null : f));
   }
 
-  if (entries.length === 0) {
+  if (backlog.length === 0) {
     return (
       <div className="rounded-3xl border border-dashed border-line bg-card/40 px-6 py-16 text-center">
         <div className="text-sm font-semibold text-fg">The backlog is empty — for now</div>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-          It fills up as the team maps today&apos;s status in session 1: what we have, what&apos;s
-          missing and what needs connecting.
+          It fills up as the team maps today&apos;s status: anything that&apos;s missing, and
+          anything we have that still needs a connection. Things we have that need no
+          connection aren&apos;t backlog items.
         </p>
         <a
           href="/stage-2/session-1#blocks"
@@ -160,7 +166,7 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
       {/* One filter row — scopes everything below it */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-card/60 px-4 py-3">
         <div role="radiogroup" aria-label="Type" className="flex rounded-full border border-line bg-bg p-0.5">
-          {(["all", "missing", "connect", "have"] as const).map((k) => (
+          {(["all", "missing", "connect"] as const).map((k) => (
             <button
               key={k}
               type="button"
@@ -236,7 +242,7 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
 
       <HeatMatrix items={filtered} active={active} onHover={setHover} onToggle={toggle} />
 
-      <BacklogList items={filtered} ranks={ranks} total={entries.length} />
+      <BacklogList items={filtered} ranks={ranks} total={backlog.length} />
     </div>
   );
 }
@@ -276,17 +282,16 @@ function Kpis({ items }: { items: BlockInput[] }) {
   const n = (k: InputKind) => items.filter((e) => e.kind === k).length;
   const unsure = items.filter((e) => e.kind === "missing" && e.unsure).length;
   const tiles = [
-    { label: "Items", value: items.length },
+    { label: "Backlog items", value: items.length },
     { label: "Missing", value: n("missing") },
-    { label: "Need a connection", value: n("connect") },
-    { label: "We have", value: n("have") },
+    { label: "Have it, need a connection", value: n("connect") },
     { label: "Not sure where to connect", value: unsure },
     { label: "Contributors", value: new Set(items.map((e) => e.member)).size },
   ];
   const uncategorized = items.filter((e) => !e.category).length;
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {tiles.map((t) => (
           <div key={t.label} className="rounded-2xl border border-line bg-card/60 px-4 py-3">
             <div className="text-[11px] text-muted">{t.label}</div>
@@ -411,8 +416,8 @@ function edgeMatches(e: MapEdge, f: Focus) {
 
 function ConnectionMap({
   items,
-  active,
-  pinned,
+  active: activeIn,
+  pinned: pinnedIn,
   onHover,
   onToggle,
 }: {
@@ -422,7 +427,15 @@ function ConnectionMap({
   onHover: (f: Focus | null) => void;
   onToggle: (f: Focus) => void;
 }) {
-  const { edges, bottom, out, inn } = useGraph(items);
+  const { edges, bottom, out, inn, folded } = useGraph(items);
+  // A focus on a small outside system that's folded into "+N more" highlights that node.
+  const onMap = (f: Focus | null): Focus | null => {
+    if (!f) return f;
+    if (f.type === "node") return folded.has(f.key) ? { type: "node", key: "ext:__more" } : f;
+    return folded.has(f.to) ? { ...f, to: "ext:__more" } : f;
+  };
+  const active = onMap(activeIn);
+  const pinned = onMap(pinnedIn);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ x: number; y: number; value: string; label: string } | null>(
     null
@@ -485,7 +498,7 @@ function ConnectionMap({
         <div>
           <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
           <p className="text-[12px] text-muted">
-            {totalLinks} link{totalLinks === 1 ? "" : "s"} from {items.filter((e) => e.kind !== "have").length}{" "}
+            {totalLinks} link{totalLinks === 1 ? "" : "s"} from {items.length}{" "}
             items. Hover or click a block, a link or a matrix cell to trace it.
           </p>
         </div>
@@ -780,14 +793,7 @@ function ConnectionMap({
           )}
         </div>
 
-        <MapPanel
-          items={items}
-          edges={edges}
-          bottom={bottom}
-          active={active}
-          pinned={pinned}
-          onToggle={onToggle}
-        />
+        <MapPanel items={items} active={activeIn} pinned={pinnedIn} onToggle={onToggle} />
       </div>
     </section>
   );
@@ -815,36 +821,60 @@ function Legend() {
 
 /* ---------- Side panel: insights, or the items behind the focus ---------- */
 
+/** Does this target sit under the given map key? ("ext:__more" = every folded outside target.) */
+function targetIs(t: Target, key: string, folded: Set<string>) {
+  return key === "ext:__more" ? t.kind === "ext" && folded.has(t.key) : t.key === key;
+}
+
+/** Name for any target key, from the items themselves (keeps the user's casing). */
+function useTargetLabels(items: BlockInput[]) {
+  return useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of items) for (const t of targetsOf(e)) if (!m.has(t.key)) m.set(t.key, t.label);
+    return m;
+  }, [items]);
+}
+
 function MapPanel({
   items,
-  edges,
-  bottom,
   active,
   pinned,
   onToggle,
 }: {
   items: BlockInput[];
-  edges: MapEdge[];
-  bottom: BottomNode[];
   active: Focus | null;
   pinned: Focus | null;
   onToggle: (f: Focus) => void;
 }) {
+  const { folded } = useGraph(items);
+  const labels = useTargetLabels(items);
+  const nameOf = (key: string) =>
+    isBlockKey(key)
+      ? blockDef(key)!.label
+      : key === "ext:__more"
+        ? `Other outside systems (${folded.size})`
+        : (labels.get(key) ?? key.replace(/^ext:/, ""));
+
   if (active) {
-    const rel = edges.filter((e) => edgeMatches(e, active));
+    // Group the items behind the focus — outgoing by destination, incoming by source.
+    const groups = new Map<string, BlockInput[]>();
+    const add = (g: string, e: BlockInput) => groups.set(g, [...(groups.get(g) ?? []), e]);
+    for (const e of items) {
+      for (const t of targetsOf(e)) {
+        if (active.type === "pair") {
+          if (e.block === active.from && targetIs(t, active.to, folded)) add("", e);
+        } else if (e.block === active.key) {
+          add(`→ ${t.kind === "unsure" ? "Not sure yet" : t.label}`, e);
+        } else if (targetIs(t, active.key, folded)) {
+          add(`${blockDef(e.block)!.label} →`, e);
+        }
+      }
+    }
+    const count = [...groups.values()].reduce((s, l) => s + l.length, 0);
     const title =
       active.type === "node"
-        ? labelForKey(active.key, bottom)
-        : `${labelForKey(active.from, bottom)} → ${labelForKey(active.to, bottom)}`;
-    const groups = new Map<string, BlockInput[]>();
-    for (const e of rel) {
-      const k =
-        active.type === "node" && active.key === e.from
-          ? `→ ${labelForKey(e.toKey, bottom)}`
-          : `${blockDef(e.from)!.label} →`;
-      groups.set(k, [...(groups.get(k) ?? []), ...e.items]);
-    }
-    const count = rel.reduce((s, e) => s + e.items.length, 0);
+        ? nameOf(active.key)
+        : `${nameOf(active.from)} → ${nameOf(active.to)}`;
     return (
       <aside className="rounded-2xl border border-line bg-bg/50 p-3">
         <div className="flex items-start justify-between gap-2">
@@ -870,8 +900,8 @@ function MapPanel({
         <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
           {count === 0 && <p className="text-[12px] text-muted">Nothing links here in this view.</p>}
           {[...groups.entries()].map(([g, list]) => (
-            <div key={g}>
-              <div className="mb-1 text-[11px] font-semibold text-fg">{g}</div>
+            <div key={g || "pair"}>
+              {g && <div className="mb-1 text-[11px] font-semibold text-fg">{g}</div>}
               <ul className="space-y-1">
                 {list.map((e) => (
                   <li key={e.id + g} className="rounded-lg bg-card/70 px-2 py-1.5 text-[12px] text-fg">
@@ -890,15 +920,18 @@ function MapPanel({
     );
   }
 
-  // Insights (nothing focused)
+  // Insights — from the real targets (never the folded "+N more" bucket).
   const pairs = new Map<string, { from: BlockKey; to: string; n: number }>();
   const dest = new Map<string, number>();
-  for (const e of edges) {
-    const k = `${e.from}|${e.toKey}`;
-    const cur = pairs.get(k);
-    if (cur) cur.n += e.items.length;
-    else pairs.set(k, { from: e.from, to: e.toKey, n: e.items.length });
-    if (e.toKey !== "unsure") dest.set(e.toKey, (dest.get(e.toKey) ?? 0) + e.items.length);
+  for (const e of items) {
+    for (const t of targetsOf(e)) {
+      if (t.kind === "unsure") continue;
+      const k = `${e.block}|${t.key}`;
+      const cur = pairs.get(k);
+      if (cur) cur.n += 1;
+      else pairs.set(k, { from: e.block, to: t.key, n: 1 });
+      dest.set(t.key, (dest.get(t.key) ?? 0) + 1);
+    }
   }
   const topPairs = [...pairs.values()].sort((a, b) => b.n - a.n).slice(0, 5);
   const topDest = [...dest.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -906,7 +939,7 @@ function MapPanel({
 
   return (
     <aside className="space-y-4 rounded-2xl border border-line bg-bg/50 p-3">
-      <InsightList title="Most-needed links">
+      <InsightList title="Top links · from → to" hint="The exact connections asked for most.">
         {topPairs.length === 0 && <Muted>No links yet.</Muted>}
         {topPairs.map((p) => (
           <InsightRow
@@ -914,29 +947,32 @@ function MapPanel({
             onClick={() => onToggle({ type: "pair", from: p.from, to: p.to })}
             label={
               <>
-                <BlockDot block={p.from} /> → {labelForKey(p.to, bottom)}
+                <BlockDot block={p.from} /> → {nameOf(p.to)}
               </>
             }
             value={p.n}
           />
         ))}
       </InsightList>
-      <InsightList title="Most-needed destinations">
+      <InsightList
+        title="Top destinations · all links in"
+        hint="Where the most things need to plug in, from any block."
+      >
         {topDest.length === 0 && <Muted>No destinations yet.</Muted>}
         {topDest.map(([k, n]) => (
           <InsightRow
             key={k}
             onClick={() => onToggle({ type: "node", key: k })}
-            label={isBlockKey(k) ? <BlockDot block={k} /> : <>{labelForKey(k, bottom)}</>}
+            label={isBlockKey(k) ? <BlockDot block={k} /> : <>{nameOf(k)}</>}
             value={n}
           />
         ))}
       </InsightList>
-      <InsightList title="Open questions">
+      <InsightList title="Open questions" hint="Missing items with no destination yet.">
         {unsure ? (
           <InsightRow
             onClick={() => onToggle({ type: "node", key: "unsure" })}
-            label={<span className="italic">Missing — not sure where to connect</span>}
+            label={<span className="italic">Not sure where to connect</span>}
             value={unsure}
           />
         ) : (
@@ -947,12 +983,19 @@ function MapPanel({
   );
 }
 
-function InsightList({ title, children }: { title: string; children: React.ReactNode }) {
+function InsightList({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
-        {title}
-      </div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">{title}</div>
+      {hint && <div className="mb-1.5 text-[11px] text-muted">{hint}</div>}
       <div className="space-y-1">{children}</div>
     </div>
   );
@@ -1134,7 +1177,7 @@ function BacklogList({
   ranks: Map<string, number>;
   total: number;
 }) {
-  const order: Record<InputKind, number> = { missing: 0, connect: 1, have: 2 };
+  const order: Record<InputKind, number> = { missing: 0, connect: 1, have: 2 }; // have never reaches here
   const groups = BUILDING_BLOCKS.map((b) => ({
     b,
     list: items
@@ -1211,7 +1254,7 @@ function BacklogList({
                   {b.owners.length > 1 ? "Owners" : "Owner"} · {b.owners.join(", ")}
                 </span>
                 <span className="ml-auto text-[11px] text-muted">
-                  {(["missing", "connect", "have"] as const)
+                  {(["missing", "connect"] as const)
                     .map((k) => `${list.filter((e) => e.kind === k).length} ${KIND_LABEL[k].toLowerCase()}`)
                     .join(" · ")}
                 </span>
@@ -1244,9 +1287,7 @@ function BacklogList({
                           <CategoryTag category={e.category} />
                         </td>
                         <td className="px-2 py-1.5 text-fg">
-                          {e.kind === "have" ? (
-                            <span className="text-muted">—</span>
-                          ) : e.unsure ? (
+                          {e.unsure ? (
                             <span className="italic text-muted">Not sure where</span>
                           ) : (
                             <span className="flex flex-wrap gap-x-3 gap-y-0.5">
