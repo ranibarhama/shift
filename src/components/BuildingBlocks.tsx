@@ -291,6 +291,7 @@ function BlocksFlow({
   selected: BlockKey;
   onSelect: (b: BlockKey) => void;
 }) {
+  const { member } = useBlocks();
   return (
     <div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex lg:items-stretch lg:gap-0">
@@ -299,6 +300,7 @@ function BlocksFlow({
           const count = (k: InputKind) => list.filter((e) => e.kind === k).length;
           const people = [...new Set(list.map((e) => e.member))];
           const active = selected === b.key;
+          const owns = !!member && (b.owners as readonly string[]).includes(member);
           return (
             <Fragment key={b.key}>
               <button
@@ -317,14 +319,28 @@ function BlocksFlow({
                     : `inset 0 3px 0 0 ${b.hex}`,
                 }}
               >
-                <span
-                  className="grid h-5 w-5 place-items-center rounded-md text-[10px] font-bold"
-                  style={{ background: `${b.hex}22`, color: b.hex }}
-                >
-                  {i + 1}
+                <span className="flex items-center justify-between gap-1">
+                  <span
+                    className="grid h-5 w-5 place-items-center rounded-md text-[10px] font-bold"
+                    style={{ background: `${b.hex}22`, color: b.hex }}
+                  >
+                    {i + 1}
+                  </span>
+                  {owns && (
+                    <span
+                      className="rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wider"
+                      style={{ background: `${b.hex}22`, color: b.hex }}
+                    >
+                      Yours
+                    </span>
+                  )}
                 </span>
                 <span className="mt-1.5 text-[13px] font-semibold leading-tight text-fg">
                   {b.label}
+                </span>
+                <span className="mt-1 text-[11px] leading-snug text-muted">
+                  {b.owners.length > 1 ? "Owners" : "Owner"} ·{" "}
+                  <OwnerNames owners={b.owners} member={member} />
                 </span>
                 <span className="mt-2 space-y-0.5">
                   {(["have", "missing", "connect"] as const).map((k) => (
@@ -410,6 +426,13 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
           style={{ background: `${b.hex}1f`, color: b.hex }}
         >
           {b.label}
+        </span>
+        <span className="text-[12px] text-muted">
+          {b.owners.length > 1 ? "Owners" : "Owner"} ·{" "}
+          <OwnerNames owners={b.owners} member={member} />
+        </span>
+        <span className="text-[12px] text-muted" aria-hidden>
+          ·
         </span>
         <span className="text-[12px] text-muted">
           {people.length
@@ -840,6 +863,22 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
 }
 
 /* ---------- Small bits ---------- */
+
+/** "Rani, Oren, Gal" — the viewer's own name highlighted. */
+function OwnerNames({ owners, member }: { owners: readonly string[]; member: string }) {
+  return (
+    <>
+      {owners.map((o, i) => (
+        <Fragment key={o}>
+          {i > 0 && ", "}
+          <span className={"font-semibold " + (o === member ? "text-accent" : "text-fg")}>
+            {o}
+          </span>
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 function Glyph({ kind, small }: { kind: InputKind; small?: boolean }) {
   const k = KIND_META[kind];

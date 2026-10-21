@@ -14,31 +14,47 @@ import { LEADER_NAMES } from "./stoneBriefs";
 
 // Keys are stored with each entry — rename `label` freely, never `key`.
 // `mapLines` is the (possibly wrapped) label under each dot in the connections map.
+// `owners` are the team members accountable for each block.
 export const BUILDING_BLOCKS = [
-  { key: "research", label: "Data insights", mapLines: ["Data insights"], hex: "#22d3ee" },
+  {
+    key: "research",
+    label: "Data insights",
+    mapLines: ["Data insights"],
+    hex: "#22d3ee",
+    owners: ["Yossi"],
+  },
   {
     key: "planning",
     label: "Planning & Prioritisations",
     mapLines: ["Planning &", "Prioritisations"],
     hex: "#a855f7",
+    owners: ["Rani"],
   },
-  { key: "development", label: "Development", mapLines: ["Development"], hex: "#3b82f6" },
-  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#10b981" },
-  { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#f59e0b" },
-  { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#ef4444" },
+  {
+    key: "development",
+    label: "Development",
+    mapLines: ["Development"],
+    hex: "#3b82f6",
+    owners: ["Rani", "Oren", "Gal"],
+  },
+  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#10b981", owners: ["Ben", "Rani"] },
+  { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#f59e0b", owners: ["Ben"] },
+  { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#ef4444", owners: ["Yossi"] },
   {
     key: "learning",
     label: "Continuous learning",
     mapLines: ["Continuous", "learning"],
     hex: "#7c5cff",
+    owners: ["Limor"],
   },
 ] as const;
 
 export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];
 export type InputKind = "have" | "missing" | "connect";
 
-/** Team roster offered as quick picks (anyone can also type another name). */
-export const TEAM_MEMBERS: readonly string[] = LEADER_NAMES;
+/** Team roster offered as quick picks (anyone can also type another name).
+ *  Includes every block owner, e.g. Oren (Development), who isn't a stone leader. */
+export const TEAM_MEMBERS: readonly string[] = [...LEADER_NAMES, "Oren"];
 
 export const MAX_MISSING = 3;
 export const MAX_TEXT = 200;
