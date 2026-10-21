@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   BUILDING_BLOCKS,
   CATEGORIES,
@@ -14,39 +14,20 @@ import {
 import { CategoryTag } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
- * Stage 2 · 2 · Backlog — everything the team entered in 1 · Today's status,
- * as KPIs, a connection map (what needs to connect to where), a from×to
- * heatmap (the map's table view) and the full backlog list.
- *
- * Color: blocks own the categorical palette (validated, process order).
- * Edges are neutral until a block or link is focused (emphasis), kind is
- * carried by line style (solid = needs a connection, dashed = missing),
- * magnitude by thickness and the one-hue heat ramp. Categories are labels.
+ * Stage 2 · 2 · Backlog — the gaps the team mapped in 1 · Today's status:
+ * headline numbers, the backlog itself, then a simple ranked list of where
+ * things need to connect (one row per place, bar = how many items need it).
  * -------------------------------------------------------------------------- */
 
 const POLL_MS = 15_000;
-/** Outside nodes shown before the tail folds into "+N more" (keeps labels readable). */
-const MAX_EXTERNALS = 7;
 
 /** A backlog item is something missing, or something we have that needs a connection.
  *  Things we have that need no connection are inventory — not backlog. */
 type BacklogKind = "missing" | "connect";
 type KindFilter = "all" | BacklogKind;
 const isBacklogItem = (e: BlockInput) => e.kind === "missing" || e.kind === "connect";
-type Focus = { type: "node"; key: string } | { type: "pair"; from: string; to: string };
 
 type Target = { key: string; label: string; kind: "block" | "ext" | "unsure" };
-
-type MapEdge = {
-  id: string;
-  from: BlockKey;
-  toKey: string;
-  toKind: Target["kind"];
-  kind: "connect" | "missing";
-  items: BlockInput[];
-};
-
-type BottomNode = { key: string; label: string; kind: "ext" | "unsure" | "more"; n: number };
 
 const KIND_LABEL: Record<InputKind, string> = {
   missing: "Missing",
@@ -88,17 +69,15 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
   const [category, setCategory] = useState<CategoryKey | "all">("all");
   const [person, setPerson] = useState<string>("all");
   const [q, setQ] = useState("");
-  const [pinned, setPinned] = useState<Focus | null>(null);
-  const [hover, setHover] = useState<Focus | null>(null);
 
-  // Keep up with the team while Session 1 is still running.
+  // Keep up with the team while session 1 is still running.
   useEffect(() => {
     const load = async () => {
       try {
         const r = await fetch("/api/building-blocks", { cache: "no-store" });
         if (r.ok) setEntries(((await r.json()) as { inputs: BlockInput[] }).inputs);
       } catch {
-        /* keep the current frame */
+        /* keep the current view */
       }
     };
     const t = setInterval(() => {
@@ -136,11 +115,6 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
   }, [backlog, kind, block, category, person, q]);
 
   const anyFilter = kind !== "all" || block !== "all" || category !== "all" || person !== "all" || !!q;
-  const active = hover ?? pinned;
-
-  function toggle(f: Focus) {
-    setPinned((p) => (p && sameFocus(p, f) ? null : f));
-  }
 
   if (backlog.length === 0) {
     return (
@@ -232,25 +206,11 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
 
       <Kpis items={filtered} />
 
-      <ConnectionMap
-        items={filtered}
-        active={active}
-        pinned={pinned}
-        onHover={setHover}
-        onToggle={toggle}
-      />
-
-      <HeatMatrix items={filtered} active={active} onHover={setHover} onToggle={toggle} />
-
       <BacklogList items={filtered} ranks={ranks} total={backlog.length} />
+
+      <ConnectList items={filtered} />
     </div>
   );
-}
-
-function sameFocus(a: Focus, b: Focus) {
-  if (a.type === "node" && b.type === "node") return a.key === b.key;
-  if (a.type === "pair" && b.type === "pair") return a.from === b.from && a.to === b.to;
-  return false;
 }
 
 function Select({
@@ -328,705 +288,7 @@ function Kpis({ items }: { items: BlockInput[] }) {
   );
 }
 
-/* ============================== Map data ============================== */
-
-function useGraph(items: BlockInput[]) {
-  return useMemo(() => {
-    const edges = new Map<string, MapEdge>();
-    const ext = new Map<string, { key: string; label: string; n: number }>();
-    let unsureN = 0;
-
-    for (const e of items) {
-      if (e.kind === "have") continue;
-      const kind = e.kind;
-      for (const t of targetsOf(e)) {
-        if (t.kind === "ext") {
-          const cur = ext.get(t.key);
-          if (cur) cur.n += 1;
-          else ext.set(t.key, { key: t.key, label: t.label, n: 1 });
-        }
-        if (t.kind === "unsure") unsureN += 1;
-        const id = `${e.block}|${t.key}|${kind}`;
-        const cur = edges.get(id);
-        if (cur) cur.items.push(e);
-        else edges.set(id, { id, from: e.block, toKey: t.key, toKind: t.kind, kind, items: [e] });
-      }
-    }
-
-    // Outside targets: biggest first; fold the tail into one "+N more" node.
-    const sorted = [...ext.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
-    const shown = sorted.length > MAX_EXTERNALS ? sorted.slice(0, MAX_EXTERNALS - 1) : sorted;
-    const folded = new Set(sorted.slice(shown.length).map((x) => x.key));
-    const bottom: BottomNode[] = shown.map((x) => ({ ...x, kind: "ext" as const }));
-    if (folded.size) {
-      const n = sorted.slice(shown.length).reduce((s, x) => s + x.n, 0);
-      bottom.push({ key: "ext:__more", label: `+${folded.size} more`, kind: "more", n });
-    }
-    if (unsureN) bottom.push({ key: "unsure", label: "Not sure yet", kind: "unsure", n: unsureN });
-
-    // Re-key folded edges onto the "+N more" node.
-    const merged = new Map<string, MapEdge>();
-    for (const ed of edges.values()) {
-      const toKey = folded.has(ed.toKey) ? "ext:__more" : ed.toKey;
-      const id = `${ed.from}|${toKey}|${ed.kind}`;
-      const cur = merged.get(id);
-      if (cur) cur.items.push(...ed.items);
-      else merged.set(id, { ...ed, id, toKey, items: [...ed.items] });
-    }
-
-    // Link counts per block (item × target pairs).
-    const out = new Map<string, number>();
-    const inn = new Map<string, number>();
-    for (const ed of merged.values()) {
-      out.set(ed.from, (out.get(ed.from) ?? 0) + ed.items.length);
-      inn.set(ed.toKey, (inn.get(ed.toKey) ?? 0) + ed.items.length);
-    }
-
-    return { edges: [...merged.values()], bottom, out, inn, folded };
-  }, [items]);
-}
-
-function labelForKey(key: string, bottom: BottomNode[]): string {
-  if (isBlockKey(key)) return blockDef(key)!.label;
-  return bottom.find((b) => b.key === key)?.label ?? key.replace(/^ext:/, "");
-}
-
-/* ============================== Connection map ============================== */
-
-const W = 1000;
-const PW = 124;
-const PH = 56;
-const GAP = 140;
-const X0 = 76;
-const bx = (i: number) => X0 + i * GAP;
-const bIndex = (k: string) => BUILDING_BLOCKS.findIndex((b) => b.key === k);
-const arcH = (from: number, to: number) => 26 + Math.abs(to - from) * 20 + (to < from ? 16 : 0);
-const strokeW = (n: number) => 1.25 + Math.min(n, 6) * 0.95;
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-/** Spread ports along a node edge so links don't bundle at one point:
- *  rightward links leave from the right and land on the target's left, farther
- *  out the longer the link. */
-const portOff = (dist: number) => 12 + dist * 7;
-
-function edgeMatches(e: MapEdge, f: Focus) {
-  return f.type === "node"
-    ? e.from === f.key || e.toKey === f.key
-    : e.from === f.from && e.toKey === f.to;
-}
-
-function ConnectionMap({
-  items,
-  active: activeIn,
-  pinned: pinnedIn,
-  onHover,
-  onToggle,
-}: {
-  items: BlockInput[];
-  active: Focus | null;
-  pinned: Focus | null;
-  onHover: (f: Focus | null) => void;
-  onToggle: (f: Focus) => void;
-}) {
-  const { edges, bottom, out, inn, folded } = useGraph(items);
-  // A focus on a small outside system that's folded into "+N more" highlights that node.
-  const onMap = (f: Focus | null): Focus | null => {
-    if (!f) return f;
-    if (f.type === "node") return folded.has(f.key) ? { type: "node", key: "ext:__more" } : f;
-    return folded.has(f.to) ? { ...f, to: "ext:__more" } : f;
-  };
-  const active = onMap(activeIn);
-  const pinned = onMap(pinnedIn);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [tip, setTip] = useState<{ x: number; y: number; value: string; label: string } | null>(
-    null
-  );
-
-  const internal = edges.filter((e) => e.toKind === "block");
-  const external = edges.filter((e) => e.toKind !== "block");
-  const maxH = internal.reduce((m, e) => Math.max(m, arcH(bIndex(e.from), bIndex(e.toKey))), 0);
-  const BY = Math.max(28, maxH + 26);
-  const BOTTOM_Y = BY + PH + 140;
-  const BOTTOM_H = 44;
-  const H = bottom.length ? BOTTOM_Y + BOTTOM_H + 18 : BY + PH + 22;
-  const slotW = bottom.length ? W / bottom.length : W;
-  const bottomW = Math.min(176, slotW - 14);
-  const ex = (k: number) => slotW * (k + 0.5);
-
-  const involved = useMemo(() => {
-    if (!active) return null;
-    const s = new Set<string>();
-    if (active.type === "node") s.add(active.key);
-    else {
-      s.add(active.from);
-      s.add(active.to);
-    }
-    for (const e of edges) {
-      if (edgeMatches(e, active)) {
-        s.add(e.from);
-        s.add(e.toKey);
-      }
-    }
-    return s;
-  }, [active, edges]);
-
-  /** Emphasis color for a related edge: the focused block's hue, else ink. */
-  function focusStroke(e: MapEdge): string {
-    if (active?.type === "node" && isBlockKey(active.key)) return blockDef(active.key)!.hex;
-    if (active?.type === "pair") return blockDef(e.from)!.hex;
-    return "rgb(var(--fg))";
-  }
-
-  function showTip(ev: React.PointerEvent, e: MapEdge) {
-    const r = wrapRef.current?.getBoundingClientRect();
-    if (!r) return;
-    const nConnect = e.kind === "connect" ? e.items.length : 0;
-    setTip({
-      x: ev.clientX - r.left + 14,
-      y: ev.clientY - r.top + 14,
-      value: `${e.items.length} item${e.items.length > 1 ? "s" : ""}`,
-      label: `${blockDef(e.from)!.label} → ${labelForKey(e.toKey, bottom)} · ${
-        nConnect ? "need a connection" : "missing"
-      }`,
-    });
-  }
-
-  const totalLinks = edges.reduce((s, e) => s + e.items.length, 0);
-
-  return (
-    <section className="rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
-          <p className="text-[12px] text-muted">
-            {totalLinks} link{totalLinks === 1 ? "" : "s"} from {items.length}{" "}
-            items. Hover or click a block, a link or a matrix cell to trace it.
-          </p>
-        </div>
-        <Legend />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div ref={wrapRef} className="relative overflow-x-auto" onPointerLeave={() => setTip(null)}>
-          {edges.length === 0 ? (
-            <p className="py-10 text-center text-[12px] text-muted">
-              No connections in this view yet.
-            </p>
-          ) : (
-            <svg
-              viewBox={`0 0 ${W} ${H}`}
-              className="w-full min-w-[760px]"
-              role="img"
-              aria-label="Connection map between building blocks and outside systems"
-            >
-              <defs>
-                {[
-                  ["muted", "rgb(var(--muted))"],
-                  ["fg", "rgb(var(--fg))"],
-                  ...BUILDING_BLOCKS.map((b) => [b.key, b.hex]),
-                ].map(([id, color]) => (
-                  <marker
-                    key={id}
-                    id={`bl-arrow-${id}`}
-                    viewBox="0 0 10 10"
-                    refX="8"
-                    refY="5"
-                    markerWidth="5"
-                    markerHeight="5"
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M0 0 L10 5 L0 10 Z" style={{ fill: color }} />
-                  </marker>
-                ))}
-              </defs>
-
-              {bottom.length > 0 && (
-                <text x={8} y={BOTTOM_Y - 14} fontSize="11" style={{ fill: "rgb(var(--muted))" }}>
-                  Outside the blocks — systems, teams, open questions
-                </text>
-              )}
-
-              {/* Edges */}
-              {[...internal, ...external].map((e) => {
-                const fi = bIndex(e.from);
-                const related = active ? edgeMatches(e, active) : false;
-                const dim = !!active && !related;
-                const color = related ? focusStroke(e) : "rgb(var(--muted))";
-                const markerId = related
-                  ? active?.type === "node" && !isBlockKey(active.key)
-                    ? "fg"
-                    : active?.type === "pair"
-                      ? e.from
-                      : (active as { key: string }).key
-                  : "muted";
-                const off = e.kind === "connect" ? -3 : 3;
-                let d: string;
-                let badge: [number, number];
-                if (e.toKind === "block") {
-                  const ti = bIndex(e.toKey);
-                  const h = arcH(fi, ti);
-                  const dir = Math.sign(ti - fi);
-                  const p = portOff(Math.abs(ti - fi));
-                  const x1 = bx(fi) + dir * p + off;
-                  const x2 = bx(ti) - dir * p + off;
-                  const mid = (x1 + x2) / 2;
-                  d = `M${x1} ${BY} Q${mid} ${BY - 2 * h} ${x2} ${BY - 3}`;
-                  badge = [mid, BY - h];
-                } else {
-                  const k = bottom.findIndex((b) => b.key === e.toKey);
-                  const rel = (ex(k) - bx(fi)) / W; // -1..1, where the target sits
-                  const x1 = bx(fi) + clamp(rel * 110, -50, 50) + off;
-                  const x2 = ex(k) + clamp(-rel * 90, -(bottomW / 2 - 14), bottomW / 2 - 14) + off;
-                  const y1 = BY + PH;
-                  const y2 = BOTTOM_Y;
-                  d = `M${x1} ${y1} C${x1} ${y1 + 70} ${x2} ${y2 - 70} ${x2} ${y2 - 3}`;
-                  badge = [(x1 + x2) / 2, (y1 + y2) / 2];
-                }
-                const n = e.items.length;
-                const pair: Focus = { type: "pair", from: e.from, to: e.toKey };
-                return (
-                  <g
-                    key={e.id}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`${blockDef(e.from)!.label} to ${labelForKey(e.toKey, bottom)}: ${n} ${
-                      e.kind === "connect" ? "need a connection" : "missing"
-                    }`}
-                    className="cursor-pointer outline-none"
-                    style={{ opacity: dim ? 0.12 : 1, transition: "opacity 120ms" }}
-                    onPointerEnter={(ev) => {
-                      onHover(pair);
-                      showTip(ev, e);
-                    }}
-                    onPointerMove={(ev) => showTip(ev, e)}
-                    onPointerLeave={() => {
-                      onHover(null);
-                      setTip(null);
-                    }}
-                    onFocus={() => onHover(pair)}
-                    onBlur={() => onHover(null)}
-                    onClick={() => onToggle(pair)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        onToggle(pair);
-                      }
-                    }}
-                  >
-                    <path
-                      d={d}
-                      fill="none"
-                      style={{ stroke: color }}
-                      strokeOpacity={related ? 1 : 0.5}
-                      strokeWidth={strokeW(n)}
-                      strokeDasharray={e.kind === "missing" ? "6 5" : undefined}
-                      strokeLinecap="round"
-                      markerEnd={`url(#bl-arrow-${markerId})`}
-                    />
-                    {/* Hit area wider than the line */}
-                    <path d={d} fill="none" stroke="transparent" strokeWidth={16} />
-                    {n > 1 && (
-                      <g>
-                        <circle
-                          cx={badge[0]}
-                          cy={badge[1]}
-                          r="9"
-                          style={{ fill: "rgb(var(--card))", stroke: color }}
-                          strokeWidth="1.5"
-                        />
-                        <text
-                          x={badge[0]}
-                          y={badge[1] + 3.5}
-                          textAnchor="middle"
-                          fontSize="10"
-                          fontWeight="700"
-                          style={{ fill: "rgb(var(--fg))" }}
-                        >
-                          {n}
-                        </text>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* Block nodes */}
-              {BUILDING_BLOCKS.map((b, i) => {
-                const focus: Focus = { type: "node", key: b.key };
-                const on = pinned?.type === "node" && pinned.key === b.key;
-                const dim = !!involved && !involved.has(b.key);
-                const x = bx(i) - PW / 2;
-                const lines = b.mapLines;
-                return (
-                  <g
-                    key={b.key}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`${b.label}: ${out.get(b.key) ?? 0} links out, ${inn.get(b.key) ?? 0} in`}
-                    aria-pressed={on}
-                    className="cursor-pointer outline-none"
-                    style={{ opacity: dim ? 0.35 : 1, transition: "opacity 120ms" }}
-                    onPointerEnter={() => onHover(focus)}
-                    onPointerLeave={() => onHover(null)}
-                    onFocus={() => onHover(focus)}
-                    onBlur={() => onHover(null)}
-                    onClick={() => onToggle(focus)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        onToggle(focus);
-                      }
-                    }}
-                  >
-                    <rect
-                      x={x}
-                      y={BY}
-                      width={PW}
-                      height={PH}
-                      rx="12"
-                      style={{ fill: "rgb(var(--card))", stroke: on ? b.hex : "rgb(var(--line))" }}
-                      strokeWidth={on ? 2 : 1}
-                    />
-                    <rect x={x + 10} y={BY} width={PW - 20} height="3" rx="1.5" fill={b.hex} />
-                    <circle cx={x + 14} cy={BY + 18} r="4.5" fill={b.hex} />
-                    {lines.map((line, li) => (
-                      <text
-                        key={line}
-                        x={x + 24}
-                        y={BY + 22 + li * 13}
-                        fontSize="11.5"
-                        fontWeight="600"
-                        style={{ fill: "rgb(var(--fg))" }}
-                      >
-                        {line}
-                      </text>
-                    ))}
-                    <text
-                      x={x + 14}
-                      y={BY + PH - 9}
-                      fontSize="10"
-                      style={{ fill: "rgb(var(--muted))" }}
-                    >
-                      ↗ {out.get(b.key) ?? 0} out · ↘ {inn.get(b.key) ?? 0} in
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* Outside nodes */}
-              {bottom.map((nd, k) => {
-                const focus: Focus = { type: "node", key: nd.key };
-                const on = pinned?.type === "node" && pinned.key === nd.key;
-                const dim = !!involved && !involved.has(nd.key);
-                const cx = ex(k);
-                const maxChars = Math.max(6, Math.floor((bottomW - 14) / 6.2));
-                const text = nd.label.length > maxChars ? nd.label.slice(0, maxChars - 1) + "…" : nd.label;
-                return (
-                  <g
-                    key={nd.key}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`${nd.label}: ${nd.n} link${nd.n > 1 ? "s" : ""}`}
-                    aria-pressed={on}
-                    className="cursor-pointer outline-none"
-                    style={{ opacity: dim ? 0.35 : 1, transition: "opacity 120ms" }}
-                    onPointerEnter={() => onHover(focus)}
-                    onPointerLeave={() => onHover(null)}
-                    onFocus={() => onHover(focus)}
-                    onBlur={() => onHover(null)}
-                    onClick={() => onToggle(focus)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        onToggle(focus);
-                      }
-                    }}
-                  >
-                    <title>{nd.label}</title>
-                    <rect
-                      x={cx - bottomW / 2}
-                      y={BOTTOM_Y}
-                      width={bottomW}
-                      height={BOTTOM_H}
-                      rx="12"
-                      style={{
-                        fill: "rgb(var(--card))",
-                        stroke: on ? "rgb(var(--fg))" : "rgb(var(--line))",
-                      }}
-                      strokeWidth={on ? 2 : 1}
-                      strokeDasharray={nd.kind === "unsure" ? "4 4" : undefined}
-                    />
-                    <text
-                      x={cx}
-                      y={BOTTOM_Y + 19}
-                      textAnchor="middle"
-                      fontSize="11.5"
-                      fontWeight="600"
-                      fontStyle={nd.kind === "unsure" ? "italic" : undefined}
-                      style={{ fill: nd.kind === "unsure" ? "rgb(var(--muted))" : "rgb(var(--fg))" }}
-                    >
-                      {text}
-                    </text>
-                    <text
-                      x={cx}
-                      y={BOTTOM_Y + 34}
-                      textAnchor="middle"
-                      fontSize="10"
-                      style={{ fill: "rgb(var(--muted))" }}
-                    >
-                      {nd.n} link{nd.n === 1 ? "" : "s"}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          )}
-
-          {tip && (
-            <div
-              className="pointer-events-none absolute z-10 max-w-[260px] rounded-lg border border-line bg-card px-3 py-2 shadow-card"
-              style={{ left: tip.x, top: tip.y }}
-              role="tooltip"
-            >
-              <div className="text-sm font-semibold text-fg">{tip.value}</div>
-              <div className="text-[11px] text-muted">{tip.label}</div>
-            </div>
-          )}
-        </div>
-
-        <MapPanel items={items} active={activeIn} pinned={pinnedIn} onToggle={onToggle} />
-      </div>
-    </section>
-  );
-}
-
-function Legend() {
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
-      <span className="inline-flex items-center gap-1.5">
-        <svg width="26" height="8" aria-hidden>
-          <line x1="1" y1="4" x2="25" y2="4" style={{ stroke: "rgb(var(--fg))" }} strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        Have it — needs a connection
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <svg width="26" height="8" aria-hidden>
-          <line x1="1" y1="4" x2="25" y2="4" style={{ stroke: "rgb(var(--fg))" }} strokeWidth="2" strokeDasharray="6 5" strokeLinecap="round" />
-        </svg>
-        Missing — should connect
-      </span>
-      <span>Thicker = more items</span>
-    </div>
-  );
-}
-
-/* ---------- Side panel: insights, or the items behind the focus ---------- */
-
-/** Does this target sit under the given map key? ("ext:__more" = every folded outside target.) */
-function targetIs(t: Target, key: string, folded: Set<string>) {
-  return key === "ext:__more" ? t.kind === "ext" && folded.has(t.key) : t.key === key;
-}
-
-/** Name for any target key, from the items themselves (keeps the user's casing). */
-function useTargetLabels(items: BlockInput[]) {
-  return useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of items) for (const t of targetsOf(e)) if (!m.has(t.key)) m.set(t.key, t.label);
-    return m;
-  }, [items]);
-}
-
-function MapPanel({
-  items,
-  active,
-  pinned,
-  onToggle,
-}: {
-  items: BlockInput[];
-  active: Focus | null;
-  pinned: Focus | null;
-  onToggle: (f: Focus) => void;
-}) {
-  const { folded } = useGraph(items);
-  const labels = useTargetLabels(items);
-  const nameOf = (key: string) =>
-    isBlockKey(key)
-      ? blockDef(key)!.label
-      : key === "ext:__more"
-        ? `Other outside systems (${folded.size})`
-        : (labels.get(key) ?? key.replace(/^ext:/, ""));
-
-  if (active) {
-    // Group the items behind the focus — outgoing by destination, incoming by source.
-    const groups = new Map<string, BlockInput[]>();
-    const add = (g: string, e: BlockInput) => groups.set(g, [...(groups.get(g) ?? []), e]);
-    for (const e of items) {
-      for (const t of targetsOf(e)) {
-        if (active.type === "pair") {
-          if (e.block === active.from && targetIs(t, active.to, folded)) add("", e);
-        } else if (e.block === active.key) {
-          add(`→ ${t.kind === "unsure" ? "Not sure yet" : t.label}`, e);
-        } else if (targetIs(t, active.key, folded)) {
-          add(`${blockDef(e.block)!.label} →`, e);
-        }
-      }
-    }
-    const count = [...groups.values()].reduce((s, l) => s + l.length, 0);
-    const title =
-      active.type === "node"
-        ? nameOf(active.key)
-        : `${nameOf(active.from)} → ${nameOf(active.to)}`;
-    return (
-      <aside className="rounded-2xl border border-line bg-bg/50 p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
-              {pinned ? "Pinned" : "Tracing"}
-            </div>
-            <div className="text-sm font-semibold text-fg">{title}</div>
-            <div className="text-[11px] text-muted">
-              {count} link{count === 1 ? "" : "s"}
-            </div>
-          </div>
-          {pinned && (
-            <button
-              type="button"
-              onClick={() => onToggle(pinned)}
-              className="rounded-full px-2 py-0.5 text-[11px] text-muted hover:text-fg"
-            >
-              Clear ✕
-            </button>
-          )}
-        </div>
-        <div className="mt-3 max-h-[360px] space-y-3 overflow-y-auto pr-1">
-          {count === 0 && <p className="text-[12px] text-muted">Nothing links here in this view.</p>}
-          {[...groups.entries()].map(([g, list]) => (
-            <div key={g || "pair"}>
-              {g && <div className="mb-1 text-[11px] font-semibold text-fg">{g}</div>}
-              <ul className="space-y-1">
-                {list.map((e) => (
-                  <li key={e.id + g} className="rounded-lg bg-card/70 px-2 py-1.5 text-[12px] text-fg">
-                    <span className="text-muted">{KIND_GLYPH[e.kind]}</span> {e.text}
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10.5px] text-muted">
-                      <CategoryTag category={e.category} />
-                      <BlockDot block={e.block} /> · {e.member}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </aside>
-    );
-  }
-
-  // Insights — from the real targets (never the folded "+N more" bucket).
-  const pairs = new Map<string, { from: BlockKey; to: string; n: number }>();
-  const dest = new Map<string, number>();
-  for (const e of items) {
-    for (const t of targetsOf(e)) {
-      if (t.kind === "unsure") continue;
-      const k = `${e.block}|${t.key}`;
-      const cur = pairs.get(k);
-      if (cur) cur.n += 1;
-      else pairs.set(k, { from: e.block, to: t.key, n: 1 });
-      dest.set(t.key, (dest.get(t.key) ?? 0) + 1);
-    }
-  }
-  const topPairs = [...pairs.values()].sort((a, b) => b.n - a.n).slice(0, 5);
-  const topDest = [...dest.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const unsure = items.filter((e) => e.kind === "missing" && e.unsure).length;
-
-  return (
-    <aside className="space-y-4 rounded-2xl border border-line bg-bg/50 p-3">
-      <InsightList title="Top links · from → to" hint="The exact connections asked for most.">
-        {topPairs.length === 0 && <Muted>No links yet.</Muted>}
-        {topPairs.map((p) => (
-          <InsightRow
-            key={`${p.from}|${p.to}`}
-            onClick={() => onToggle({ type: "pair", from: p.from, to: p.to })}
-            label={
-              <>
-                <BlockDot block={p.from} /> → {nameOf(p.to)}
-              </>
-            }
-            value={p.n}
-          />
-        ))}
-      </InsightList>
-      <InsightList
-        title="Top destinations · all links in"
-        hint="Where the most things need to plug in, from any block."
-      >
-        {topDest.length === 0 && <Muted>No destinations yet.</Muted>}
-        {topDest.map(([k, n]) => (
-          <InsightRow
-            key={k}
-            onClick={() => onToggle({ type: "node", key: k })}
-            label={isBlockKey(k) ? <BlockDot block={k} /> : <>{nameOf(k)}</>}
-            value={n}
-          />
-        ))}
-      </InsightList>
-      <InsightList title="Open questions" hint="Missing items with no destination yet.">
-        {unsure ? (
-          <InsightRow
-            onClick={() => onToggle({ type: "node", key: "unsure" })}
-            label={<span className="italic">Not sure where to connect</span>}
-            value={unsure}
-          />
-        ) : (
-          <Muted>None — every missing item has a destination.</Muted>
-        )}
-      </InsightList>
-    </aside>
-  );
-}
-
-function InsightList({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">{title}</div>
-      {hint && <div className="mb-1.5 text-[11px] text-muted">{hint}</div>}
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-
-function InsightRow({
-  label,
-  value,
-  onClick,
-}: {
-  label: React.ReactNode;
-  value: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-fg transition hover:bg-card"
-    >
-      <span className="min-w-0 truncate">{label}</span>
-      <span className="shrink-0 font-semibold">{value}</span>
-    </button>
-  );
-}
-
-function Muted({ children }: { children: React.ReactNode }) {
-  return <p className="px-2 text-[12px] text-muted">{children}</p>;
-}
-
-/** Block identity: a colored dot beside ink text (text never wears the data color). */
+/** Block identity: a colored dot beside ink text. */
 function BlockDot({ block }: { block: string }) {
   const b = blockDef(block);
   if (!b) return <>{block}</>;
@@ -1035,134 +297,6 @@ function BlockDot({ block }: { block: string }) {
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: b.hex }} aria-hidden />
       {b.label}
     </span>
-  );
-}
-
-/* ============================== Heat matrix (table view) ============================== */
-
-function HeatMatrix({
-  items,
-  active,
-  onHover,
-  onToggle,
-}: {
-  items: BlockInput[];
-  active: Focus | null;
-  onHover: (f: Focus | null) => void;
-  onToggle: (f: Focus) => void;
-}) {
-  const cols = [
-    ...BUILDING_BLOCKS.map((b) => ({ key: b.key as string, label: b.label, block: true })),
-    { key: "outside", label: "Outside the blocks", block: false },
-    { key: "unsure", label: "Not sure yet", block: false },
-  ];
-  const counts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of items) {
-      for (const t of targetsOf(e)) {
-        const col = t.kind === "ext" ? "outside" : t.key;
-        const k = `${e.block}|${col}`;
-        m.set(k, (m.get(k) ?? 0) + 1);
-      }
-    }
-    return m;
-  }, [items]);
-  const max = Math.max(0, ...counts.values());
-  const step = (n: number) => (n <= 0 || max === 0 ? 0 : Math.max(1, Math.ceil((n / max) * 6)));
-
-  return (
-    <section className="rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-fg">From → to, in numbers</h2>
-          <p className="text-[12px] text-muted">
-            Rows are where the need comes from; columns are where it needs to connect.
-          </p>
-        </div>
-        {max > 0 && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted" aria-hidden>
-            Fewer
-            {[1, 2, 3, 4, 5, 6].map((s) => (
-              <span key={s} className="h-3 w-5 rounded-sm" style={{ background: `var(--hm-${s})` }} />
-            ))}
-            More
-          </div>
-        )}
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] border-separate text-[12px]" style={{ borderSpacing: 2 }}>
-          <thead>
-            <tr>
-              <th className="px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-                From \ To
-              </th>
-              {cols.map((c) => (
-                <th key={c.key} scope="col" className="px-1 py-1.5 align-bottom font-semibold text-fg">
-                  <span className="flex flex-col items-center gap-1 text-center text-[11px] leading-tight">
-                    {c.block ? (
-                      <span className="h-2 w-2 rounded-full" style={{ background: blockDef(c.key)!.hex }} aria-hidden />
-                    ) : null}
-                    <span className={c.block ? "" : "italic text-muted"}>{c.label}</span>
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {BUILDING_BLOCKS.map((r) => (
-              <tr key={r.key}>
-                <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-semibold text-fg">
-                  <BlockDot block={r.key} />
-                </th>
-                {cols.map((c) => {
-                  if (c.key === r.key) {
-                    return (
-                      <td key={c.key} className="rounded bg-line/30 text-center text-muted" aria-label="same block">
-                        —
-                      </td>
-                    );
-                  }
-                  const n = counts.get(`${r.key}|${c.key}`) ?? 0;
-                  const s = step(n);
-                  const pair: Focus | null =
-                    n && c.key !== "outside" ? { type: "pair", from: r.key, to: c.key } : null;
-                  const hot =
-                    !!active &&
-                    !!pair &&
-                    active.type === "pair" &&
-                    active.from === r.key &&
-                    active.to === c.key;
-                  return (
-                    <td
-                      key={c.key}
-                      tabIndex={n ? 0 : -1}
-                      aria-label={`${r.label} to ${c.label}: ${n}`}
-                      onPointerEnter={() => pair && onHover(pair)}
-                      onPointerLeave={() => onHover(null)}
-                      onFocus={() => pair && onHover(pair)}
-                      onBlur={() => onHover(null)}
-                      onClick={() => pair && onToggle(pair)}
-                      className={
-                        "h-9 rounded text-center font-semibold outline-none transition " +
-                        (n ? "cursor-pointer" : "text-muted/50") +
-                        (hot ? " ring-2 ring-fg" : "")
-                      }
-                      style={
-                        s
-                          ? { background: `var(--hm-${s})`, color: `var(--hm-${s}-ink)` }
-                          : undefined
-                      }
-                    >
-                      {n || "·"}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
   );
 }
 
@@ -1308,6 +442,156 @@ function BacklogList({
             </div>
           ))}
         </div>
+      )}
+    </section>
+  );
+}
+
+/* ============================== Where things need to connect ============================== */
+
+type Place = {
+  key: string;
+  label: string;
+  kind: "block" | "ext" | "unsure";
+  items: BlockInput[];
+};
+
+/**
+ * One row per place things need to plug into, busiest first. The bar is how
+ * many items need that place; "From" says which blocks they come from.
+ * Click a row to see the items.
+ */
+function ConnectList({ items }: { items: BlockInput[] }) {
+  const [open, setOpen] = useState<Set<string>>(new Set());
+
+  const places = useMemo(() => {
+    const m = new Map<string, Place>();
+    for (const e of items) {
+      for (const t of targetsOf(e)) {
+        const cur = m.get(t.key);
+        if (cur) cur.items.push(e);
+        else m.set(t.key, { key: t.key, label: t.label, kind: t.kind, items: [e] });
+      }
+    }
+    const list = [...m.values()];
+    const known = list
+      .filter((p) => p.kind !== "unsure")
+      .sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
+    const unsure = list.filter((p) => p.kind === "unsure");
+    return [...known, ...unsure]; // "Not sure yet" always last
+  }, [items]);
+
+  const max = Math.max(1, ...places.map((p) => p.items.length));
+
+  function toggle(key: string) {
+    setOpen((s) => {
+      const next = new Set(s);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  return (
+    <section className="rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
+      <div className="mb-3">
+        <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
+        <p className="text-[12px] text-muted">
+          Each row is a place things need to plug into, busiest first. The bar shows how many
+          backlog items need it. Click a row to see them.
+        </p>
+      </div>
+
+      {places.length === 0 ? (
+        <p className="py-8 text-center text-[12px] text-muted">No connections in this view.</p>
+      ) : (
+        <ul className="divide-y divide-line/60">
+          {places.map((p) => {
+            const isOpen = open.has(p.key);
+            const n = p.items.length;
+            const from = BUILDING_BLOCKS.map((b) => ({
+              b,
+              n: p.items.filter((e) => e.block === b.key).length,
+            })).filter((x) => x.n);
+            return (
+              <li key={p.key}>
+                <button
+                  type="button"
+                  onClick={() => toggle(p.key)}
+                  aria-expanded={isOpen}
+                  className="grid w-full grid-cols-1 gap-x-4 gap-y-1.5 rounded-lg px-2 py-3 text-left transition hover:bg-card sm:grid-cols-[220px_minmax(0,1fr)]"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-fg">
+                    <span
+                      className={"shrink-0 text-[10px] text-muted transition " + (isOpen ? "rotate-90" : "")}
+                      aria-hidden
+                    >
+                      ▶
+                    </span>
+                    {p.kind === "block" ? (
+                      <BlockDot block={p.key} />
+                    ) : p.kind === "unsure" ? (
+                      <span className="italic text-muted">Not sure yet</span>
+                    ) : (
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate">{p.label}</span>
+                        <span className="shrink-0 rounded border border-line px-1 text-[9.5px] font-semibold uppercase tracking-wide text-muted">
+                          Outside
+                        </span>
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="relative h-2.5 flex-1">
+                      <span
+                        className={
+                          "absolute inset-y-0 left-0 rounded-r-[4px] " +
+                          (p.kind === "unsure" ? "border border-dashed border-muted/70" : "bg-fg/60")
+                        }
+                        style={{ width: `${Math.max(2, (n / max) * 100)}%` }}
+                      />
+                    </span>
+                    <span className="w-16 shrink-0 text-[12px] font-semibold text-fg">
+                      {n} item{n === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-muted sm:col-start-2">
+                    <span>From</span>
+                    {from.map(({ b, n: c }) => (
+                      <span key={b.key} className="inline-flex items-center gap-1 text-fg">
+                        <BlockDot block={b.key} />
+                        <span className="text-muted">{c}</span>
+                      </span>
+                    ))}
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <ul className="mb-3 ml-2 space-y-1 sm:ml-[236px]">
+                    {p.items.map((e) => (
+                      <li key={e.id} className="rounded-lg bg-card/70 px-3 py-2 text-[12.5px] text-fg">
+                        <span className="text-muted" aria-hidden>
+                          {KIND_GLYPH[e.kind]}
+                        </span>{" "}
+                        {e.text}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+                          <CategoryTag category={e.category} />
+                          <span>{KIND_LABEL[e.kind]}</span>
+                          <span>·</span>
+                          <span className="inline-flex items-center gap-1">
+                            from <BlockDot block={e.block} />
+                          </span>
+                          <span>·</span>
+                          <span>{e.member}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

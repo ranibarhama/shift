@@ -47,9 +47,9 @@ export default async function Stage2BacklogPage() {
             <Link href="/stage-2/session-1#blocks" className="font-semibold text-fg underline-offset-4 hover:underline">
               1 · Today&apos;s status
             </Link>
-            : what&apos;s missing, and what we have but still needs a connection — plus a map of
-            where it all needs to connect. Things we already have that need no connection
-            aren&apos;t backlog items. Updates live as people add input.
+            : what&apos;s missing, and what we have but still needs a connection — then where
+            it all needs to connect. Things we already have that need no connection aren&apos;t
+            backlog items. Updates live as people add input.
           </p>
         </header>
 
