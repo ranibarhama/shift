@@ -41,19 +41,25 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
           <StageBadge stage={stage} />
         </div>
         {isStage2 ? (
-          <nav className="flex items-center gap-0.5 text-sm" aria-label="Stage 2">
+          <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm [scrollbar-width:none]" aria-label="Stage 2">
             <NavLink href="/stage-2" exact>
               Process so far
             </NavLink>
             <NavArrow />
             <NavLink href="/stage-2/session-1">
-              Session 1 · Today&apos;s status – Gap Mapping
+              <StepNum n={1} />
+              Today&apos;s status – Gap Mapping
+            </NavLink>
+            <NavArrow />
+            <NavLink href="/stage-2/backlog">
+              <StepNum n={2} />
+              Backlog
             </NavLink>
           </nav>
         ) : (
         /* Nav reads left-to-right as the order we did things:
             map → departments → backlog → drop → target → stones → handoff → pilot */
-        <nav className="flex items-center gap-0.5 text-sm" aria-label="Journey">
+        <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm [scrollbar-width:none]" aria-label="Journey">
           <NavLink href="/main">B2C main workflow</NavLink>
           <NavArrow />
           {role && (
@@ -128,6 +134,15 @@ function StageBadge({ stage }: { stage: Stage }) {
     >
       Stage {stage}
     </Link>
+  );
+}
+
+/** Stage 2 nav numbering: "1", "2", … in place of "Session N". */
+function StepNum({ n }: { n: number }) {
+  return (
+    <span className="mr-1.5 inline-grid h-4 w-4 place-items-center rounded-full border border-current text-[9px] font-bold leading-none">
+      {n}
+    </span>
   );
 }
 

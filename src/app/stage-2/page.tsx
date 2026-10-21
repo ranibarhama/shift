@@ -73,7 +73,7 @@ const TIMELINE: { when: string; name: string; next?: boolean }[] = [
   { when: "Session 2", name: "Pilot Definition Meeting" },
   { when: "Kickoff", name: "AI Pilot Kickoff" },
   { when: "Pilot", name: "Pilot run & results" },
-  { when: "Stage 2 · Session 1", name: "Today's status – Gap Mapping", next: true },
+  { when: "Stage 2 · 1", name: "Today's status – Gap Mapping", next: true },
 ];
 
 const SESSION_1_HREF = "/stage-2/session-1";
@@ -181,7 +181,7 @@ export default function Stage2Page() {
               Up next
             </div>
             <div className="mt-1 text-xl font-semibold text-fg">
-              Session 1 · Today&apos;s status – Gap Mapping
+              1 · Today&apos;s status – Gap Mapping
             </div>
             <div className="mt-0.5 text-xs text-muted">
               Map what we have, what&apos;s missing and what needs connecting — block by block —
@@ -192,7 +192,7 @@ export default function Stage2Page() {
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white transition group-hover:brightness-110"
             style={{ background: "#16a34a" }}
           >
-            Open Session 1 →
+            Open →
           </span>
         </Link>
       </main>
@@ -293,8 +293,10 @@ function NextCard() {
       <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-automate">
         Stage 2
       </span>
-      <span className="mt-1 text-[15px] font-semibold text-fg">Session 1</span>
-      <span className="mt-0.5 text-[12px] font-medium text-fg/80">
+      <span className="mx-auto mt-1.5 grid h-7 w-7 place-items-center rounded-full border border-line bg-card text-sm font-semibold text-fg">
+        1
+      </span>
+      <span className="mt-1 text-[13px] font-semibold text-fg">
         Today&apos;s status – Gap Mapping
       </span>
       <span className="mt-1 text-[11px] text-muted">Where we pick up next</span>

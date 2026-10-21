@@ -384,24 +384,6 @@ function BlocksFlow({
                     </span>
                   ))}
                 </span>
-                {list.length > 0 && (
-                  <span
-                    className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-line/50"
-                    title={CATEGORIES.map(
-                      (c) => `${c.label}: ${list.filter((e) => e.category === c.key).length}`
-                    ).join(" · ")}
-                  >
-                    {CATEGORIES.map((c) => {
-                      const n = list.filter((e) => e.category === c.key).length;
-                      return n ? (
-                        <span
-                          key={c.key}
-                          style={{ width: `${(n / list.length) * 100}%`, background: c.hex }}
-                        />
-                      ) : null;
-                    })}
-                  </span>
-                )}
                 {people.length > 0 && (
                   <span className="mt-2 flex -space-x-1.5">
                     {people.slice(0, 4).map((p) => (
@@ -772,10 +754,12 @@ function AddForm({
                 setCategory(c.key);
                 setError(null);
               }}
-              className={chipCls + (on ? "text-fg" : "border-line text-muted hover:text-fg")}
-              style={on ? { borderColor: c.hex, background: `${c.hex}24` } : undefined}
+              className={
+                chipCls +
+                (on ? "border-accent bg-accent/15 text-fg" : "border-line text-muted hover:text-fg")
+              }
             >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.hex }} />
+              {on && <span aria-hidden>✓</span>}
               {c.label}
             </button>
           );
@@ -1095,18 +1079,16 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
 
 /* ---------- Small bits ---------- */
 
-/** Category label with a colored dot (text uses the theme color so it stays readable). */
-function CategoryTag({ category, count }: { category: CategoryKey | null; count?: number }) {
+/** Category as a neutral label — no hue (the block palette owns color). */
+export function CategoryTag({ category, count }: { category: CategoryKey | null; count?: number }) {
   const c = categoryDef(category);
   return (
     <span
-      className="mr-1.5 inline-flex items-center gap-1 rounded px-1.5 py-px align-middle text-[9.5px] font-bold uppercase tracking-wide text-fg"
-      style={{ background: c ? `${c.hex}22` : "rgb(var(--line) / 0.6)" }}
+      className={
+        "mr-1.5 inline-flex items-center gap-1 rounded border px-1.5 py-px align-middle text-[9.5px] font-bold uppercase tracking-wide " +
+        (c ? "border-line bg-line/40 text-fg" : "border-dashed border-line text-muted")
+      }
     >
-      <span
-        className="h-1.5 w-1.5 shrink-0 rounded-full"
-        style={{ background: c ? c.hex : "rgb(var(--muted))" }}
-      />
       {c ? c.label : "Uncategorized"}
       {count !== undefined && <span className="tabular-nums text-muted">{count}</span>}
     </span>

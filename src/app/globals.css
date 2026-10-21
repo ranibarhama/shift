@@ -14,6 +14,15 @@
   --grid-dot: #d6dbe7;
   --handle: #7c5cff;
 
+  /* Sequential heat ramp (one hue, blue), low -> high, + legible ink per step.
+     Light anchors near-zero at the light end. */
+  --hm-1: #cde2fb; --hm-1-ink: #14182b;
+  --hm-2: #9ec5f4; --hm-2-ink: #14182b;
+  --hm-3: #6da7ec; --hm-3-ink: #14182b;
+  --hm-4: #3987e5; --hm-4-ink: #14182b;
+  --hm-5: #256abf; --hm-5-ink: #ffffff;
+  --hm-6: #184f95; --hm-6-ink: #ffffff;
+
   color-scheme: light;
 }
 
@@ -27,6 +36,14 @@
 
   --grid-dot: #2a3358;
   --handle: #7c5cff;
+
+  /* Heat ramp flips its anchor in dark: near-zero sits by the dark surface. */
+  --hm-1: #184f95; --hm-1-ink: #ffffff;
+  --hm-2: #1c5cab; --hm-2-ink: #ffffff;
+  --hm-3: #256abf; --hm-3-ink: #ffffff;
+  --hm-4: #3987e5; --hm-4-ink: #14182b;
+  --hm-5: #6da7ec; --hm-5-ink: #14182b;
+  --hm-6: #9ec5f4; --hm-6-ink: #14182b;
 
   color-scheme: dark;
 }

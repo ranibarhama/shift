@@ -15,37 +15,39 @@ import { LEADER_NAMES } from "./stoneBriefs";
 // Keys are stored with each entry — rename `label` freely, never `key`.
 // `mapLines` is the (possibly wrapped) label under each dot in the connections map.
 // `owners` are the team members accountable for each block.
+// `hex`: validated categorical palette (dataviz default, slots 1–7), one step per
+// block that passes both light and dark modes as a linear (process-order) set.
 export const BUILDING_BLOCKS = [
   {
     key: "research",
     label: "Data insights",
     mapLines: ["Data insights"],
-    hex: "#22d3ee",
+    hex: "#2a78d6",
     owners: ["Yossi"],
   },
   {
     key: "planning",
     label: "Planning & Prioritisations",
     mapLines: ["Planning &", "Prioritisations"],
-    hex: "#a855f7",
+    hex: "#d95926",
     owners: ["Rani"],
   },
   {
     key: "development",
     label: "Development",
     mapLines: ["Development"],
-    hex: "#3b82f6",
+    hex: "#199e70",
     owners: ["Rani", "Oren", "Gal"],
   },
-  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#10b981", owners: ["Ben", "Rani"] },
-  { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#f59e0b", owners: ["Ben"] },
-  { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#ef4444", owners: ["Yossi"] },
+  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#c98500", owners: ["Ben", "Rani"] },
+  { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#d55181", owners: ["Ben"] },
+  { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#008300", owners: ["Yossi"] },
   {
     // Shown as "OPS" (was "Continuous learning"); key kept so saved input stays attached.
     key: "learning",
     label: "OPS",
     mapLines: ["OPS"],
-    hex: "#7c5cff",
+    hex: "#6250d6",
     owners: ["Limor"],
   },
 ] as const;
@@ -53,12 +55,13 @@ export const BUILDING_BLOCKS = [
 export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];
 export type InputKind = "have" | "missing" | "connect";
 
-/** Every item is categorized as one of these. */
+/** Every item is categorized as one of these. Shown as neutral labels (no hue):
+ *  the block palette owns color, and a second hued set would collide with it. */
 export const CATEGORIES = [
-  { key: "system", label: "System", hex: "#0ea5e9" },
-  { key: "tool", label: "Tool", hex: "#14b8a6" },
-  { key: "process", label: "Process", hex: "#ec4899" },
-  { key: "infrastructure", label: "Infrastructure", hex: "#64748b" },
+  { key: "system", label: "System" },
+  { key: "tool", label: "Tool" },
+  { key: "process", label: "Process" },
+  { key: "infrastructure", label: "Infrastructure" },
 ] as const;
 
 export type CategoryKey = (typeof CATEGORIES)[number]["key"];

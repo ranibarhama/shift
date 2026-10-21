@@ -51,7 +51,7 @@ function buildSlides(): Slide[] {
       title: "Where we are today, block by block",
       body: <BuildingBlocksSlide />,
     },
-    { key: "title", kicker: "Stage 2 · Session 1", title: "How good looks like — HL", hero: true, body: <TitleSlide /> },
+    { key: "title", kicker: "Stage 2 · 1", title: "How good looks like — HL", hero: true, body: <TitleSlide /> },
     {
       key: "transform",
       kicker: "Transformation structure",
@@ -324,7 +324,7 @@ function TitleSlide() {
   return (
     <div className="py-6 text-center sm:py-12">
       <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-automate/40 bg-automate/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-automate">
-        Stage 2 · Session 1
+        Stage 2 · 1
       </div>
       <h2 className="text-4xl font-bold tracking-tight text-fg sm:text-6xl">How good looks like</h2>
       <div className="mt-2 text-lg font-semibold text-accent sm:text-2xl">HL · the high-level picture</div>

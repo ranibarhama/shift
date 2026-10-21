@@ -5,7 +5,7 @@ import { listBlockInputs } from "@/lib/buildingBlocksDb";
 import type { BlockInput } from "@/lib/buildingBlocks";
 
 export const metadata = {
-  title: "Session 1 · Today's status – Gap Mapping · Shift",
+  title: "1 · Today's status – Gap Mapping · Shift",
 };
 export const dynamic = "force-dynamic";
 
@@ -30,14 +30,17 @@ export default async function Stage2Session1Page() {
             Stage 2
           </Link>
           <span aria-hidden>›</span>
-          <span className="text-fg">Session 1</span>
+          <span className="text-fg">1 · Today&apos;s status</span>
         </nav>
 
         <header className="mb-8">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">
-            Shift · Stage 2 · Session 1
+            Shift · Stage 2
           </div>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+          <h1 className="mt-1 flex items-center gap-3 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-card text-lg font-semibold text-fg">
+              1
+            </span>
             Today&apos;s status – Gap Mapping
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
