@@ -29,7 +29,7 @@ export default async function DepartmentPage({
   const { role: deptParam } = await params;
   const sp = await searchParams;
   const currentRole = await getCurrentRole();
-  if (!currentRole) redirect("/");
+  if (!currentRole) redirect("/stage-1");
 
   const deptRoleDef = ROLES.find((r) => r.key === deptParam && r.key !== "gm");
   if (!deptRoleDef) notFound();

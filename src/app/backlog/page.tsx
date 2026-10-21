@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BacklogPage() {
   const role = await getCurrentRole();
-  if (!role) redirect("/");
+  if (!role) redirect("/stage-1");
 
   const items = await getAllMissingItems();
 

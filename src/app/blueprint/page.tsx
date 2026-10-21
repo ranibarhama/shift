@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HowGoodLooksLikePage() {
   const role = await getCurrentRole();
-  if (!role) redirect("/");
+  if (!role) redirect("/stage-1");
   const iteration2Graph = await getIteration2Graph();
   return (
     <div className="flex flex-1 flex-col">

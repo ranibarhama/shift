@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PilotBoardPage() {
   const role = await getCurrentRole();
-  if (!role) redirect("/");
+  if (!role) redirect("/stage-1");
 
   const [initiatives, gaps] = await Promise.all([
     getAllPilotInitiatives(),

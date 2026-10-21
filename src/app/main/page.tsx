@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MainProcessPage() {
   const role = await getCurrentRole();
-  if (!role) redirect("/");
+  if (!role) redirect("/stage-1");
 
   const process = await getProcessByKey("main");
   if (!process) throw new Error("Main process missing");

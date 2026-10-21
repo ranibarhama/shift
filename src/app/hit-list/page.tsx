@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HitListPage() {
   const role = await getCurrentRole();
-  if (!role) redirect("/");
+  if (!role) redirect("/stage-1");
 
   const rows = await getAllDropItems();
 

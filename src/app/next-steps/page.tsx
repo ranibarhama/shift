@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NextStepsPage() {
   const role = await getCurrentRole();
-  if (!role) redirect("/");
+  if (!role) redirect("/stage-1");
   const briefs = await getAllStoneBriefs();
 
   return (

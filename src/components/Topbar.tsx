@@ -81,7 +81,7 @@ export default async function Topbar() {
         ) : (
           <>
             <Link
-              href="/"
+              href="/stage-1"
               className="rounded-md border border-line px-3 py-1.5 text-xs text-muted hover:bg-line/40 hover:text-fg"
             >
               Sign in
