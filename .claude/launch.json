@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "shift-web-localdb",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["TURSO_DATABASE_URL=", "TURSO_AUTH_TOKEN=", "npm", "run", "dev", "--", "-p", "3001"],
+      "port": 3001
     }
   ]
 }

@@ -18,7 +18,9 @@ import {
   type FutureStage,
   type Layer,
 } from "@/lib/blueprintData";
+import type { BlockInput } from "@/lib/buildingBlocks";
 import { BotIcon, BrainIcon } from "./DecisionIcons";
+import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
  * "How good looks like — HL": the Transformation structure and Details tabs
@@ -43,6 +45,12 @@ function layer(num: string): Layer {
 
 function buildSlides(): Slide[] {
   return [
+    {
+      key: "blocks",
+      kicker: "Start here · Building blocks",
+      title: "Where we are today, block by block",
+      body: <BuildingBlocksSlide />,
+    },
     { key: "title", kicker: "Stage 2 · Session 1", title: "How good looks like — HL", hero: true, body: <TitleSlide /> },
     {
       key: "transform",
@@ -77,7 +85,24 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 /* ============================== Deck ============================== */
 
-export default function HowGoodHL() {
+export default function HowGoodHL({ initialBlockInputs }: { initialBlockInputs: BlockInput[] }) {
+  return (
+    <BlocksProvider initial={initialBlockInputs}>
+      <Deck />
+    </BlocksProvider>
+  );
+}
+
+/** True when a key press is aimed at a form field — don't hijack it for navigation. */
+function isTyping(e: KeyboardEvent) {
+  const t = e.target;
+  return (
+    t instanceof HTMLElement &&
+    !!t.closest("input, textarea, select, [contenteditable='true']")
+  );
+}
+
+function Deck() {
   const slides = useMemo(buildSlides, []);
   const total = slides.length;
   const [current, setCurrent] = useState<number | null>(null);
@@ -102,6 +127,7 @@ export default function HowGoodHL() {
   useEffect(() => {
     if (!presenting) return;
     function onKey(e: KeyboardEvent) {
+      if (isTyping(e)) return;
       if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) {
         e.preventDefault();
         go(1);
@@ -148,7 +174,7 @@ export default function HowGoodHL() {
               title={s.title}
               className="grid h-6 min-w-6 place-items-center rounded-full border border-line bg-bg px-1.5 text-[10px] font-semibold text-muted transition hover:border-accent/50 hover:text-fg"
             >
-              {pad(i + 1)}
+              {pad(i)}
             </a>
           ))}
         </div>
@@ -169,7 +195,7 @@ export default function HowGoodHL() {
             id={s.key}
             className="scroll-mt-20 rounded-3xl border border-line bg-card/40 p-5 sm:p-8"
           >
-            <SlideHeader slide={s} n={i + 1} onPresent={() => start(i)} />
+            <SlideHeader slide={s} n={i} onPresent={() => start(i)} />
             {s.body}
           </section>
         ))}
@@ -191,7 +217,7 @@ export default function HowGoodHL() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs tabular-nums text-muted">
-                {current + 1} / {total}
+                {pad(current)} / {pad(total - 1)}
               </span>
               <button
                 type="button"
@@ -205,7 +231,7 @@ export default function HowGoodHL() {
 
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-8 sm:px-10">
-              <SlideHeader slide={slides[current]} n={current + 1} big />
+              <SlideHeader slide={slides[current]} n={current} big />
               {slides[current].body}
             </div>
           </div>
@@ -225,7 +251,7 @@ export default function HowGoodHL() {
                   key={s.key}
                   type="button"
                   onClick={() => setCurrent(i)}
-                  aria-label={`Go to slide ${i + 1}: ${s.title}`}
+                  aria-label={`Go to slide ${pad(i)}: ${s.title}`}
                   className={
                     "h-2 rounded-full transition-all " +
                     (i === current ? "w-6 bg-accent" : "w-2 bg-line hover:bg-muted")

@@ -1,13 +1,22 @@
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
 import HowGoodHL from "@/components/HowGoodHL";
+import { listBlockInputs } from "@/lib/buildingBlocksDb";
+import type { BlockInput } from "@/lib/buildingBlocks";
 
 export const metadata = {
   title: "Session 1 · How good looks like – HL · Shift",
 };
+export const dynamic = "force-dynamic";
 
 /** Stage 2 · Session 1 — "How good looks like" at a high level (HL). */
-export default function Stage2Session1Page() {
+export default async function Stage2Session1Page() {
+  let blockInputs: BlockInput[] = [];
+  try {
+    blockInputs = await listBlockInputs();
+  } catch {
+    // Keep the presentation usable even if the DB is unreachable.
+  }
   return (
     <div className="flex flex-1 flex-col">
       <Topbar stage={2} />
@@ -32,14 +41,15 @@ export default function Stage2Session1Page() {
             How good looks like – HL
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            The high-level picture: the transformation structure from today to target, and
-            the details behind it — told as a graphic presentation. Hit{" "}
-            <span className="font-semibold text-fg">Present</span> to run it full screen
-            (← → to move, Esc to exit).
+            Start at <span className="font-semibold text-fg">screen 00</span>: every team
+            member adds, per building block, what we have, what&apos;s missing and what needs
+            connecting. Then the high-level picture — the transformation structure and the
+            details behind it. Hit <span className="font-semibold text-fg">Present</span> to
+            run it full screen (← → to move, Esc to exit).
           </p>
         </header>
 
-        <HowGoodHL />
+        <HowGoodHL initialBlockInputs={blockInputs} />
       </main>
     </div>
   );

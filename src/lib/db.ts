@@ -221,6 +221,19 @@ async function ensureSchema(db: Client) {
       key TEXT PRIMARY KEY,
       value TEXT
     );
+
+    /* Stage 2 · Session 1 building blocks — one row per team-member entry.
+     * kind: have | missing | connect. target is set for connect only. */
+    CREATE TABLE IF NOT EXISTS block_inputs (
+      id TEXT PRIMARY KEY,
+      block TEXT NOT NULL,
+      member TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      text TEXT NOT NULL,
+      target TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_block_inputs_block ON block_inputs(block);
   `);
 
   // One-time reset of the Iteration 2 canvas when the seed changes.
