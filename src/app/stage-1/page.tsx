@@ -7,10 +7,10 @@ import DecideTooltip from "@/components/DecideTooltip";
 import { getCurrentTheme } from "@/lib/theme";
 
 export const metadata = {
-  title: "Stage 1 · Shift",
+  title: "Phase 1 · Shift",
 };
 
-/** Shift Stage 1 — everything built so far (formerly the home page). */
+/** Shift Phase 1 — everything built so far (formerly the home page). */
 export default async function Stage1Page() {
   const theme = await getCurrentTheme();
 
@@ -20,7 +20,7 @@ export default async function Stage1Page() {
         href="/"
         className="absolute left-6 top-6 inline-flex items-center gap-1.5 rounded-full border border-line bg-card/60 px-3 py-1.5 text-xs text-muted transition hover:border-accent/50 hover:text-fg"
       >
-        ← All stages
+        ← All phases
       </Link>
       <div className="absolute right-6 top-6">
         <ThemeToggle initial={theme} />

@@ -3,7 +3,7 @@ import { addBlockInput, listBlockInputs } from "@/lib/buildingBlocksDb";
 
 export const dynamic = "force-dynamic";
 
-// Public route: Stage 2 has no roles, so team members add input by name.
+// Public route: Phase 2 has no roles, so team members add input by name.
 export async function GET() {
   const inputs = await listBlockInputs();
   return NextResponse.json({ inputs });

@@ -1,6 +1,6 @@
 /**
- * Shift Stage 2 — the steps, in order. One list drives the Stage 2 header nav,
- * the Stage 2 page, the landing card and the placeholder pages for steps that
+ * Shift Phase 2 — the steps, in order. One list drives the Phase 2 header nav,
+ * the Phase 2 page, the landing card and the placeholder pages for steps that
  * have no content yet. Client-safe (plain data).
  */
 

@@ -207,7 +207,7 @@ export function BuildingBlocksSlide() {
   return (
     <div className="space-y-4">
       <p className="max-w-3xl text-sm text-muted">
-        The whole process, block by block. Pick your name, open a block, and add what we have
+        The whole process, stage by stage. Pick your name, open a stage, and add what we have
         today, what&apos;s missing (your top {MAX_MISSING}), and what we have that needs a
         connection — and to where. Every item gets a category.
       </p>
@@ -1014,7 +1014,7 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
       {links.length === 0 && outside.length === 0 && unsure === 0 ? (
         <p className="py-4 text-[12px] text-muted">
           {filter === "all"
-            ? "Connections between blocks will be drawn here as the team adds them."
+            ? "Connections between stages will be drawn here as the team adds them."
             : "Nothing to show for this filter yet."}
         </p>
       ) : (
@@ -1024,7 +1024,7 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
               viewBox={`0 ${top} ${MAP_W} ${224 - top}`}
               className="mx-auto w-full min-w-[640px] max-w-4xl"
               role="img"
-              aria-label="Connections between building blocks"
+              aria-label="Connections between the stages"
             >
               <defs>
                 {BUILDING_BLOCKS.map((b) => (
@@ -1108,7 +1108,7 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
           {outside.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line/60 pt-3">
               <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
-                Outside the blocks
+                Outside the stages
               </span>
               {outside.map((o) => {
                 const b = blockDef(o.from)!;

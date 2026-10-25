@@ -52,7 +52,7 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
   ];
   let unsure = body.unsure === true;
 
-  if (!isBlockKey(block)) return { ok: false, error: "unknown building block", status: 400 };
+  if (!isBlockKey(block)) return { ok: false, error: "unknown stage", status: 400 };
   if (!isInputKind(kind)) return { ok: false, error: "unknown input type", status: 400 };
   if (!member || member.length > MAX_MEMBER) {
     return { ok: false, error: "pick your name first", status: 400 };
@@ -79,7 +79,7 @@ export async function addBlockInput(body: Record<string, unknown>): Promise<AddR
       return { ok: false, error: `pick up to ${MAX_TARGETS} places`, status: 400 };
     }
     if (targets.includes(block)) {
-      return { ok: false, error: "pick a different block to connect to", status: 400 };
+      return { ok: false, error: "pick a different stage to connect to", status: 400 };
     }
     if (kind === "connect") {
       unsure = false;

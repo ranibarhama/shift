@@ -3,7 +3,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { getCurrentTheme } from "@/lib/theme";
 import { STAGE2_STEPS } from "@/lib/stage2";
 
-/** Landing — pick a Shift stage. */
+/** Landing — pick a Shift phase. */
 export default async function Home() {
   const theme = await getCurrentTheme();
 
@@ -20,32 +20,32 @@ export default async function Home() {
         </div>
         <h1 className="text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
           <span className="text-automate font-bold">Shift!</span>{" "}
-          <span className="text-fg">Pick a stage</span>
+          <span className="text-fg">Pick a phase</span>
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-balance text-muted">
-          Stage 1 is everything we&apos;ve built so far. Stage 2 is where we go next.
+          Phase 1 is everything we&apos;ve built so far. Phase 2 is where we go next.
         </p>
       </div>
 
       <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-2">
         <StageCard
           href="/stage-1"
-          stage="Stage 1"
+          stage="Phase 1"
           status="Done so far"
-          title="Shift Stage 1"
+          title="Shift Phase 1"
           desc="Everything we've built until now — mapping today's workflow, defining how good looks like, deciding where AI fits, and running the first pilot."
           chips={["Map", "Define", "Decide", "Pilot", "Results"]}
-          cta="Enter Stage 1"
+          cta="Enter Phase 1"
           hex="#7c5cff"
         />
         <StageCard
           href="/stage-2"
-          stage="Stage 2"
+          stage="Phase 2"
           status="Up next"
-          title="Shift Stage 2"
+          title="Shift Phase 2"
           desc="The next phase: map the gaps and connections, build the backlog, then define, architect, plan and run it."
           chips={["Process so far", ...STAGE2_STEPS.map((s) => `${s.n} · ${s.title}`)]}
-          cta="Open Stage 2"
+          cta="Open Phase 2"
           hex="#16a34a"
           highlight
         />

@@ -2,12 +2,12 @@ import Link from "next/link";
 import Topbar from "@/components/Topbar";
 
 export const metadata = {
-  title: "Stage 2 · Shift",
+  title: "Phase 2 · Shift",
 };
 
 /* -----------------------------------------------------------------------------
- * The process we ran in Stage 1 — same phases/steps as the journey page —
- * ending in the pilot results and handing off to Stage 2 · Session 1.
+ * The process we ran in Phase 1 — same parts/steps as the journey page —
+ * ending in the pilot results and handing off to Phase 2 · Step 1.
  * -------------------------------------------------------------------------- */
 
 type FlowNode = {
@@ -24,7 +24,7 @@ type FlowNode = {
 const FLOW: FlowNode[] = [
   {
     key: "map",
-    label: "Phase 1",
+    label: "Part 1",
     title: "Map how we work today",
     hex: "#22d3ee",
     steps: ["B2C main workflow", "Department workflows"],
@@ -32,7 +32,7 @@ const FLOW: FlowNode[] = [
   },
   {
     key: "decide",
-    label: "Phase 2",
+    label: "Part 2",
     title: "Decide where AI fits",
     hex: "#a855f7",
     steps: ["Todo Backlog", "Hit List", "How good looks like", "Zoom out"],
@@ -41,7 +41,7 @@ const FLOW: FlowNode[] = [
   },
   {
     key: "pilot",
-    label: "Phase 3",
+    label: "Part 3",
     title: "Commit and run the pilot",
     hex: "#3b82f6",
     steps: ["Stages Definition", "Pilot Board", "Pilot Tracker"],
@@ -71,7 +71,7 @@ const DECISIONS = [
 const SESSION_1_HREF = "/stage-2/session-1";
 
 export default function Stage2Page() {
-  // Step numbers run continuously across the three phases (1–9).
+  // Step numbers run continuously across the three parts (1–9).
   let n = 0;
   const numbered = FLOW.map((node) =>
     node.numbered ? node.steps.map(() => ++n) : []
@@ -87,23 +87,23 @@ export default function Stage2Page() {
             href="/"
             className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-line bg-card/60 px-3 py-1.5 text-xs text-muted transition hover:border-accent/50 hover:text-fg"
           >
-            ← All stages
+            ← All phases
           </Link>
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">
-            Shift · Stage 2
+            Shift · Phase 2
           </div>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             The process so far
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            How Stage 1 unfolded — from mapping today&apos;s work to a shipped pilot —
-            and where Stage 2 picks up.
+            How Phase 1 unfolded — from mapping today&apos;s work to a shipped pilot —
+            and where Phase 2 picks up.
           </p>
         </header>
 
         {/* Diagram */}
-        <section aria-label="Stage 1 process diagram" className="mb-12">
-          <SectionLabel>What we did in Stage 1</SectionLabel>
+        <section aria-label="Phase 1 process diagram" className="mb-12">
+          <SectionLabel>What we did in Phase 1</SectionLabel>
           <div className="mt-4 flex flex-col items-stretch lg:flex-row">
             {FLOW.map((node, i) => (
               <div key={node.key} className="flex flex-col lg:flex-1 lg:flex-row lg:min-w-0">
@@ -128,7 +128,7 @@ export default function Stage2Page() {
               1 · Gaps and Connections
             </div>
             <div className="mt-0.5 text-xs text-muted">
-              Map what we have, what&apos;s missing and what needs connecting — block by block —
+              Map what we have, what&apos;s missing and what needs connecting — stage by stage —
               then see how good looks like.
             </div>
           </div>
@@ -235,7 +235,7 @@ function NextCard() {
       className="group flex w-full flex-col justify-center rounded-2xl border-2 border-dashed border-automate/60 bg-automate/5 p-4 text-center transition hover:border-automate hover:bg-automate/10 lg:w-auto lg:min-w-[170px] lg:flex-[0.8]"
     >
       <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-automate">
-        Stage 2
+        Phase 2
       </span>
       <span className="mx-auto mt-1.5 grid h-7 w-7 place-items-center rounded-full border border-line bg-card text-sm font-semibold text-fg">
         1

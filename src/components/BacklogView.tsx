@@ -14,7 +14,7 @@ import {
 import { CategoryTag } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
- * Stage 2 · 2 · Backlog — the gaps the team mapped in 1 · Gaps and Connections:
+ * Phase 2 · 2 · Backlog — the gaps the team mapped in 1 · Gaps and Connections:
  * headline numbers, the backlog itself, then where things need to connect —
  * a simple map of the blocks (exists-needs-connecting above, missing below)
  * and the from → to grid underneath to show where the focus is.
@@ -157,8 +157,8 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
             </button>
           ))}
         </div>
-        <Select label="Block" value={block} onChange={(v) => setBlock(v as BlockKey | "all")}>
-          <option value="all">All blocks</option>
+        <Select label="Stage" value={block} onChange={(v) => setBlock(v as BlockKey | "all")}>
+          <option value="all">All stages</option>
           {BUILDING_BLOCKS.map((b) => (
             <option key={b.key} value={b.key}>
               {b.label}
@@ -332,7 +332,7 @@ function BacklogList({
       return `"${safe.replace(/"/g, '""')}"`;
     };
     const rows = [
-      ["Block", "Owners", "Type", "Rank", "Category", "Item", "Connects to", "Added by", "Added at"],
+      ["Stage", "Owners", "Type", "Rank", "Category", "Item", "Connects to", "Added by", "Added at"],
       ...groups.flatMap(({ b, list }) =>
         list.map((e) => [
           b.label,
@@ -351,7 +351,7 @@ function BacklogList({
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "shift-stage2-backlog.csv";
+    a.download = "shift-phase2-backlog.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -362,7 +362,7 @@ function BacklogList({
         <div>
           <h2 className="text-base font-semibold text-fg">Backlog</h2>
           <p className="text-[12px] text-muted">
-            {`${items.length} of ${total} items · grouped by block · missing first, ranked by each person's top 3`}
+            {`${items.length} of ${total} items · grouped by stage · missing first, ranked by each person's top 3`}
           </p>
         </div>
         <button
@@ -474,7 +474,7 @@ function Connections({ items }: { items: BlockInput[] }) {
         <div>
           <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
           <p className="text-[12px] text-muted">
-            Hover a block or a line to see its connections. Click to keep it highlighted.
+            Hover a stage or a line to see its connections. Click to keep it highlighted.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
@@ -613,7 +613,7 @@ function SimpleMap({
         viewBox={`0 0 ${M_W} ${H}`}
         className="w-full min-w-[760px]"
         role="img"
-        aria-label="Map of connections between the building blocks"
+        aria-label="Map of connections between the stages"
       >
         <defs>
           {[["muted", "rgb(var(--muted))"], ...BUILDING_BLOCKS.map((b) => [b.key, b.hex])].map(
@@ -804,7 +804,7 @@ function FocusGrid({
 }) {
   const cols = [
     ...BUILDING_BLOCKS.map((b) => ({ key: b.key as string, label: b.label, block: true })),
-    { key: "outside", label: "Outside the blocks", block: false },
+    { key: "outside", label: "Outside the stages", block: false },
     { key: "unsure", label: "Not sure yet", block: false },
   ];
 
@@ -890,7 +890,7 @@ function FocusGrid({
                 {cols.map((c) => {
                   if (c.key === r.key) {
                     return (
-                      <td key={c.key} className="rounded bg-line/30 text-center text-muted" aria-label="same block">
+                      <td key={c.key} className="rounded bg-line/30 text-center text-muted" aria-label="same stage">
                         —
                       </td>
                     );

@@ -9,7 +9,7 @@ export const metadata = {
 };
 export const dynamic = "force-dynamic";
 
-/** Stage 2 · 2 · Backlog — the team's session-1 input, and where it all needs to connect. */
+/** Phase 2 · 2 · Backlog — the team's step-1 input, and where it all needs to connect. */
 export default async function Stage2BacklogPage() {
   let inputs: BlockInput[] = [];
   try {
@@ -24,11 +24,11 @@ export default async function Stage2BacklogPage() {
       <main className="mx-auto w-full max-w-7xl px-6 py-10">
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-xs text-muted">
           <Link href="/" className="hover:text-fg">
-            All stages
+            All phases
           </Link>
           <span aria-hidden>›</span>
           <Link href="/stage-2" className="hover:text-fg">
-            Stage 2
+            Phase 2
           </Link>
           <span aria-hidden>›</span>
           <span className="text-fg">2 · Backlog</span>
@@ -36,7 +36,7 @@ export default async function Stage2BacklogPage() {
 
         <header className="mb-8">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">
-            Shift · Stage 2
+            Shift · Phase 2
           </div>
           <h1 className="mt-1 flex items-center gap-3 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             <StepNumber n={2} />

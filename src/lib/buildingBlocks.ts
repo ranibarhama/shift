@@ -1,5 +1,5 @@
 /**
- * Building blocks — Stage 2 · Session 1, slide 00.
+ * Building blocks — Phase 2 · Step 1, slide 00.
  *
  * Each team member records, per building block of the process:
  *   - have    : what we have today

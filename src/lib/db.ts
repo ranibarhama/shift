@@ -222,7 +222,7 @@ async function ensureSchema(db: Client) {
       value TEXT
     );
 
-    /* Stage 2 · Session 1 building blocks — one row per team-member entry.
+    /* Phase 2 · Step 1 building blocks — one row per team-member entry.
      * kind: have | missing | connect.
      * targets: JSON array of where it needs to connect (block keys or free
      *   text) — connect and missing items. target is the legacy single value.

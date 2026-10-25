@@ -1,6 +1,6 @@
 /**
  * "How good looks like" content — shared by the Blueprint tabs and the
- * Stage 2 · Session 1 presentation. Client-safe plain data (no DB imports).
+ * Phase 2 · Step 1 presentation. Client-safe plain data (no DB imports).
  */
 
 

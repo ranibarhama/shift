@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props) {
 }
 
 /**
- * Stage 2 steps that are planned but have no content yet (ready: false in
+ * Phase 2 steps that are planned but have no content yet (ready: false in
  * src/lib/stage2.ts). Steps with their own page (1, 2) never reach here —
  * their static routes take precedence.
  */
@@ -29,11 +29,11 @@ export default async function Stage2PlannedStepPage({ params }: Props) {
       <main className="mx-auto w-full max-w-4xl px-6 py-10">
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-xs text-muted">
           <Link href="/" className="hover:text-fg">
-            All stages
+            All phases
           </Link>
           <span aria-hidden>›</span>
           <Link href="/stage-2" className="hover:text-fg">
-            Stage 2
+            Phase 2
           </Link>
           <span aria-hidden>›</span>
           <span className="text-fg">
@@ -43,7 +43,7 @@ export default async function Stage2PlannedStepPage({ params }: Props) {
 
         <header className="mb-8">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">
-            Shift · Stage 2
+            Shift · Phase 2
           </div>
           <h1 className="mt-1 flex items-center gap-3 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-card text-lg font-semibold text-fg">

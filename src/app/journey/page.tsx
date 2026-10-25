@@ -25,7 +25,7 @@ type Phase = {
 
 const PHASES: Phase[] = [
   {
-    label: "Phase 1",
+    label: "Part 1",
     title: "Map how we work today",
     blurb:
       "Before deciding anything, we drew the real picture — the main B2C process and every department's workflow, end to end.",
@@ -47,7 +47,7 @@ const PHASES: Phase[] = [
     ],
   },
   {
-    label: "Phase 2",
+    label: "Part 2",
     title: "Decide where AI fits",
     blurb:
       "With today mapped, we surfaced the gaps, agreed what to drop, and defined where we're heading.",
@@ -83,7 +83,7 @@ const PHASES: Phase[] = [
     ],
   },
   {
-    label: "Phase 3",
+    label: "Part 3",
     title: "Commit and run the pilot",
     blurb:
       "From a shared target to owned commitments and a live pilot the team can actually ship.",
@@ -294,7 +294,7 @@ export default function JourneyPage() {
                   ))}
                 </div>
 
-                {phase.label === "Phase 1" && <DecisionMini />}
+                {phase.label === "Part 1" && <DecisionMini />}
               </div>
             ))}
           </div>

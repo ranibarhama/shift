@@ -9,7 +9,7 @@ export const metadata = {
 };
 export const dynamic = "force-dynamic";
 
-/** Stage 2 · Session 1 — Gaps and Connections, then How good looks like (HL). */
+/** Phase 2 · Step 1 — Gaps and Connections, then How good looks like (HL). */
 export default async function Stage2Session1Page() {
   let blockInputs: BlockInput[] = [];
   try {
@@ -23,11 +23,11 @@ export default async function Stage2Session1Page() {
       <main className="mx-auto w-full max-w-6xl px-6 py-10">
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-xs text-muted">
           <Link href="/" className="hover:text-fg">
-            All stages
+            All phases
           </Link>
           <span aria-hidden>›</span>
           <Link href="/stage-2" className="hover:text-fg">
-            Stage 2
+            Phase 2
           </Link>
           <span aria-hidden>›</span>
           <span className="text-fg">1 · Gaps and Connections</span>
@@ -35,7 +35,7 @@ export default async function Stage2Session1Page() {
 
         <header className="mb-8">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">
-            Shift · Stage 2
+            Shift · Phase 2
           </div>
           <h1 className="mt-1 flex items-center gap-3 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-card text-lg font-semibold text-fg">
@@ -46,7 +46,7 @@ export default async function Stage2Session1Page() {
           <p className="mt-2 max-w-2xl text-sm text-muted">
             <span className="font-semibold text-fg">Slide 01</span> shows the whole process at
             a glance. On <span className="font-semibold text-fg">slide 00</span> every team
-            member maps today&apos;s status per building block — what we have, what&apos;s
+            member maps today&apos;s status stage by stage — what we have, what&apos;s
             missing and what needs connecting. Hit{" "}
             <span className="font-semibold text-fg">Present</span> to run it full screen
             (← → to move, Esc to exit).

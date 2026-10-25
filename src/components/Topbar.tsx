@@ -13,8 +13,8 @@ export type Stage = 1 | 2;
 const STAGE_HEX: Record<Stage, string> = { 1: "#7c5cff", 2: "#16a34a" };
 
 /**
- * Site header. `stage` picks the nav: Stage 1 is the original journey nav;
- * Stage 2 has its own nav and no role (it's open to everyone).
+ * Site header. `stage` picks the nav: Phase 1 is the original journey nav;
+ * Phase 2 has its own nav and no role (it's open to everyone).
  */
 export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
   const roleKey = await getCurrentRole();
@@ -43,7 +43,7 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
           <StageBadge stage={stage} />
         </div>
         {isStage2 ? (
-          <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm [scrollbar-width:none]" aria-label="Stage 2">
+          <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-sm [scrollbar-width:none]" aria-label="Phase 2">
             <NavLink href="/stage-2" exact>
               Process so far
             </NavLink>
@@ -123,22 +123,22 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
   );
 }
 
-/** "Stage N" pill next to the logo — click to go back and switch stage. */
+/** "Phase N" pill next to the logo — click to go back and switch phase. */
 function StageBadge({ stage }: { stage: Stage }) {
   const hex = STAGE_HEX[stage];
   return (
     <Link
       href="/"
-      title="Switch stage"
+      title="Switch phase"
       className="whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] transition hover:brightness-110"
       style={{ background: `${hex}1f`, color: hex, border: `1px solid ${hex}55` }}
     >
-      Stage {stage}
+      Phase {stage}
     </Link>
   );
 }
 
-/** Stage 2 nav numbering: "1", "2", … in place of "Session N". */
+/** Phase 2 nav numbering: "1", "2", … in place of "Session N". */
 function StepNum({ n }: { n: number }) {
   return (
     <span className="mr-1.5 inline-grid h-4 w-4 place-items-center rounded-full border border-current text-[9px] font-bold leading-none">
