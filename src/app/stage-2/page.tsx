@@ -1,7 +1,5 @@
-import { Fragment } from "react";
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
-import { STAGE2_STEPS, stage2Href } from "@/lib/stage2";
 
 export const metadata = {
   title: "Stage 2 · Shift",
@@ -70,14 +68,6 @@ const DECISIONS = [
   { label: "Own", hex: "#38bdf8" },
 ];
 
-const TIMELINE: { when: string; name: string; next?: boolean }[] = [
-  { when: "Session 1", name: "AI Transition Workshop" },
-  { when: "Session 2", name: "Pilot Definition Meeting" },
-  { when: "Kickoff", name: "AI Pilot Kickoff" },
-  { when: "Pilot", name: "Pilot run & results" },
-  { when: "Stage 2 · 1", name: "Gaps and Connections", next: true },
-];
-
 const SESSION_1_HREF = "/stage-2/session-1";
 
 export default function Stage2Page() {
@@ -123,103 +113,6 @@ export default function Stage2Page() {
             ))}
             <NextCard />
           </div>
-        </section>
-
-        {/* Stage 2 roadmap — from src/lib/stage2.ts */}
-        <section aria-label="Stage 2 steps" className="mb-12">
-          <SectionLabel>Stage 2 — the steps</SectionLabel>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:items-stretch lg:gap-0">
-            {STAGE2_STEPS.map((s, i) => (
-              <Fragment key={s.slug}>
-                <Link
-                  href={stage2Href(s)}
-                  className={
-                    "flex min-w-0 flex-col rounded-2xl border p-4 transition hover:-translate-y-0.5 lg:flex-1 " +
-                    (s.ready
-                      ? "border-line bg-card/60 shadow-card hover:border-accent/40"
-                      : "border-dashed border-line bg-card/20 hover:border-accent/40")
-                  }
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="grid h-6 w-6 place-items-center rounded-full border border-line bg-card text-[11px] font-semibold text-fg">
-                      {s.n}
-                    </span>
-                    <span
-                      className={
-                        "text-[10px] font-semibold uppercase tracking-[0.14em] " +
-                        (s.ready ? "text-automate" : "text-muted")
-                      }
-                    >
-                      {s.ready ? "Open" : "Coming up"}
-                    </span>
-                  </span>
-                  <span
-                    className={
-                      "mt-2 text-[14px] font-semibold leading-tight " + (s.ready ? "text-fg" : "text-fg/70")
-                    }
-                  >
-                    {s.title}
-                  </span>
-                </Link>
-                {i < STAGE2_STEPS.length - 1 && (
-                  <span aria-hidden className="hidden shrink-0 items-center px-1.5 text-[#f97316] lg:flex">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m13 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                )}
-              </Fragment>
-            ))}
-          </div>
-        </section>
-
-        {/* Sessions timeline */}
-        <section aria-label="Sessions timeline" className="mb-12">
-          <SectionLabel>How we got here</SectionLabel>
-          <ol className="relative mt-5 grid grid-cols-1 gap-4 sm:grid-cols-5">
-            <span
-              aria-hidden
-              className="pointer-events-none absolute left-0 right-0 top-[9px] hidden h-px bg-line sm:block"
-            />
-            {TIMELINE.map((t) => (
-              <li key={t.name + t.when} className="relative flex items-start gap-3 sm:block">
-                <span
-                  className={
-                    "relative z-10 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-2 " +
-                    (t.next ? "border-automate bg-bg" : "border-accent bg-accent")
-                  }
-                  aria-hidden
-                >
-                  {!t.next && (
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </span>
-                <div className="sm:mt-3">
-                  <div
-                    className={
-                      "text-[10px] font-semibold uppercase tracking-[0.15em] " +
-                      (t.next ? "text-automate" : "text-muted")
-                    }
-                  >
-                    {t.when} {t.next ? "· Next" : "· Done"}
-                  </div>
-                  {t.next ? (
-                    <Link
-                      href={SESSION_1_HREF}
-                      className="text-sm font-semibold text-fg underline decoration-automate/50 underline-offset-4 hover:text-automate"
-                    >
-                      {t.name}
-                    </Link>
-                  ) : (
-                    <div className="text-sm font-medium text-fg">{t.name}</div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
         </section>
 
         {/* CTA */}
