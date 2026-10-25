@@ -17,7 +17,7 @@ import {
   type FutureStage,
   type Layer,
 } from "@/lib/blueprintData";
-import { BUILDING_BLOCKS, isFoundation, spanNote, type BlockInput } from "@/lib/buildingBlocks";
+import { BUILDING_BLOCKS, isFoundation, type BlockInput } from "@/lib/buildingBlocks";
 import { BotIcon, BrainIcon } from "./DecisionIcons";
 import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
 
@@ -409,10 +409,10 @@ function TitleSlide() {
               </Fragment>
             ))}
           </div>
-          {/* OPS (across every stage) and the Organization brain (under every stage) */}
+          {/* OPS and the Organization brain — full-width bands under the stages */}
           <div className="mt-3 space-y-2">
             {spanning.map((b) => (
-              <SpanBand key={b.key} hex={b.hex} label={b.label} note={spanNote(b.key)} />
+              <SpanBand key={b.key} hex={b.hex} label={b.label} />
             ))}
           </div>
         </div>
@@ -422,7 +422,7 @@ function TitleSlide() {
 }
 
 /** A block that spans every stage, drawn as a full-width band under the flow. */
-function SpanBand({ hex, label, note }: { hex: string; label: string; note: string }) {
+function SpanBand({ hex, label }: { hex: string; label: string }) {
   return (
     <div
       className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-4 py-2.5"
@@ -433,7 +433,6 @@ function SpanBand({ hex, label, note }: { hex: string; label: string; note: stri
     >
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: hex }} aria-hidden />
       <span className="text-[13px] font-semibold text-fg">{label}</span>
-      {note && <span className="text-[12px] text-muted">— {note}</span>}
     </div>
   );
 }

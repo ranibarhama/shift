@@ -60,20 +60,12 @@ export const BUILDING_BLOCKS = [
   },
 ] as const;
 
-/** Blocks that span the whole process (full-width card / band) rather than sit in the flow:
- *  OPS runs across every stage; the Organization brain sits under every stage. */
-const SPANNING: Record<string, string> = {
-  learning: "across every stage", // OPS
-  brain: "under every stage",
-};
+/** Blocks that span the whole process (full-width card / band) rather than sit in the
+ *  flow: OPS ("learning") and the Organization brain. */
+const SPANNING = new Set<string>(["learning", "brain"]);
 
 export function isFoundation(key: string): boolean {
-  return key in SPANNING;
-}
-
-/** How a spanning block relates to the stages, e.g. "across every stage". */
-export function spanNote(key: string): string {
-  return SPANNING[key] ?? "";
+  return SPANNING.has(key);
 }
 
 export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];
