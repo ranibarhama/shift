@@ -4,7 +4,6 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BUILD_OPERATING_MODEL,
   BUILD_STREAMS,
-  FLOW_TAGLINE,
   FUTURE_STAGES,
   GTM_ITEMS,
   INSIGHTS_REPLACES,
@@ -18,7 +17,7 @@ import {
   type FutureStage,
   type Layer,
 } from "@/lib/blueprintData";
-import type { BlockInput } from "@/lib/buildingBlocks";
+import { BUILDING_BLOCKS, isFoundation, type BlockInput } from "@/lib/buildingBlocks";
 import { BotIcon, BrainIcon } from "./DecisionIcons";
 import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
 
@@ -350,7 +349,8 @@ function SlideHeader({
 /* ============================== Slides ============================== */
 
 function TitleSlide() {
-  const steps = FLOW_TAGLINE.replace(/^From\s+/i, "").split(/\s*→\s*/);
+  // The same stages as the building-block cards on slide 00 (the brain spans under them).
+  const stages = BUILDING_BLOCKS.filter((b) => !isFoundation(b.key));
   return (
     <div className="py-6 text-center sm:py-12">
       <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-automate/40 bg-automate/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-automate">
@@ -363,37 +363,81 @@ function TitleSlide() {
         details behind it: seven shifts and eight layers.
       </p>
 
-      <div className="mt-10 flex flex-wrap items-center justify-center gap-y-3">
-        {steps.map((s, i) => {
-          const hex = PALETTE[i % PALETTE.length];
-          return (
-            <Fragment key={s}>
-              <span
-                className="rounded-full border px-3.5 py-1.5 text-[13px] font-semibold text-fg"
-                style={{ borderColor: `${hex}66`, background: `${hex}17` }}
-              >
-                {s}
-              </span>
-              {i < steps.length - 1 && <SideArrow />}
-            </Fragment>
-          );
-        })}
+      {/* One line, never wrapped — the loop must run from the last stage back to the
+          first. Too narrow? It scrolls sideways inside the slide instead. */}
+      <div className="mt-10 overflow-x-auto pb-1">
+        {/* Sized by the stage row, so the loop and the brain band span exactly across it. */}
+        <div className="mx-auto flex w-max flex-col">
+          <LearningLoop />
+          <div className="flex items-center">
+            {stages.map((b, i) => (
+              <Fragment key={b.key}>
+                <span
+                  className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] font-semibold text-fg"
+                  style={{ borderColor: `${b.hex}66`, background: `${b.hex}12` }}
+                >
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: b.hex }} aria-hidden />
+                  {b.label}
+                </span>
+                {i < stages.length - 1 && <SideArrow small />}
+              </Fragment>
+            ))}
+          </div>
+          {/* Organization brain — spans under every stage */}
+          <div
+            className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-4 py-2.5"
+            style={{
+              borderColor: `${ORG_BRAIN.hex}55`,
+              background: `linear-gradient(90deg, ${ORG_BRAIN.hex}0d, ${ORG_BRAIN.hex}1f, ${ORG_BRAIN.hex}0d)`,
+            }}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ORG_BRAIN.hex }} aria-hidden />
+            <span className="text-[13px] font-semibold text-fg">Organization brain</span>
+            <span className="text-[12px] text-muted">— shared memory under every stage</span>
+          </div>
+        </div>
       </div>
-      {/* Organization brain — spans under every step */}
-      <div
-        className="mx-auto mt-3 flex max-w-4xl flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-4 py-2.5"
-        style={{
-          borderColor: `${ORG_BRAIN.hex}55`,
-          background: `linear-gradient(90deg, ${ORG_BRAIN.hex}0d, ${ORG_BRAIN.hex}1f, ${ORG_BRAIN.hex}0d)`,
-        }}
+    </div>
+  );
+}
+
+/** Continuous learning isn't a stage — it's the loop from the last stage back to the first. */
+function LearningLoop() {
+  return (
+    <div
+      className="relative mb-1 h-14"
+      role="img"
+      aria-label="Continuous learning: what we learn at the last stage feeds back into the first"
+    >
+      <svg
+        className="absolute inset-0 h-full w-full overflow-visible"
+        viewBox="0 0 100 56"
+        preserveAspectRatio="none"
+        aria-hidden
       >
-        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ORG_BRAIN.hex }} aria-hidden />
-        <span className="text-[13px] font-semibold text-fg">Organization brain</span>
-        <span className="text-[12px] text-muted">— shared memory under every step</span>
-      </div>
-      <div className="mt-4 inline-flex items-center gap-2 text-xs text-muted">
-        <LoopIcon /> …and back again — every cycle feeds the next
-      </div>
+        <path
+          d="M97 52 C97 8, 6 8, 6 48"
+          fill="none"
+          style={{ stroke: "rgb(var(--muted))" }}
+          strokeWidth="2"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      {/* Arrowhead pointing down into the first stage */}
+      <svg
+        className="absolute bottom-0 left-[6%] -translate-x-1/2"
+        width="12"
+        height="9"
+        viewBox="0 0 12 9"
+        aria-hidden
+      >
+        <path d="M0 0 L12 0 L6 9 Z" style={{ fill: "rgb(var(--muted))" }} />
+      </svg>
+      <span className="absolute left-1/2 top-0 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-card px-3 py-1 text-[12px] font-semibold text-fg shadow-sm">
+        <LoopIcon /> Continuous learning
+        <span className="font-normal text-muted">— every cycle feeds the next</span>
+      </span>
     </div>
   );
 }
@@ -1074,9 +1118,10 @@ function MergeArrow({ hex }: { hex: string }) {
   );
 }
 
-function SideArrow({ hex = "#f97316" }: { hex?: string }) {
+function SideArrow({ hex = "#f97316", small }: { hex?: string; small?: boolean }) {
+  const size = small ? 13 : 16;
   return (
-    <svg className="mx-1.5 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hex} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg className={(small ? "mx-1" : "mx-1.5") + " shrink-0"} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={hex} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M5 12h14" />
       <path d="m13 6 6 6-6 6" />
     </svg>
