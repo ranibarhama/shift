@@ -19,7 +19,8 @@ export const STAGE2_STEPS: Stage2Step[] = [
   { n: 3, slug: "detailed-definition", title: "Detailed definition", ready: false },
   { n: 4, slug: "technical-architecture", title: "Technical architecture", ready: false },
   { n: 5, slug: "work-plan", title: "Gantt and tracked work plan", ready: false },
-  { n: 6, slug: "operational-model", title: "Operational model", ready: false },
+  { n: 6, slug: "operational-principles", title: "Operational principles", ready: false },
+  { n: 7, slug: "operational-model", title: "Operational model", ready: false },
 ];
 
 export const stage2Href = (s: Stage2Step) => `/stage-2/${s.slug}`;
