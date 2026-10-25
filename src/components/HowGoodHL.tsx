@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BUILD_OPERATING_MODEL,
   BUILD_STREAMS,
@@ -17,7 +17,7 @@ import {
   type FutureStage,
   type Layer,
 } from "@/lib/blueprintData";
-import { BUILDING_BLOCKS, isFoundation, type BlockInput } from "@/lib/buildingBlocks";
+import { BUILDING_BLOCKS, isFoundation, spanNote, type BlockInput } from "@/lib/buildingBlocks";
 import { BotIcon, BrainIcon } from "./DecisionIcons";
 import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
 
@@ -349,8 +349,33 @@ function SlideHeader({
 /* ============================== Slides ============================== */
 
 function TitleSlide() {
-  // The same stages as the building-block cards on slide 00 (the brain spans under them).
+  // The same stages as the building-block cards on slide 00. OPS and the Organization
+  // brain span the whole process, so they're bands under the stages, not stages.
   const stages = BUILDING_BLOCKS.filter((b) => !isFoundation(b.key));
+  const spanning = BUILDING_BLOCKS.filter((b) => isFoundation(b.key));
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [ends, setEnds] = useState<[number, number]>([7, 93]);
+
+  // Anchor the learning loop on the real first and last stage (re-measured on resize).
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const measure = () => {
+      const chips = row.querySelectorAll<HTMLElement>("[data-stage]");
+      const box = row.getBoundingClientRect();
+      if (chips.length < 2 || !box.width) return;
+      const centre = (el: HTMLElement) => {
+        const r = el.getBoundingClientRect();
+        return Math.round(((r.left + r.width / 2 - box.left) / box.width) * 1000) / 10;
+      };
+      setEnds([centre(chips[0]), centre(chips[chips.length - 1])]);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(row);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="py-6 text-center sm:py-12">
       <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-automate/40 bg-automate/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-automate">
@@ -366,13 +391,14 @@ function TitleSlide() {
       {/* One line, never wrapped — the loop must run from the last stage back to the
           first. Too narrow? It scrolls sideways inside the slide instead. */}
       <div className="mt-10 overflow-x-auto pb-1">
-        {/* Sized by the stage row, so the loop and the brain band span exactly across it. */}
+        {/* Sized by the stage row, so the loop and the bands span exactly across it. */}
         <div className="mx-auto flex w-max flex-col">
-          <LearningLoop />
-          <div className="flex items-center">
+          <LearningLoop start={ends[0]} end={ends[1]} />
+          <div ref={rowRef} className="flex items-center">
             {stages.map((b, i) => (
               <Fragment key={b.key}>
                 <span
+                  data-stage
                   className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] font-semibold text-fg"
                   style={{ borderColor: `${b.hex}66`, background: `${b.hex}12` }}
                 >
@@ -383,17 +409,11 @@ function TitleSlide() {
               </Fragment>
             ))}
           </div>
-          {/* Organization brain — spans under every stage */}
-          <div
-            className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-4 py-2.5"
-            style={{
-              borderColor: `${ORG_BRAIN.hex}55`,
-              background: `linear-gradient(90deg, ${ORG_BRAIN.hex}0d, ${ORG_BRAIN.hex}1f, ${ORG_BRAIN.hex}0d)`,
-            }}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ORG_BRAIN.hex }} aria-hidden />
-            <span className="text-[13px] font-semibold text-fg">Organization brain</span>
-            <span className="text-[12px] text-muted">— shared memory under every stage</span>
+          {/* OPS (across every stage) and the Organization brain (under every stage) */}
+          <div className="mt-3 space-y-2">
+            {spanning.map((b) => (
+              <SpanBand key={b.key} hex={b.hex} label={b.label} note={spanNote(b.key)} />
+            ))}
           </div>
         </div>
       </div>
@@ -401,8 +421,26 @@ function TitleSlide() {
   );
 }
 
-/** Continuous learning isn't a stage — it's the loop from the last stage back to the first. */
-function LearningLoop() {
+/** A block that spans every stage, drawn as a full-width band under the flow. */
+function SpanBand({ hex, label, note }: { hex: string; label: string; note: string }) {
+  return (
+    <div
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-4 py-2.5"
+      style={{
+        borderColor: `${hex}55`,
+        background: `linear-gradient(90deg, ${hex}0d, ${hex}1f, ${hex}0d)`,
+      }}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: hex }} aria-hidden />
+      <span className="text-[13px] font-semibold text-fg">{label}</span>
+      {note && <span className="text-[12px] text-muted">— {note}</span>}
+    </div>
+  );
+}
+
+/** Continuous learning isn't a stage — it's the loop from the last stage back to the first.
+ *  `start` / `end` are the first and last stage centres, in % of the row's width. */
+function LearningLoop({ start, end }: { start: number; end: number }) {
   return (
     <div
       className="relative mb-1 h-14"
@@ -416,7 +454,7 @@ function LearningLoop() {
         aria-hidden
       >
         <path
-          d="M97 52 C97 8, 6 8, 6 48"
+          d={`M${end} 52 C${end} 8, ${start} 8, ${start} 48`}
           fill="none"
           style={{ stroke: "rgb(var(--muted))" }}
           strokeWidth="2"
@@ -426,7 +464,8 @@ function LearningLoop() {
       </svg>
       {/* Arrowhead pointing down into the first stage */}
       <svg
-        className="absolute bottom-0 left-[6%] -translate-x-1/2"
+        className="absolute bottom-0 -translate-x-1/2"
+        style={{ left: `${start}%` }}
         width="12"
         height="9"
         viewBox="0 0 12 9"

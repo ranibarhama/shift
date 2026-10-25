@@ -22,6 +22,7 @@ import {
   categoryDef,
   isBlockKey,
   isFoundation,
+  spanNote,
   type BlockInput,
   type BlockKey,
   type CategoryKey,
@@ -465,7 +466,7 @@ function BlockCard({
         <span className="flex min-w-0 items-center gap-2">
           {badge}
           <span className="text-[14px] font-semibold text-fg">{b.label}</span>
-          <span className="text-[11px] text-muted">· under every block</span>
+          <span className="text-[11px] text-muted">· {spanNote(b.key)}</span>
           {yours}
         </span>
         {owners}
