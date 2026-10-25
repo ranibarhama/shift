@@ -15,7 +15,7 @@ import { LEADER_NAMES } from "./stoneBriefs";
 // Keys are stored with each entry — rename `label` freely, never `key`.
 // `mapLines` is the (possibly wrapped) label under each dot in the connections map.
 // `owners` are the team members accountable for each block.
-// `hex`: validated categorical palette (dataviz default, slots 1–7), one step per
+// `hex`: validated categorical palette (dataviz default, slots 1–8), one step per
 // block that passes both light and dark modes as a linear (process-order) set.
 export const BUILDING_BLOCKS = [
   {
@@ -50,7 +50,20 @@ export const BUILDING_BLOCKS = [
     hex: "#6250d6",
     owners: ["Limor"],
   },
+  {
+    // Spans under every block (see isFoundation) — the shared memory of the org.
+    key: "brain",
+    label: "Organization brain",
+    mapLines: ["Organization", "brain"],
+    hex: "#e34948",
+    owners: [],
+  },
 ] as const;
+
+/** Blocks that sit under the whole process (full-width card) rather than in the flow. */
+export function isFoundation(key: string): boolean {
+  return key === "brain";
+}
 
 export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];
 export type InputKind = "have" | "missing" | "connect";

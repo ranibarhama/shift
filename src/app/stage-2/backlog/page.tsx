@@ -45,7 +45,7 @@ export default async function Stage2BacklogPage() {
           <p className="mt-2 max-w-2xl text-sm text-muted">
             Every gap the team mapped in{" "}
             <Link href="/stage-2/session-1#blocks" className="font-semibold text-fg underline-offset-4 hover:underline">
-              1 · Today&apos;s status
+              1 · Gaps and Connections
             </Link>
             : what&apos;s missing, and what we have but still needs a connection — then where
             it all needs to connect. Things we already have that need no connection aren&apos;t

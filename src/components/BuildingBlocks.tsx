@@ -21,6 +21,7 @@ import {
   blockDef,
   categoryDef,
   isBlockKey,
+  isFoundation,
   type BlockInput,
   type BlockKey,
   type CategoryKey,
@@ -315,6 +316,8 @@ function MemberBar() {
 
 /* ---------- The 7 blocks ---------- */
 
+type BlockDef = (typeof BUILDING_BLOCKS)[number];
+
 function BlocksFlow({
   byBlock,
   selected,
@@ -324,97 +327,30 @@ function BlocksFlow({
   selected: BlockKey;
   onSelect: (b: BlockKey) => void;
 }) {
-  const { member } = useBlocks();
+  const flow = BUILDING_BLOCKS.filter((b) => !isFoundation(b.key));
+  const base = BUILDING_BLOCKS.filter((b) => isFoundation(b.key));
   return (
     <div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex lg:items-stretch lg:gap-0">
-        {BUILDING_BLOCKS.map((b, i) => {
-          const list = byBlock.get(b.key) ?? [];
-          const count = (k: InputKind) => list.filter((e) => e.kind === k).length;
-          const people = [...new Set(list.map((e) => e.member))];
-          const active = selected === b.key;
-          const owns = !!member && (b.owners as readonly string[]).includes(member);
-          return (
-            <Fragment key={b.key}>
-              <button
-                type="button"
-                onClick={() => onSelect(b.key)}
-                aria-pressed={active}
-                className={
-                  "flex min-w-0 flex-col rounded-2xl border bg-card/70 p-3 text-left transition lg:flex-1 " +
-                  (active ? "" : "hover:-translate-y-0.5")
-                }
-                style={{
-                  borderColor: active ? b.hex : `${b.hex}55`,
-                  background: active ? `${b.hex}14` : undefined,
-                  boxShadow: active
-                    ? `inset 0 3px 0 0 ${b.hex}, 0 0 0 2px ${b.hex}`
-                    : `inset 0 3px 0 0 ${b.hex}`,
-                }}
-              >
-                <span className="flex items-center justify-between gap-1">
-                  <span
-                    className="grid h-5 w-5 place-items-center rounded-md text-[10px] font-bold"
-                    style={{ background: `${b.hex}22`, color: b.hex }}
-                  >
-                    {i + 1}
-                  </span>
-                  {owns && (
-                    <span
-                      className="rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wider"
-                      style={{ background: `${b.hex}22`, color: b.hex }}
-                    >
-                      Yours
-                    </span>
-                  )}
-                </span>
-                <span className="mt-1.5 text-[13px] font-semibold leading-tight text-fg">
-                  {b.label}
-                </span>
-                <span className="mt-1 text-[11px] leading-snug text-muted">
-                  {b.owners.length > 1 ? "Owners" : "Owner"} ·{" "}
-                  <OwnerNames owners={b.owners} member={member} />
-                </span>
-                <span className="mt-2 space-y-0.5">
-                  {(["have", "missing", "connect"] as const).map((k) => (
-                    <span key={k} className="flex items-center gap-1.5 text-[11px] text-muted">
-                      <Glyph kind={k} small />
-                      <span className="tabular-nums font-semibold text-fg">{count(k)}</span>
-                      {KIND_META[k].short}
-                    </span>
-                  ))}
-                </span>
-                {people.length > 0 && (
-                  <span className="mt-2 flex -space-x-1.5">
-                    {people.slice(0, 4).map((p) => (
-                      <span
-                        key={p}
-                        title={p}
-                        className="grid h-5 w-5 place-items-center rounded-full border border-card text-[9px] font-bold text-white"
-                        style={{ background: b.hex }}
-                      >
-                        {p.slice(0, 1).toUpperCase()}
-                      </span>
-                    ))}
-                    {people.length > 4 && (
-                      <span className="grid h-5 w-5 place-items-center rounded-full border border-card bg-line text-[9px] font-bold text-fg">
-                        +{people.length - 4}
-                      </span>
-                    )}
-                  </span>
-                )}
-              </button>
-              {i < BUILDING_BLOCKS.length - 1 && (
-                <span aria-hidden className="hidden shrink-0 items-center px-1 text-[#f97316] lg:flex">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14" />
-                    <path d="m13 6 6 6-6 6" />
-                  </svg>
-                </span>
-              )}
-            </Fragment>
-          );
-        })}
+        {flow.map((b, i) => (
+          <Fragment key={b.key}>
+            <BlockCard
+              b={b}
+              n={i + 1}
+              list={byBlock.get(b.key) ?? []}
+              active={selected === b.key}
+              onSelect={onSelect}
+            />
+            {i < flow.length - 1 && (
+              <span aria-hidden className="hidden shrink-0 items-center px-1 text-[#f97316] lg:flex">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
+              </span>
+            )}
+          </Fragment>
+        ))}
       </div>
       <div className="mt-2 flex items-center justify-end gap-1.5 text-[11px] text-muted">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -423,7 +359,142 @@ function BlocksFlow({
         </svg>
         …and the cycle starts again at Data insights
       </div>
+      {/* Foundation blocks span under the whole flow */}
+      {base.map((b) => (
+        <BlockCard
+          key={b.key}
+          b={b}
+          n={BUILDING_BLOCKS.findIndex((x) => x.key === b.key) + 1}
+          list={byBlock.get(b.key) ?? []}
+          active={selected === b.key}
+          onSelect={onSelect}
+          wide
+        />
+      ))}
     </div>
+  );
+}
+
+/** One building block card — the same in the flow and as the full-width foundation card. */
+function BlockCard({
+  b,
+  n,
+  list,
+  active,
+  onSelect,
+  wide,
+}: {
+  b: BlockDef;
+  n: number;
+  list: BlockInput[];
+  active: boolean;
+  onSelect: (b: BlockKey) => void;
+  wide?: boolean;
+}) {
+  const { member } = useBlocks();
+  const count = (k: InputKind) => list.filter((e) => e.kind === k).length;
+  const people = [...new Set(list.map((e) => e.member))];
+  const owns = !!member && (b.owners as readonly string[]).includes(member);
+
+  const badge = (
+    <span
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px] font-bold"
+      style={{ background: `${b.hex}22`, color: b.hex }}
+    >
+      {n}
+    </span>
+  );
+  const yours = owns && (
+    <span
+      className="rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wider"
+      style={{ background: `${b.hex}22`, color: b.hex }}
+    >
+      Yours
+    </span>
+  );
+  const owners = (
+    <span className="text-[11px] leading-snug text-muted">
+      {b.owners.length > 1 ? "Owners" : "Owner"} · <OwnerNames owners={b.owners} member={member} />
+    </span>
+  );
+  const counts = (["have", "missing", "connect"] as const).map((k) => (
+    <span key={k} className="flex items-center gap-1.5 text-[11px] text-muted">
+      <Glyph kind={k} small />
+      <span className="tabular-nums font-semibold text-fg">{count(k)}</span>
+      {KIND_META[k].short}
+    </span>
+  ));
+  const avatars = people.length > 0 && (
+    <span className="flex -space-x-1.5">
+      {people.slice(0, 4).map((p) => (
+        <span
+          key={p}
+          title={p}
+          className="grid h-5 w-5 place-items-center rounded-full border border-card text-[9px] font-bold text-white"
+          style={{ background: b.hex }}
+        >
+          {p.slice(0, 1).toUpperCase()}
+        </span>
+      ))}
+      {people.length > 4 && (
+        <span className="grid h-5 w-5 place-items-center rounded-full border border-card bg-line text-[9px] font-bold text-fg">
+          +{people.length - 4}
+        </span>
+      )}
+    </span>
+  );
+
+  const style = {
+    borderColor: active ? b.hex : `${b.hex}55`,
+    background: active ? `${b.hex}14` : undefined,
+    boxShadow: active ? `inset 0 3px 0 0 ${b.hex}, 0 0 0 2px ${b.hex}` : `inset 0 3px 0 0 ${b.hex}`,
+  };
+
+  if (wide) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSelect(b.key)}
+        aria-pressed={active}
+        className={
+          "mt-3 flex w-full flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border bg-card/70 px-4 py-3 text-left transition " +
+          (active ? "" : "hover:-translate-y-0.5")
+        }
+        style={style}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {badge}
+          <span className="text-[14px] font-semibold text-fg">{b.label}</span>
+          <span className="text-[11px] text-muted">· under every block</span>
+          {yours}
+        </span>
+        {owners}
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1">{counts}</span>
+        {avatars && <span className="ml-auto">{avatars}</span>}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(b.key)}
+      aria-pressed={active}
+      className={
+        "flex min-w-0 flex-col rounded-2xl border bg-card/70 p-3 text-left transition lg:flex-1 " +
+        (active ? "" : "hover:-translate-y-0.5")
+      }
+      style={style}
+    >
+      <span className="flex items-center justify-between gap-1">
+        {badge}
+        {yours}
+      </span>
+      <span className="mt-1.5 text-[13px] font-semibold leading-tight text-fg">{b.label}</span>
+      <span className="mt-1">{owners}</span>
+      <span className="mt-2 space-y-0.5">{counts}</span>
+      {avatars && <span className="mt-2">{avatars}</span>}
+    </button>
   );
 }
 
@@ -904,6 +975,7 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
 
   const BASE = 168;
   const Y0 = BASE - 13;
+  const MAP_W = BUILDING_BLOCKS.length * 100; // one 100-unit slot per block
   const x = (i: number) => 50 + i * 100;
   const arcHeight = (from: number, to: number) =>
     14 + Math.abs(to - from) * 12 + (to < from ? 9 : 0);
@@ -950,8 +1022,8 @@ function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
         <>
           <div className="overflow-x-auto">
             <svg
-              viewBox={`0 ${top} 700 ${224 - top}`}
-              className="mx-auto w-full min-w-[560px] max-w-3xl"
+              viewBox={`0 ${top} ${MAP_W} ${224 - top}`}
+              className="mx-auto w-full min-w-[640px] max-w-4xl"
               role="img"
               aria-label="Connections between building blocks"
             >
@@ -1097,6 +1169,7 @@ export function CategoryTag({ category, count }: { category: CategoryKey | null;
 
 /** "Rani, Oren, Gal" — the viewer's own name highlighted. */
 function OwnerNames({ owners, member }: { owners: readonly string[]; member: string }) {
+  if (owners.length === 0) return <span className="italic">not set yet</span>;
   return (
     <>
       {owners.map((o, i) => (

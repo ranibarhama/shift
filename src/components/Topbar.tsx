@@ -48,7 +48,7 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
             <NavArrow />
             <NavLink href="/stage-2/session-1">
               <StepNum n={1} />
-              Today&apos;s status – Gap Mapping
+              Gaps and Connections
             </NavLink>
             <NavArrow />
             <NavLink href="/stage-2/backlog">

@@ -5,11 +5,11 @@ import { listBlockInputs } from "@/lib/buildingBlocksDb";
 import type { BlockInput } from "@/lib/buildingBlocks";
 
 export const metadata = {
-  title: "1 · Today's status – Gap Mapping · Shift",
+  title: "1 · Gaps and Connections · Shift",
 };
 export const dynamic = "force-dynamic";
 
-/** Stage 2 · Session 1 — Today's status (gap mapping), then How good looks like (HL). */
+/** Stage 2 · Session 1 — Gaps and Connections, then How good looks like (HL). */
 export default async function Stage2Session1Page() {
   let blockInputs: BlockInput[] = [];
   try {
@@ -30,7 +30,7 @@ export default async function Stage2Session1Page() {
             Stage 2
           </Link>
           <span aria-hidden>›</span>
-          <span className="text-fg">1 · Today&apos;s status</span>
+          <span className="text-fg">1 · Gaps and Connections</span>
         </nav>
 
         <header className="mb-8">
@@ -41,13 +41,13 @@ export default async function Stage2Session1Page() {
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-card text-lg font-semibold text-fg">
               1
             </span>
-            Today&apos;s status – Gap Mapping
+            Gaps and Connections
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            Start at <span className="font-semibold text-fg">screen 00</span>: every team
+            <span className="font-semibold text-fg">Slide 01</span> shows the whole process at
+            a glance. On <span className="font-semibold text-fg">slide 00</span> every team
             member maps today&apos;s status per building block — what we have, what&apos;s
-            missing and what needs connecting. Then the high-level picture of how good looks
-            like — the transformation structure and the details behind it. Hit{" "}
+            missing and what needs connecting. Hit{" "}
             <span className="font-semibold text-fg">Present</span> to run it full screen
             (← → to move, Esc to exit).
           </p>

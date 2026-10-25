@@ -43,7 +43,7 @@ export default async function Home() {
           status="Up next"
           title="Shift Stage 2"
           desc="The next phase. See the process we ran so far, map today's status and gaps block by block, and see the backlog of what needs to connect to where."
-          chips={["Process so far", "1 · Today's status – Gap Mapping", "2 · Backlog"]}
+          chips={["Process so far", "1 · Gaps and Connections", "2 · Backlog"]}
           cta="Open Stage 2"
           hex="#16a34a"
           highlight

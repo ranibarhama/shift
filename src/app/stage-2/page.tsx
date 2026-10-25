@@ -73,7 +73,7 @@ const TIMELINE: { when: string; name: string; next?: boolean }[] = [
   { when: "Session 2", name: "Pilot Definition Meeting" },
   { when: "Kickoff", name: "AI Pilot Kickoff" },
   { when: "Pilot", name: "Pilot run & results" },
-  { when: "Stage 2 · 1", name: "Today's status – Gap Mapping", next: true },
+  { when: "Stage 2 · 1", name: "Gaps and Connections", next: true },
 ];
 
 const SESSION_1_HREF = "/stage-2/session-1";
@@ -181,7 +181,7 @@ export default function Stage2Page() {
               Up next
             </div>
             <div className="mt-1 text-xl font-semibold text-fg">
-              1 · Today&apos;s status – Gap Mapping
+              1 · Gaps and Connections
             </div>
             <div className="mt-0.5 text-xs text-muted">
               Map what we have, what&apos;s missing and what needs connecting — block by block —
@@ -297,7 +297,7 @@ function NextCard() {
         1
       </span>
       <span className="mt-1 text-[13px] font-semibold text-fg">
-        Today&apos;s status – Gap Mapping
+        Gaps and Connections
       </span>
       <span className="mt-1 text-[11px] text-muted">Where we pick up next</span>
       <span className="mt-3 text-xs font-semibold text-automate transition group-hover:translate-x-0.5">

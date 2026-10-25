@@ -30,11 +30,31 @@ import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
 
 type Slide = {
   key: string;
+  /** Fixed slide number (its original position) — kept when slides are reordered or hidden. */
+  num: number;
   kicker: string;
   title: string;
   hero?: boolean;
   body: React.ReactNode;
 };
+
+/** Shown first, in this order (user request, 2026-10-25): 01 then 00. */
+const LEAD_SLIDES = ["title", "blocks"];
+
+/**
+ * Hidden for now (user request, 2026-10-25). "Bring back the hidden slides"
+ * = empty this set. Hidden: 02 Transformation structure · 03 The target, stage
+ * by stage · 04 Seven shifts · 05 Eight layers at a glance · 06–12 Layers 1–7 ·
+ * 13 Organizational memory & learning loop.
+ */
+const HIDDEN_SLIDES = new Set<string>([
+  "transform",
+  "target",
+  "shifts",
+  "layers",
+  ...LAYERS.map((l) => `layer-${l.num}`),
+  "foundation",
+]);
 
 const MUTED_HEX = "#94a3b8";
 const PALETTE = ["#22d3ee", "#a855f7", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#7c5cff"];
@@ -44,6 +64,16 @@ function layer(num: string): Layer {
 }
 
 function buildSlides(): Slide[] {
+  // Numbers come from this original order; display order = LEAD_SLIDES, then the rest.
+  const all: Slide[] = allSlides().map((s, i) => ({ ...s, num: i }));
+  const lead = LEAD_SLIDES.map((k) => all.find((s) => s.key === k)).filter(
+    (s): s is Slide => !!s
+  );
+  const rest = all.filter((s) => !LEAD_SLIDES.includes(s.key));
+  return [...lead, ...rest].filter((s) => !HIDDEN_SLIDES.has(s.key));
+}
+
+function allSlides(): Omit<Slide, "num">[] {
   return [
     {
       key: "blocks",
@@ -174,7 +204,7 @@ function Deck() {
               title={s.title}
               className="grid h-6 min-w-6 place-items-center rounded-full border border-line bg-bg px-1.5 text-[10px] font-semibold text-muted transition hover:border-accent/50 hover:text-fg"
             >
-              {pad(i)}
+              {pad(s.num)}
             </a>
           ))}
         </div>
@@ -195,7 +225,7 @@ function Deck() {
             id={s.key}
             className="scroll-mt-20 rounded-3xl border border-line bg-card/40 p-5 sm:p-8"
           >
-            <SlideHeader slide={s} n={i} onPresent={() => start(i)} />
+            <SlideHeader slide={s} n={s.num} onPresent={() => start(i)} />
             {s.body}
           </section>
         ))}
@@ -206,18 +236,18 @@ function Deck() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Today's status – Gap Mapping presentation"
+          aria-label="Gaps and Connections presentation"
           className="fixed inset-0 z-50 flex flex-col bg-bg"
         >
           <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-2.5">
             <div className="truncate text-xs text-muted">
-              <span className="font-semibold text-fg">Today&apos;s status – Gap Mapping</span>
+              <span className="font-semibold text-fg">Gaps and Connections</span>
               <span className="mx-2">·</span>
               {slides[current].kicker}
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs tabular-nums text-muted">
-                {pad(current)} / {pad(total - 1)}
+                {current + 1} / {total}
               </span>
               <button
                 type="button"
@@ -231,7 +261,7 @@ function Deck() {
 
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-8 sm:px-10">
-              <SlideHeader slide={slides[current]} n={current} big />
+              <SlideHeader slide={slides[current]} n={slides[current].num} big />
               {slides[current].body}
             </div>
           </div>
@@ -251,7 +281,7 @@ function Deck() {
                   key={s.key}
                   type="button"
                   onClick={() => setCurrent(i)}
-                  aria-label={`Go to slide ${pad(i)}: ${s.title}`}
+                  aria-label={`Go to slide ${pad(s.num)}: ${s.title}`}
                   className={
                     "h-2 rounded-full transition-all " +
                     (i === current ? "w-6 bg-accent" : "w-2 bg-line hover:bg-muted")
@@ -348,6 +378,18 @@ function TitleSlide() {
             </Fragment>
           );
         })}
+      </div>
+      {/* Organization brain — spans under every step */}
+      <div
+        className="mx-auto mt-3 flex max-w-4xl flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-2xl border px-4 py-2.5"
+        style={{
+          borderColor: `${ORG_BRAIN.hex}55`,
+          background: `linear-gradient(90deg, ${ORG_BRAIN.hex}0d, ${ORG_BRAIN.hex}1f, ${ORG_BRAIN.hex}0d)`,
+        }}
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ORG_BRAIN.hex }} aria-hidden />
+        <span className="text-[13px] font-semibold text-fg">Organization brain</span>
+        <span className="text-[12px] text-muted">— shared memory under every step</span>
       </div>
       <div className="mt-4 inline-flex items-center gap-2 text-xs text-muted">
         <LoopIcon /> …and back again — every cycle feeds the next

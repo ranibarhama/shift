@@ -401,7 +401,8 @@ export const GTM_ITEMS = [
 
 export const ORG_BRAIN = {
   title: "B2C Organization Brain",
-  hex: "#a855f7",
+  // Same color as the "Organization brain" building block — one entity, one color.
+  hex: "#e34948",
   description:
     "A living knowledge layer that captures, updates and serves everything the organization knows. It sits above today's tools, turning scattered work output into a connected knowledge graph that humans and AI agents can both query.",
   benefits: [

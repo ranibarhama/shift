@@ -14,7 +14,7 @@ import {
 import { CategoryTag } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
- * Stage 2 · 2 · Backlog — the gaps the team mapped in 1 · Today's status:
+ * Stage 2 · 2 · Backlog — the gaps the team mapped in 1 · Gaps and Connections:
  * headline numbers, the backlog itself, then where things need to connect —
  * a simple map of the blocks (exists-needs-connecting above, missing below)
  * and the from → to grid underneath to show where the focus is.
@@ -130,7 +130,7 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
           href="/stage-2/session-1#blocks"
           className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-bold text-ink transition hover:brightness-110"
         >
-          Go to 1 · Today&apos;s status →
+          Go to 1 · Gaps and Connections →
         </a>
       </div>
     );
@@ -386,7 +386,7 @@ function BacklogList({
                   <BlockDot block={b.key} />
                 </span>
                 <span className="text-[11px] text-muted">
-                  {b.owners.length > 1 ? "Owners" : "Owner"} · {b.owners.join(", ")}
+                  {b.owners.length > 1 ? "Owners" : "Owner"} · {b.owners.length ? b.owners.join(", ") : "not set yet"}
                 </span>
                 <span className="ml-auto text-[11px] text-muted">
                   {(["missing", "connect"] as const)
@@ -509,15 +509,16 @@ function Connections({ items }: { items: BlockInput[] }) {
   );
 }
 
-const M_W = 1000;
 const M_PW = 124;
 const M_PH = 62;
 const M_GAP = 140;
 const M_X0 = 76;
+/** Canvas grows with the number of blocks so nodes keep their size and spacing. */
+const M_W = 2 * M_X0 + (BUILDING_BLOCKS.length - 1) * M_GAP;
 const mx = (i: number) => M_X0 + i * M_GAP;
 const mIndex = (k: string) => BUILDING_BLOCKS.findIndex((b) => b.key === k);
 const mArcH = (d: number) => 22 + d * 18;
-const mPort = (d: number) => 12 + d * 7;
+const mPort = (d: number) => 12 + d * 6.5; // stays inside the node edge for every distance
 const mStroke = (n: number) => 1.75 + Math.min(n, 6) * 1.1;
 
 function arcMatches(a: Arc, f: Focus) {
