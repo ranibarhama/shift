@@ -1,5 +1,7 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { getCurrentRole } from "@/lib/session";
+import { STAGE2_STEPS, stage2Href } from "@/lib/stage2";
 import { ROLE_COLOR_HEX, getRole, type RoleKey } from "@/lib/roles";
 import { getCurrentTheme } from "@/lib/theme";
 import ThemeToggle from "./ThemeToggle";
@@ -45,16 +47,15 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
             <NavLink href="/stage-2" exact>
               Process so far
             </NavLink>
-            <NavArrow />
-            <NavLink href="/stage-2/session-1">
-              <StepNum n={1} />
-              Gaps and Connections
-            </NavLink>
-            <NavArrow />
-            <NavLink href="/stage-2/backlog">
-              <StepNum n={2} />
-              Backlog
-            </NavLink>
+            {STAGE2_STEPS.map((s) => (
+              <Fragment key={s.slug}>
+                <NavArrow />
+                <NavLink href={stage2Href(s)}>
+                  <StepNum n={s.n} />
+                  {s.title}
+                </NavLink>
+              </Fragment>
+            ))}
           </nav>
         ) : (
         /* Nav reads left-to-right as the order we did things:

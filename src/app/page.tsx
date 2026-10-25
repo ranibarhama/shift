@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { getCurrentTheme } from "@/lib/theme";
+import { STAGE2_STEPS } from "@/lib/stage2";
 
 /** Landing — pick a Shift stage. */
 export default async function Home() {
@@ -42,8 +43,8 @@ export default async function Home() {
           stage="Stage 2"
           status="Up next"
           title="Shift Stage 2"
-          desc="The next phase. See the process we ran so far, map today's status and gaps block by block, and see the backlog of what needs to connect to where."
-          chips={["Process so far", "1 · Gaps and Connections", "2 · Backlog"]}
+          desc="The next phase: map the gaps and connections, build the backlog, then define, architect, plan and run it."
+          chips={["Process so far", ...STAGE2_STEPS.map((s) => `${s.n} · ${s.title}`)]}
           cta="Open Stage 2"
           hex="#16a34a"
           highlight

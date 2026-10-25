@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,9 +18,22 @@ export default function NavLink({ href, children, matchPrefix, exact }: Props) {
   const active = exact
     ? pathname === prefix
     : pathname === prefix || pathname.startsWith(prefix + "/");
+  const ref = useRef<HTMLAnchorElement>(null);
+
+  // In a nav that scrolls sideways, bring the current page's link into view
+  // (adjusts only the nav's own scroll — never the page).
+  useEffect(() => {
+    const el = ref.current;
+    const nav = el?.closest("nav");
+    if (!active || !el || !nav || nav.scrollWidth <= nav.clientWidth) return;
+    const r = el.getBoundingClientRect();
+    const n = nav.getBoundingClientRect();
+    nav.scrollLeft += r.left + r.width / 2 - (n.left + n.width / 2);
+  }, [active]);
 
   return (
     <Link
+      ref={ref}
       href={href}
       aria-current={active ? "page" : undefined}
       className={

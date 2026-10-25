@@ -1,5 +1,7 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
+import { STAGE2_STEPS, stage2Href } from "@/lib/stage2";
 
 export const metadata = {
   title: "Stage 2 · Shift",
@@ -120,6 +122,55 @@ export default function Stage2Page() {
               </div>
             ))}
             <NextCard />
+          </div>
+        </section>
+
+        {/* Stage 2 roadmap — from src/lib/stage2.ts */}
+        <section aria-label="Stage 2 steps" className="mb-12">
+          <SectionLabel>Stage 2 — the steps</SectionLabel>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:items-stretch lg:gap-0">
+            {STAGE2_STEPS.map((s, i) => (
+              <Fragment key={s.slug}>
+                <Link
+                  href={stage2Href(s)}
+                  className={
+                    "flex min-w-0 flex-col rounded-2xl border p-4 transition hover:-translate-y-0.5 lg:flex-1 " +
+                    (s.ready
+                      ? "border-line bg-card/60 shadow-card hover:border-accent/40"
+                      : "border-dashed border-line bg-card/20 hover:border-accent/40")
+                  }
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="grid h-6 w-6 place-items-center rounded-full border border-line bg-card text-[11px] font-semibold text-fg">
+                      {s.n}
+                    </span>
+                    <span
+                      className={
+                        "text-[10px] font-semibold uppercase tracking-[0.14em] " +
+                        (s.ready ? "text-automate" : "text-muted")
+                      }
+                    >
+                      {s.ready ? "Open" : "Coming up"}
+                    </span>
+                  </span>
+                  <span
+                    className={
+                      "mt-2 text-[14px] font-semibold leading-tight " + (s.ready ? "text-fg" : "text-fg/70")
+                    }
+                  >
+                    {s.title}
+                  </span>
+                </Link>
+                {i < STAGE2_STEPS.length - 1 && (
+                  <span aria-hidden className="hidden shrink-0 items-center px-1.5 text-[#f97316] lg:flex">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="m13 6 6 6-6 6" />
+                    </svg>
+                  </span>
+                )}
+              </Fragment>
+            ))}
           </div>
         </section>
 
