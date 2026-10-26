@@ -799,17 +799,15 @@ function StageConnections({ stage, items }: { stage: BlockKey; items: BlockInput
   );
 }
 
-/** Every connection on one screen: the stages that need something on the left, where
- *  it needs to connect on the right. Click a stage to open it on its own. */
+/** Every connection on one screen: all the stages on the left (greyed with 0 until they
+ *  have input), where things need to connect on the right. Click a stage to open it on its own. */
 function AllConnections({ items, onPick }: { items: BlockInput[]; onPick: (k: BlockKey) => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ x: number; y: number; from: BlockKey; conn: Conn } | null>(null);
   const [hot, setHot] = useState<{ side: "from" | "to" | "line"; key: string } | null>(null);
 
   const { left, right } = useMemo(() => {
-    const left = BUILDING_BLOCKS.map((b) => ({ b, out: connectionsOf(b.key, items).out })).filter(
-      (s) => s.out.length > 0
-    );
+    const left = BUILDING_BLOCKS.map((b) => ({ b, out: connectionsOf(b.key, items).out }));
     const totals = new Map<string, Conn>();
     for (const s of left)
       for (const c of s.out) {
@@ -822,14 +820,6 @@ function AllConnections({ items, onPick }: { items: BlockInput[]; onPick: (k: Bl
     );
     return { left, right };
   }, [items]);
-
-  if (left.length === 0) {
-    return (
-      <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[12px] text-muted">
-        Nothing to connect yet — connections appear here as the team adds backlog items.
-      </p>
-    );
-  }
 
   const rows = Math.max(left.length, right.length, 2);
   const H = rows * S_ROW + 40;
@@ -942,9 +932,14 @@ function AllConnections({ items, onPick }: { items: BlockInput[]; onPick: (k: Bl
               key={s.b.key}
               role="button"
               tabIndex={0}
-              aria-label={`Open ${s.b.label}`}
+              aria-label={`Open ${s.b.label}${s.out.length ? "" : " (nothing yet)"}`}
               className="cursor-pointer outline-none"
-              style={{ opacity: pillLit("from", s.b.key) ? 1 : 0.3, transition: "opacity 120ms" }}
+              style={{
+                // No input yet: greyed, so it's clear which stages are still waiting.
+                opacity: !pillLit("from", s.b.key) ? 0.3 : s.out.length ? 1 : 0.45,
+                filter: s.out.length ? undefined : "grayscale(1)",
+                transition: "opacity 120ms",
+              }}
               onPointerEnter={() => setHot({ side: "from", key: s.b.key })}
               onPointerLeave={() => setHot(null)}
               onClick={() => onPick(s.b.key)}
@@ -965,6 +960,18 @@ function AllConnections({ items, onPick }: { items: BlockInput[]; onPick: (k: Bl
           ))}
 
           {/* Needs to connect to */}
+          {right.length === 0 && (
+            <text
+              x={S_RX + S_PW / 2}
+              y={20 + (rows * S_ROW) / 2 + 4}
+              textAnchor="middle"
+              fontSize="12"
+              fontStyle="italic"
+              style={{ fill: "rgb(var(--muted))" }}
+            >
+              Nothing yet
+            </text>
+          )}
           {right.map((c, i) => {
             const stage = isBlockKey(c.key) ? c.key : null;
             return (
