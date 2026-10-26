@@ -39,7 +39,7 @@ export const BUILDING_BLOCKS = [
     hex: "#199e70",
     owners: ["Oren"],
   },
-  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#c98500", owners: ["Ben", "Rani"] },
+  { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#c98500", owners: ["Ben"] },
   { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#d55181", owners: ["Ben"] },
   {
     // Shown as "Measurement" (was "Feedback"); key kept so saved input stays attached.
