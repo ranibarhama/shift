@@ -150,25 +150,20 @@ export default function PresentMode() {
       <button
         type="button"
         onClick={presenting ? stopPresenting : startPresenting}
+        aria-label={presenting ? "Exit present mode" : "Present full screen"}
         title={
           presenting
             ? "Exit present mode (Esc)"
             : "Present full screen — ← → to move"
         }
         className={
-          "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-xs font-semibold transition " +
+          "inline-flex h-8 w-8 items-center justify-center rounded-md border transition " +
           (presenting
-            ? "border border-line text-muted hover:bg-line/40 hover:text-fg"
-            : "bg-accent text-ink hover:brightness-110")
+            ? "border-accent/50 bg-accent/15 text-accent hover:bg-accent/25"
+            : "border-line text-muted hover:bg-line/40 hover:text-fg")
         }
       >
-        {presenting ? (
-          "Exit ✕"
-        ) : (
-          <>
-            <PlayIcon /> Present
-          </>
-        )}
+        {presenting ? <ExitIcon /> : <PlayIcon />}
       </button>
 
       {/* Portal: the header's backdrop blur would otherwise pin "fixed" to the header. */}
@@ -209,16 +204,39 @@ function Kbd({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Same size and stroke as the header's home icon. */
 function PlayIcon() {
   return (
     <svg
-      width="10"
-      height="10"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M6 4l14 8-14 8z" />
+      <path d="M7 4.5v15l12-7.5z" />
+    </svg>
+  );
+}
+
+function ExitIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 6l12 12M18 6 6 18" />
     </svg>
   );
 }

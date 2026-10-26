@@ -16,7 +16,7 @@ import { CategoryTag } from "./BuildingBlocks";
 /* -----------------------------------------------------------------------------
  * Phase 2 · 2 · Backlog — the gaps the team mapped in 1 · Gaps and Connections:
  * headline numbers, the backlog itself, then where things need to connect —
- * a simple map of the blocks (exists-needs-connecting above, missing below)
+ * a left-to-right flow (where a need comes from → where it needs to connect)
  * and the from → to grid underneath to show where the focus is.
  * -------------------------------------------------------------------------- */
 
@@ -450,14 +450,19 @@ function BacklogList({
 
 /* ============================== Where things need to connect ============================== */
 
-type Focus = { type: "node"; key: BlockKey } | { type: "pair"; from: BlockKey; to: BlockKey };
+/** `key` / `to` are stage keys, or OUTSIDE / UNSURE on the "needs to connect to" side. */
+type Focus = { type: "node"; key: string } | { type: "pair"; from: BlockKey; to: string };
 
-type Arc = { id: string; from: BlockKey; to: BlockKey; kind: BacklogKind; items: BlockInput[] };
+const OUTSIDE = "outside";
+const UNSURE = "unsure";
+
+/** One band: the backlog items of one kind that run from a stage to one place. */
+type Link = { id: string; from: BlockKey; to: string; kind: BacklogKind; items: BlockInput[] };
 
 /**
- * A simple map of the blocks (in process order) and the links between them,
- * with the from → to grid underneath to show where the focus is. Hovering a
- * block, a line or a grid cell highlights the same thing in both.
+ * Where things need to connect, read left to right: the stage a need comes from →
+ * where it needs to connect, with the from → to grid underneath to show where the
+ * focus is. Hovering a stage, a band or a grid cell highlights the same thing in both.
  */
 function Connections({ items }: { items: BlockInput[] }) {
   const [hover, setHover] = useState<Focus | null>(null);
@@ -474,23 +479,30 @@ function Connections({ items }: { items: BlockInput[] }) {
         <div>
           <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
           <p className="text-[12px] text-muted">
-            Hover a stage or a line to see its connections. Click to keep it highlighted.
+            Read it left to right: where a need comes from → where it needs to connect. Hover a
+            stage or a band to see the items; click to keep it highlighted.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
           <span className="inline-flex items-center gap-1.5">
-            <svg width="28" height="8" aria-hidden>
-              <line x1="1" y1="4" x2="27" y2="4" style={{ stroke: "rgb(var(--fg))" }} strokeWidth="2.5" strokeLinecap="round" />
+            <svg width="22" height="10" aria-hidden>
+              <rect width="22" height="10" rx="2" style={{ fill: "rgb(var(--muted))" }} fillOpacity="0.6" />
             </svg>
-            Exists — needs connecting
+            Built — needs connecting
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <svg width="28" height="8" aria-hidden>
-              <line x1="1" y1="4" x2="27" y2="4" style={{ stroke: "rgb(var(--fg))" }} strokeWidth="2.5" strokeDasharray="6 5" strokeLinecap="round" />
+            <svg width="22" height="10" aria-hidden>
+              <defs>
+                <pattern id="fm-hatch-legend" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect width="6" height="6" style={{ fill: "rgb(var(--muted))" }} fillOpacity="0.12" />
+                  <rect width="2.5" height="6" style={{ fill: "rgb(var(--muted))" }} fillOpacity="0.7" />
+                </pattern>
+              </defs>
+              <rect width="22" height="10" rx="2" fill="url(#fm-hatch-legend)" />
             </svg>
             Missing — needed
           </span>
-          <span>Thicker line = more items</span>
+          <span>Thicker = more items</span>
           {pinned && (
             <button
               type="button"
@@ -503,29 +515,36 @@ function Connections({ items }: { items: BlockInput[] }) {
         </div>
       </div>
 
-      <SimpleMap items={items} active={active} onHover={setHover} onToggle={toggle} />
+      <FlowMap items={items} active={active} onHover={setHover} onToggle={toggle} />
       <FocusGrid items={items} active={active} onHover={setHover} onToggle={toggle} />
     </section>
   );
 }
 
-const M_PW = 124;
-const M_PH = 62;
-const M_GAP = 140;
-const M_X0 = 76;
-/** Canvas grows with the number of blocks so nodes keep their size and spacing. */
-const M_W = 2 * M_X0 + (BUILDING_BLOCKS.length - 1) * M_GAP;
-const mx = (i: number) => M_X0 + i * M_GAP;
-const mIndex = (k: string) => BUILDING_BLOCKS.findIndex((b) => b.key === k);
-const mArcH = (d: number) => 22 + d * 18;
-const mPort = (d: number) => 12 + d * 6.5; // stays inside the node edge for every distance
-const mStroke = (n: number) => 1.75 + Math.min(n, 6) * 1.1;
+/* Flow geometry (viewBox units). */
+const F_W = 900;
+const F_LX = 228; // right edge of the "comes from" bars
+const F_RX = 672; // left edge of the "needs to connect to" bars
+const F_BAR = 8;
+const F_GAP = 14; // between stages in a column
+const F_TOP = 30; // room for the column headings
+const F_MAXH = 360; // tallest column before the per-item unit shrinks
 
-function arcMatches(a: Arc, f: Focus) {
-  return f.type === "node" ? a.from === f.key || a.to === f.key : a.from === f.from && a.to === f.to;
+/** Everything on the right-hand side, in process order. */
+const TARGET_ORDER = [...BUILDING_BLOCKS.map((b) => b.key as string), OUTSIDE, UNSURE];
+const tRank = (k: string) => TARGET_ORDER.indexOf(k);
+const kRank = (k: BacklogKind) => (k === "connect" ? 0 : 1);
+
+function targetLabel(k: string) {
+  if (isBlockKey(k)) return blockDef(k)!.label;
+  return k === OUTSIDE ? "Outside the stages" : "Not sure yet";
 }
 
-function SimpleMap({
+function linkMatches(l: Link, f: Focus) {
+  return f.type === "node" ? l.from === f.key || l.to === f.key : l.from === f.from && l.to === f.to;
+}
+
+function FlowMap({
   items,
   active,
   onHover,
@@ -537,250 +556,307 @@ function SimpleMap({
   onToggle: (f: Focus) => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [tip, setTip] = useState<{ x: number; y: number; arc: Arc } | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; link: Link } | null>(null);
 
-  const { arcs, outside, unsure } = useMemo(() => {
-    const m = new Map<string, Arc>();
-    const outside = new Map<string, number>();
-    const unsure = new Map<string, number>();
+  const layout = useMemo(() => {
+    const m = new Map<string, Link>();
     for (const e of items) {
-      if (e.kind !== "missing" && e.kind !== "connect") continue;
-      if (e.unsure) {
-        unsure.set(e.block, (unsure.get(e.block) ?? 0) + 1);
-        continue;
-      }
-      for (const t of e.targets) {
-        if (!isBlockKey(t)) {
-          outside.set(e.block, (outside.get(e.block) ?? 0) + 1);
-          continue;
-        }
-        const id = `${e.kind}|${e.block}|${t}`;
+      if (!isBacklogItem(e)) continue;
+      const tos = e.unsure
+        ? [UNSURE]
+        : [...new Set(e.targets.map((t) => (isBlockKey(t) ? t : OUTSIDE)))];
+      for (const to of tos) {
+        const id = `${e.block}|${to}|${e.kind}`;
         const cur = m.get(id);
         if (cur) cur.items.push(e);
-        else m.set(id, { id, from: e.block, to: t, kind: e.kind, items: [e] });
+        else m.set(id, { id, from: e.block, to, kind: e.kind as BacklogKind, items: [e] });
       }
     }
-    return { arcs: [...m.values()], outside, unsure };
+    const links = [...m.values()];
+    const sum = (ls: Link[]) => ls.reduce((s, l) => s + l.items.length, 0);
+    const srcTotal = new Map<string, number>();
+    const tgtTotal = new Map<string, number>();
+    for (const l of links) {
+      srcTotal.set(l.from, (srcTotal.get(l.from) ?? 0) + l.items.length);
+      tgtTotal.set(l.to, (tgtTotal.get(l.to) ?? 0) + l.items.length);
+    }
+    const srcs = BUILDING_BLOCKS.map((b) => b.key as string).filter((k) => srcTotal.has(k));
+    const tgts = TARGET_ORDER.filter((k) => tgtTotal.has(k));
+
+    // Pixels per item: as thick as fits, never thinner than a hairline band.
+    const total = sum(links);
+    const most = Math.max(srcs.length, tgts.length);
+    const u = Math.min(24, Math.max(4, (F_MAXH - (most - 1) * F_GAP) / Math.max(1, total)));
+    const colH = (n: number) => total * u + (n - 1) * F_GAP;
+    const inner = Math.max(colH(srcs.length), colH(tgts.length));
+
+    function place(keys: string[], totals: Map<string, number>) {
+      const out = new Map<string, { y: number; h: number }>();
+      let y = F_TOP + (inner - colH(keys.length)) / 2;
+      for (const k of keys) {
+        const h = totals.get(k)! * u;
+        out.set(k, { y, h });
+        y += h + F_GAP;
+      }
+      return out;
+    }
+    const srcPos = place(srcs, srcTotal);
+    const tgtPos = place(tgts, tgtTotal);
+
+    // Stack each node's bands in the other side's order, so bands cross as little as possible.
+    const y0 = new Map<string, number>();
+    const y1 = new Map<string, number>();
+    for (const k of srcs) {
+      let y = srcPos.get(k)!.y;
+      for (const l of links
+        .filter((l) => l.from === k)
+        .sort((a, b) => tRank(a.to) - tRank(b.to) || kRank(a.kind) - kRank(b.kind))) {
+        y0.set(l.id, y);
+        y += l.items.length * u;
+      }
+    }
+    for (const k of tgts) {
+      let y = tgtPos.get(k)!.y;
+      for (const l of links
+        .filter((l) => l.to === k)
+        .sort((a, b) => tRank(a.from) - tRank(b.from) || kRank(a.kind) - kRank(b.kind))) {
+        y1.set(l.id, y);
+        y += l.items.length * u;
+      }
+    }
+
+    const bands = links.map((l) => {
+      const a = y0.get(l.id)!;
+      const b = y1.get(l.id)!;
+      const h = l.items.length * u;
+      const x0 = F_LX;
+      const x1 = F_RX;
+      const xm = (x0 + x1) / 2;
+      const d =
+        `M${x0},${a} C${xm},${a} ${xm},${b} ${x1},${b} ` +
+        `L${x1},${b + h} C${xm},${b + h} ${xm},${a + h} ${x0},${a + h} Z`;
+      return { link: l, d };
+    });
+
+    return { links, bands, srcs, tgts, srcPos, tgtPos, srcTotal, tgtTotal, H: F_TOP + inner + 10 };
   }, [items]);
 
-  const top = arcs.filter((a) => a.kind === "connect");
-  const bottom = arcs.filter((a) => a.kind === "missing");
-  const topH = Math.max(0, ...top.map((a) => mArcH(Math.abs(mIndex(a.to) - mIndex(a.from)))));
-  const botH = Math.max(0, ...bottom.map((a) => mArcH(Math.abs(mIndex(a.to) - mIndex(a.from)))));
-  const Y0 = 34 + topH;
-  const H = Y0 + M_PH + botH + 34;
+  if (layout.links.length === 0) {
+    return (
+      <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[12px] text-muted">
+        Nothing to connect yet — the bands appear as the team adds backlog items.
+      </p>
+    );
+  }
 
-  const related = (a: Arc) => (active ? arcMatches(a, active) : false);
+  const { links, bands, srcs, tgts, srcPos, tgtPos, srcTotal, tgtTotal, H } = layout;
+  const related = (l: Link) => (active ? linkMatches(l, active) : false);
   const involved = (k: string) =>
     !active ||
     (active.type === "node"
-      ? active.key === k || arcs.some((a) => arcMatches(a, active) && (a.from === k || a.to === k))
+      ? active.key === k || links.some((l) => linkMatches(l, active) && (l.from === k || l.to === k))
       : active.from === k || active.to === k);
-  const focusColor = (a: Arc) =>
-    active?.type === "node" ? blockDef(active.key)!.hex : blockDef(a.from)!.hex;
 
-  function showTip(ev: React.PointerEvent, arc: Arc) {
+  function showTip(ev: React.PointerEvent, link: Link) {
     const r = wrapRef.current?.getBoundingClientRect();
     if (r)
       setTip({
-        // Keep the 260px tooltip inside the map's width.
-        x: Math.min(ev.clientX - r.left + 14, r.width - 270),
+        // Keep the 280px tooltip inside the map's width.
+        x: Math.min(ev.clientX - r.left + 14, r.width - 290),
         y: ev.clientY - r.top + 14,
-        arc,
+        link,
       });
   }
 
-  function arcPath(a: Arc) {
-    const fi = mIndex(a.from);
-    const ti = mIndex(a.to);
-    const d = Math.abs(ti - fi);
-    const dir = Math.sign(ti - fi);
-    const h = mArcH(d);
-    const x1 = mx(fi) + dir * mPort(d);
-    const x2 = mx(ti) - dir * mPort(d);
-    const mid = (x1 + x2) / 2;
-    if (a.kind === "connect") {
-      return { d: `M${x1} ${Y0} Q${mid} ${Y0 - 2 * h} ${x2} ${Y0 - 3}`, badge: [mid, Y0 - h] as const };
-    }
-    const yb = Y0 + M_PH;
-    return { d: `M${x1} ${yb} Q${mid} ${yb + 2 * h} ${x2} ${yb + 3}`, badge: [mid, yb + h] as const };
+  function nodeHandlers(f: Focus) {
+    return {
+      tabIndex: 0,
+      role: "button" as const,
+      className: "cursor-pointer outline-none",
+      onPointerEnter: () => onHover(f),
+      onPointerLeave: () => onHover(null),
+      onFocus: () => onHover(f),
+      onBlur: () => onHover(null),
+      onClick: () => onToggle(f),
+      onKeyDown: (ev: React.KeyboardEvent) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          onToggle(f);
+        }
+      },
+    };
   }
+
+  const head = { fontSize: 10.5, fontWeight: 600, letterSpacing: "0.12em", style: { fill: "rgb(var(--muted))" } };
 
   return (
     <div ref={wrapRef} className="relative" onPointerLeave={() => setTip(null)}>
       <div className="overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${M_W} ${H}`}
-        className="w-full min-w-[760px]"
-        role="img"
-        aria-label="Map of connections between the stages"
-      >
-        <defs>
-          {[["muted", "rgb(var(--muted))"], ...BUILDING_BLOCKS.map((b) => [b.key, b.hex])].map(
-            ([id, color]) => (
-              <marker
-                key={id}
-                id={`sm-arrow-${id}`}
-                viewBox="0 0 10 10"
-                refX="8"
-                refY="5"
-                markerWidth="5"
-                markerHeight="5"
-                orient="auto-start-reverse"
+        <svg
+          viewBox={`0 0 ${F_W} ${H}`}
+          className="mx-auto w-full min-w-[680px] max-w-[1000px]"
+          role="img"
+          aria-label="Where things need to connect: stages on the left, where they need to connect on the right"
+        >
+          <defs>
+            {BUILDING_BLOCKS.map((b) => (
+              <pattern
+                key={b.key}
+                id={`fm-hatch-${b.key}`}
+                width="7"
+                height="7"
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(45)"
               >
-                <path d="M0 0 L10 5 L0 10 Z" style={{ fill: color }} />
-              </marker>
-            )
-          )}
-        </defs>
+                <rect width="7" height="7" fill={b.hex} fillOpacity="0.12" />
+                <rect width="3" height="7" fill={b.hex} fillOpacity="0.6" />
+              </pattern>
+            ))}
+          </defs>
 
-        {/* Zone labels */}
-        <text x={8} y={16} fontSize="11" fontWeight="600" style={{ fill: "rgb(var(--muted))" }}>
-          ▲ Exists — needs connecting{top.length ? "" : " · none yet"}
-        </text>
-        <text x={8} y={H - 10} fontSize="11" fontWeight="600" style={{ fill: "rgb(var(--muted))" }}>
-          ▼ Missing — needed{bottom.length ? "" : " · none yet"}
-        </text>
+          <text x={F_LX} y={14} textAnchor="end" {...head}>
+            COMES FROM
+          </text>
+          <text x={F_RX} y={14} {...head}>
+            NEEDS TO CONNECT TO
+          </text>
 
-        {/* Lines */}
-        {arcs.map((a) => {
-          const rel = related(a);
-          const dim = !!active && !rel;
-          const color = rel ? focusColor(a) : "rgb(var(--muted))";
-          const markerId = rel ? (active?.type === "node" ? active.key : a.from) : "muted";
-          const { d, badge } = arcPath(a);
-          const n = a.items.length;
-          const pair: Focus = { type: "pair", from: a.from, to: a.to };
-          return (
-            <g
-              key={a.id}
-              tabIndex={0}
-              role="button"
-              aria-label={`${blockDef(a.from)!.label} to ${blockDef(a.to)!.label}: ${n} ${
-                a.kind === "connect" ? "exist and need connecting" : "missing"
-              }`}
-              className="cursor-pointer outline-none"
-              style={{ opacity: dim ? 0.12 : 1, transition: "opacity 120ms" }}
-              onPointerEnter={(ev) => {
-                onHover(pair);
-                showTip(ev, a);
-              }}
-              onPointerMove={(ev) => showTip(ev, a)}
-              onPointerLeave={() => {
-                onHover(null);
-                setTip(null);
-              }}
-              onFocus={() => onHover(pair)}
-              onBlur={() => onHover(null)}
-              onClick={() => onToggle(pair)}
-              onKeyDown={(ev) => {
-                if (ev.key === "Enter" || ev.key === " ") {
-                  ev.preventDefault();
-                  onToggle(pair);
-                }
-              }}
-            >
+          {/* Bands */}
+          {bands.map(({ link: l, d }) => {
+            const hex = blockDef(l.from)!.hex;
+            const rel = related(l);
+            const n = l.items.length;
+            const pair: Focus = { type: "pair", from: l.from, to: l.to };
+            return (
               <path
+                key={l.id}
                 d={d}
-                fill="none"
-                style={{ stroke: color }}
-                strokeOpacity={rel ? 1 : 0.6}
-                strokeWidth={mStroke(n)}
-                strokeDasharray={a.kind === "missing" ? "7 6" : undefined}
-                strokeLinecap="round"
-                markerEnd={`url(#sm-arrow-${markerId})`}
+                tabIndex={0}
+                role="button"
+                aria-label={`${blockDef(l.from)!.label} to ${targetLabel(l.to)}: ${n} ${
+                  l.kind === "connect" ? "built, need connecting" : "missing"
+                }`}
+                className="cursor-pointer outline-none"
+                fill={l.kind === "connect" ? hex : `url(#fm-hatch-${l.from})`}
+                fillOpacity={l.kind === "connect" ? (rel ? 0.8 : 0.5) : 1}
+                style={{
+                  stroke: "rgb(var(--card))",
+                  opacity: active && !rel ? 0.12 : 1,
+                  transition: "opacity 120ms",
+                }}
+                strokeWidth={1}
+                onPointerEnter={(ev) => {
+                  onHover(pair);
+                  showTip(ev, l);
+                }}
+                onPointerMove={(ev) => showTip(ev, l)}
+                onPointerLeave={() => {
+                  onHover(null);
+                  setTip(null);
+                }}
+                onFocus={() => onHover(pair)}
+                onBlur={() => onHover(null)}
+                onClick={() => onToggle(pair)}
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
+                    onToggle(pair);
+                  }
+                }}
               />
-              <path d={d} fill="none" stroke="transparent" strokeWidth={16} />
-              {n > 1 && (
-                <g>
-                  <circle cx={badge[0]} cy={badge[1]} r="9" style={{ fill: "rgb(var(--card))", stroke: color }} strokeWidth="1.5" />
-                  <text x={badge[0]} y={badge[1] + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" style={{ fill: "rgb(var(--fg))" }}>
-                    {n}
-                  </text>
-                </g>
-              )}
-            </g>
-          );
-        })}
+            );
+          })}
 
-        {/* Blocks */}
-        {BUILDING_BLOCKS.map((b, i) => {
-          const f: Focus = { type: "node", key: b.key };
-          const x = mx(i) - M_PW / 2;
-          const on = active?.type === "node" && active.key === b.key;
-          const out = outside.get(b.key) ?? 0;
-          const ns = unsure.get(b.key) ?? 0;
-          const extra = [out ? `+${out} outside` : "", ns ? `${ns} not sure` : ""]
-            .filter(Boolean)
-            .join(" · ");
-          return (
-            <g
-              key={b.key}
-              tabIndex={0}
-              role="button"
-              aria-label={`${b.label}${extra ? `, ${extra}` : ""}`}
-              className="cursor-pointer outline-none"
-              style={{ opacity: involved(b.key) ? 1 : 0.35, transition: "opacity 120ms" }}
-              onPointerEnter={() => onHover(f)}
-              onPointerLeave={() => onHover(null)}
-              onFocus={() => onHover(f)}
-              onBlur={() => onHover(null)}
-              onClick={() => onToggle(f)}
-              onKeyDown={(ev) => {
-                if (ev.key === "Enter" || ev.key === " ") {
-                  ev.preventDefault();
-                  onToggle(f);
-                }
-              }}
-            >
-              <rect
-                x={x}
-                y={Y0}
-                width={M_PW}
-                height={M_PH}
-                rx="12"
-                style={{ fill: "rgb(var(--card))", stroke: on ? b.hex : "rgb(var(--line))" }}
-                strokeWidth={on ? 2 : 1}
-              />
-              <rect x={x + 10} y={Y0} width={M_PW - 20} height="3" rx="1.5" fill={b.hex} />
-              <circle cx={x + 14} cy={Y0 + 19} r="4.5" fill={b.hex} />
-              {b.mapLines.map((line, li) => (
-                <text key={line} x={x + 24} y={Y0 + 23 + li * 13} fontSize="11.5" fontWeight="600" style={{ fill: "rgb(var(--fg))" }}>
-                  {line}
+          {/* Comes from */}
+          {srcs.map((k) => {
+            const b = blockDef(k)!;
+            const { y, h } = srcPos.get(k)!;
+            return (
+              <g
+                key={k}
+                aria-label={`${b.label}: ${srcTotal.get(k)} going out`}
+                style={{ opacity: involved(k) ? 1 : 0.3, transition: "opacity 120ms" }}
+                {...nodeHandlers({ type: "node", key: k })}
+              >
+                <rect x={F_LX - F_BAR} y={y} width={F_BAR} height={h} rx="2" fill={b.hex} />
+                <text x={F_LX - F_BAR - 10} y={y + h / 2 + 4} textAnchor="end" fontSize="12.5">
+                  <tspan fontWeight="600" style={{ fill: "rgb(var(--fg))" }}>
+                    {b.label}
+                  </tspan>
+                  <tspan dx="6" style={{ fill: "rgb(var(--muted))" }}>
+                    {srcTotal.get(k)}
+                  </tspan>
                 </text>
-              ))}
-              {extra && (
-                <text x={x + 14} y={Y0 + M_PH - 9} fontSize="10" style={{ fill: "rgb(var(--muted))" }}>
-                  {extra}
+              </g>
+            );
+          })}
+
+          {/* Needs to connect to */}
+          {tgts.map((k) => {
+            const b = isBlockKey(k) ? blockDef(k)! : null;
+            const { y, h } = tgtPos.get(k)!;
+            return (
+              <g
+                key={k}
+                aria-label={`${targetLabel(k)}: ${tgtTotal.get(k)} coming in`}
+                style={{ opacity: involved(k) ? 1 : 0.3, transition: "opacity 120ms" }}
+                {...nodeHandlers({ type: "node", key: k })}
+              >
+                <rect
+                  x={F_RX}
+                  y={y}
+                  width={F_BAR}
+                  height={h}
+                  rx="2"
+                  style={{ fill: b ? b.hex : "rgb(var(--muted))" }}
+                  fillOpacity={b ? 1 : 0.5}
+                />
+                <text x={F_RX + F_BAR + 10} y={y + h / 2 + 4} fontSize="12.5">
+                  <tspan
+                    fontWeight="600"
+                    fontStyle={b ? undefined : "italic"}
+                    style={{ fill: b ? "rgb(var(--fg))" : "rgb(var(--muted))" }}
+                  >
+                    {targetLabel(k)}
+                  </tspan>
+                  <tspan dx="6" style={{ fill: "rgb(var(--muted))" }}>
+                    {tgtTotal.get(k)}
+                  </tspan>
                 </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
+              </g>
+            );
+          })}
+        </svg>
       </div>
 
       {tip && (
         <div
-          className="pointer-events-none absolute z-10 w-[260px] rounded-lg border border-line bg-card px-3 py-2 shadow-card"
+          className="pointer-events-none absolute z-10 w-[280px] rounded-lg border border-line bg-card px-3 py-2 shadow-card"
           style={{ left: tip.x, top: tip.y }}
           role="tooltip"
         >
           <div className="text-sm font-semibold text-fg">
-            {tip.arc.items.length} item{tip.arc.items.length === 1 ? "" : "s"}
+            {blockDef(tip.link.from)!.label} → {targetLabel(tip.link.to)}
           </div>
           <div className="text-[11px] text-muted">
-            {blockDef(tip.arc.from)!.label} → {blockDef(tip.arc.to)!.label} ·{" "}
-            {tip.arc.kind === "connect" ? "exists, needs connecting" : "missing, needed"}
+            {tip.link.items.length}{" "}
+            {tip.link.kind === "connect" ? "built, need connecting" : "missing, needed"}
           </div>
           <ul className="mt-1.5 space-y-0.5 text-[12px] text-fg">
-            {tip.arc.items.slice(0, 5).map((e) => (
-              <li key={e.id} className="truncate">
-                · {e.text} <span className="text-muted">({e.member})</span>
-              </li>
-            ))}
-            {tip.arc.items.length > 5 && (
-              <li className="text-muted">+{tip.arc.items.length - 5} more</li>
+            {tip.link.items.slice(0, 5).map((e) => {
+              const outside = e.targets.filter((t) => !isBlockKey(t));
+              return (
+                <li key={e.id} className="truncate">
+                  · {e.text}
+                  {tip.link.to === OUTSIDE && outside.length > 0 && (
+                    <span className="text-muted"> → {outside.join(", ")}</span>
+                  )}{" "}
+                  <span className="text-muted">({e.member})</span>
+                </li>
+              );
+            })}
+            {tip.link.items.length > 5 && (
+              <li className="text-muted">+{tip.link.items.length - 5} more</li>
             )}
           </ul>
         </div>
@@ -898,7 +974,7 @@ function FocusGrid({
                   const n = cell(r.key, c.key);
                   const s = step(n);
                   const pair: Focus | null =
-                    n && c.block ? { type: "pair", from: r.key, to: c.key as BlockKey } : null;
+                    n ? { type: "pair", from: r.key, to: c.key } : null;
                   return (
                     <td
                       key={c.key}
