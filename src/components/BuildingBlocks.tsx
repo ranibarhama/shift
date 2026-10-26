@@ -763,6 +763,12 @@ function TargetPill({ target }: { target: string }) {
   );
 }
 
+/** "Connect to" dropdown values besides the stage keys. */
+const ELSEWHERE = "__elsewhere";
+const UNSURE = "__unsure";
+
+/** "+ Add" until clicked; then a short form — the item, a category and (optionally)
+ *  where it connects, each a dropdown. Closes again once saved. */
 function AddForm({
   block,
   kind,
@@ -779,6 +785,7 @@ function AddForm({
   blockedNote?: string;
 }) {
   const { member, add } = useBlocks();
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [category, setCategory] = useState<CategoryKey | "">("");
   const [places, setPlaces] = useState<BlockKey[]>([]);
@@ -794,11 +801,44 @@ function AddForm({
   if (blockedNote) {
     return <p className="text-[11px] text-muted">{blockedNote}</p>;
   }
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1 rounded-full border border-dashed border-line px-3 py-1 text-[11.5px] font-semibold text-muted transition hover:border-accent/60 hover:text-fg"
+      >
+        + Add
+      </button>
+    );
+  }
 
-  function togglePlace(k: BlockKey) {
+  function close() {
+    setOpen(false);
+    setText("");
+    setCategory("");
+    setPlaces([]);
+    setOtherOn(false);
+    setOtherText("");
     setUnsure(false);
     setError(null);
-    setPlaces((ps) => (ps.includes(k) ? ps.filter((p) => p !== k) : [...ps, k]));
+  }
+
+  /** Each pick from the "connect to" dropdown adds a place (removable below). */
+  function pick(v: string) {
+    setError(null);
+    if (v === UNSURE) {
+      setUnsure(true);
+      setPlaces([]);
+      setOtherOn(false);
+      setOtherText("");
+    } else if (v === ELSEWHERE) {
+      setOtherOn(true);
+      setUnsure(false);
+    } else if (isBlockKey(v)) {
+      setUnsure(false);
+      setPlaces((ps) => (ps.includes(v) ? ps : [...ps, v]));
+    }
   }
 
   async function submit(e: React.FormEvent) {
@@ -806,7 +846,7 @@ function AddForm({
     const t = text.trim();
     if (!t) return;
     if (!category) {
-      setError("Pick a category first");
+      setError("Pick a category");
       return;
     }
     let target: Where | undefined;
@@ -829,50 +869,20 @@ function AddForm({
     setBusy(true);
     const err = await add(block, saveAs, t, category, target);
     setBusy(false);
-    if (err) {
-      setError(err);
-    } else {
-      setText("");
-      setPlaces([]);
-      setOtherOn(false);
-      setOtherText("");
-      setUnsure(false);
-      setError(null);
-    }
+    if (err) setError(err);
+    else close();
   }
 
   const inputCls =
     "w-full rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[12.5px] text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none";
-  const chipCls =
-    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold transition ";
+  const selectCls =
+    "min-w-0 rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px] focus:border-accent focus:outline-none ";
+  const choices = BUILDING_BLOCKS.filter((b) => b.key !== block && !places.includes(b.key));
 
   return (
-    <form onSubmit={submit} className="space-y-1.5">
-      <div role="radiogroup" aria-label="Category" className="flex flex-wrap gap-1">
-        {CATEGORIES.map((c) => {
-          const on = category === c.key;
-          return (
-            <button
-              key={c.key}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => {
-                setCategory(c.key);
-                setError(null);
-              }}
-              className={
-                chipCls +
-                (on ? "border-accent bg-accent/15 text-fg" : "border-line text-muted hover:text-fg")
-              }
-            >
-              {on && <span aria-hidden>✓</span>}
-              {c.label}
-            </button>
-          );
-        })}
-      </div>
+    <form onSubmit={submit} className="space-y-2">
       <input
+        autoFocus
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={MAX_TEXT}
@@ -880,89 +890,134 @@ function AddForm({
         aria-label={KIND_META[kind].label}
         className={inputCls}
       />
-      {where && (
-        <div className="space-y-1 rounded-lg border border-line/70 bg-bg/40 p-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-            {where === "optional"
-              ? "Needs to connect to? — optional, one or more"
-              : "Should connect to, in your view — one or more"}
-          </div>
-          <div role="group" aria-label="Connect to" className="flex flex-wrap gap-1">
-            {BUILDING_BLOCKS.filter((b) => b.key !== block).map((b) => {
-              const on = places.includes(b.key);
-              return (
-                <button
-                  key={b.key}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => togglePlace(b.key)}
-                  className={chipCls + (on ? "text-fg" : "border-line text-muted hover:text-fg")}
-                  style={on ? { borderColor: b.hex, background: `${b.hex}24` } : undefined}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: b.hex }} />
-                  {b.label}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              aria-pressed={otherOn}
-              onClick={() => {
-                setOtherOn((v) => !v);
-                setUnsure(false);
-                setError(null);
-              }}
-              className={
-                chipCls +
-                "border-dashed " +
-                (otherOn ? "border-fg/50 bg-line/50 text-fg" : "border-line text-muted hover:text-fg")
-              }
-            >
-              + Somewhere else
-            </button>
-            {where === "missing" && (
-              <button
-                type="button"
-                aria-pressed={unsure}
-                onClick={() => {
-                  setUnsure((v) => !v);
-                  setPlaces([]);
-                  setOtherOn(false);
-                  setError(null);
-                }}
-                className={
-                  chipCls +
-                  "italic " +
-                  (unsure ? "border-fg/50 bg-line/60 text-fg" : "border-line text-muted hover:text-fg")
-                }
-              >
-                I&apos;m not sure
-              </button>
-            )}
-          </div>
-          {otherOn && (
-            <input
-              value={otherText}
-              onChange={(e) => setOtherText(e.target.value)}
-              maxLength={MAX_TARGET * 4}
-              placeholder="e.g. Salesforce, the Data team (comma-separated)"
-              aria-label="Somewhere else"
-              className={inputCls}
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value as CategoryKey);
+            setError(null);
+          }}
+          aria-label="Category"
+          className={selectCls + (category ? "text-fg" : "text-muted")}
+        >
+          <option value="" disabled>
+            Category…
+          </option>
+          {CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        {where && (
+          <select
+            value=""
+            onChange={(e) => pick(e.target.value)}
+            aria-label="Connect to"
+            className={selectCls + "text-muted"}
+          >
+            <option value="" disabled>
+              {where === "optional" ? "Connect to… (optional)" : "Should connect to…"}
+            </option>
+            {choices.map((b) => (
+              <option key={b.key} value={b.key}>
+                {b.label}
+              </option>
+            ))}
+            {!otherOn && <option value={ELSEWHERE}>Somewhere else…</option>}
+            {where === "missing" && !unsure && <option value={UNSURE}>I&apos;m not sure</option>}
+          </select>
+        )}
+      </div>
+      {(places.length > 0 || unsure) && (
+        <div className="flex flex-wrap items-center gap-1 text-[11px]">
+          <span className="text-muted">→</span>
+          {places.map((k) => (
+            <PlacePill
+              key={k}
+              target={k}
+              onRemove={() => setPlaces((ps) => ps.filter((p) => p !== k))}
             />
+          ))}
+          {unsure && (
+            <PlacePill target="Not sure where" muted onRemove={() => setUnsure(false)} />
           )}
+        </div>
+      )}
+      {otherOn && (
+        <div className="flex items-center gap-1.5">
+          <input
+            autoFocus
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            maxLength={MAX_TARGET * 4}
+            placeholder="Where else? e.g. Salesforce, the Data team"
+            aria-label="Somewhere else"
+            className={inputCls}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setOtherOn(false);
+              setOtherText("");
+            }}
+            aria-label="Remove somewhere else"
+            className="shrink-0 text-[11px] text-muted transition hover:text-drop"
+          >
+            ✕
+          </button>
         </div>
       )}
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-[11px] text-drop">{error}</span>
-        <button
-          type="submit"
-          disabled={busy || !text.trim()}
-          className="shrink-0 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-ink transition hover:brightness-110 disabled:opacity-40"
-        >
-          {busy ? "Adding…" : "Add"}
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={close}
+            className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-muted transition hover:text-fg"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={busy || !text.trim()}
+            className="rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-ink transition hover:brightness-110 disabled:opacity-40"
+          >
+            {busy ? "Adding…" : "Add"}
+          </button>
+        </div>
       </div>
     </form>
+  );
+}
+
+/** A chosen place in the add form, with ✕ to drop it. */
+function PlacePill({
+  target,
+  muted,
+  onRemove,
+}: {
+  target: string;
+  muted?: boolean;
+  onRemove: () => void;
+}) {
+  return (
+    <span
+      className={
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full py-px pl-1.5 pr-1 " +
+        (muted ? "border border-dashed border-line italic text-muted" : "")
+      }
+    >
+      {muted ? target : <TargetPill target={target} />}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${isBlockKey(target) ? blockDef(target)!.label : target}`}
+        className="text-[10px] text-muted transition hover:text-drop"
+      >
+        ✕
+      </button>
+    </span>
   );
 }
 
