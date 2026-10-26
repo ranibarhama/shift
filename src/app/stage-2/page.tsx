@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
+import { STAGE2_STEPS, stage2Href, type Stage2Step } from "@/lib/stage2";
 
 export const metadata = {
   title: "Phase 2 · Shift",
@@ -138,6 +139,19 @@ export default function Stage2Page() {
             Open →
           </span>
         </Link>
+
+        {/* Phase 2 — the same steps as the header menu */}
+        <section aria-label="Phase 2 steps diagram" className="mt-12">
+          <SectionLabel>What we&apos;re doing next in Phase 2</SectionLabel>
+          <ol className="mt-4 flex flex-col items-stretch lg:flex-row">
+            {STAGE2_STEPS.map((s, i) => (
+              <li key={s.slug} className="flex flex-col lg:flex-1 lg:flex-row lg:min-w-0">
+                <StepCard step={s} />
+                {i < STAGE2_STEPS.length - 1 && <FlowArrow />}
+              </li>
+            ))}
+          </ol>
+        </section>
       </main>
     </div>
   );
@@ -224,6 +238,36 @@ function FlowCard({ node, nums }: { node: FlowNode; nums: number[] }) {
     <div className={cls} style={style}>
       {body}
     </div>
+  );
+}
+
+function StepCard({ step: s }: { step: Stage2Step }) {
+  return (
+    <Link
+      href={stage2Href(s)}
+      className={
+        "group flex h-full w-full flex-col rounded-2xl border bg-card/60 p-3.5 shadow-card transition hover:-translate-y-0.5 " +
+        (s.ready
+          ? "border-automate/50 hover:border-automate"
+          : "border-dashed border-line hover:border-accent/40")
+      }
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-bg text-xs font-semibold text-fg">
+          {s.n}
+        </span>
+        <span
+          className={
+            "text-[10px] font-semibold uppercase tracking-[0.12em] " +
+            (s.ready ? "text-automate" : "text-muted")
+          }
+        >
+          {s.ready ? "Open →" : "Planned"}
+        </span>
+      </div>
+      <h3 className="text-[13.5px] font-semibold leading-tight text-fg">{s.title}</h3>
+      <p className="mt-1.5 text-[11.5px] leading-snug text-muted">{s.summary}</p>
+    </Link>
   );
 }
 
