@@ -20,6 +20,8 @@ type FlowNode = {
   numbered?: boolean;
   decisions?: boolean;
   href?: string;
+  /** Named link at the bottom of the card (the whole card links to `href`). */
+  linkLabel?: string;
 };
 
 const FLOW: FlowNode[] = [
@@ -53,12 +55,9 @@ const FLOW: FlowNode[] = [
     label: "Outcome",
     title: "Pilot results",
     hex: "#10b981",
-    steps: [
-      "AI-Native PM → Production pipeline",
-      "Insight to live release, end to end",
-      "~$20 total cost",
-    ],
+    steps: ["AI-Native PM → Production pipeline", "Insight to live release, end to end"],
     href: "/pilot-results",
+    linkLabel: "Pilot summary",
   },
 ];
 
@@ -142,7 +141,7 @@ function FlowCard({ node, nums }: { node: FlowNode; nums: number[] }) {
         >
           {node.label}
         </span>
-        {node.href && (
+        {node.href && !node.linkLabel && (
           <span className="text-[11px] font-semibold" style={{ color: node.hex }}>
             View →
           </span>
@@ -179,6 +178,14 @@ function FlowCard({ node, nums }: { node: FlowNode; nums: number[] }) {
           </li>
         ))}
       </ul>
+      {node.linkLabel && (
+        <span
+          className="mt-3 inline-flex w-fit items-center gap-1 text-[12.5px] font-semibold underline-offset-4 group-hover:underline"
+          style={{ color: node.hex }}
+        >
+          {node.linkLabel} →
+        </span>
+      )}
       {node.decisions && (
         <div className="mt-3 flex flex-wrap gap-1 border-t border-line/60 pt-2.5">
           {DECISIONS.map((d) => (
@@ -202,7 +209,7 @@ function FlowCard({ node, nums }: { node: FlowNode; nums: number[] }) {
   return node.href ? (
     <Link
       href={node.href}
-      className={cls + " transition hover:-translate-y-0.5 hover:border-accent/40"}
+      className={cls + " group transition hover:-translate-y-0.5 hover:border-accent/40"}
       style={style}
     >
       {body}
