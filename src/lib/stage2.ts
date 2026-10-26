@@ -54,8 +54,8 @@ export const STAGE2_STEPS: Stage2Step[] = [
   {
     n: 6,
     slug: "work-plan",
-    title: "Gantt and tracked work plan",
-    summary: "Put the work on a timeline with owners, and track it.",
+    title: "Gantt & Resources",
+    summary: "Put the work on a timeline with owners and the resources it needs, and track it.",
     ready: false,
   },
   {
