@@ -27,6 +27,7 @@ import {
   type CategoryKey,
   type InputKind,
 } from "@/lib/buildingBlocks";
+import { createPortal } from "react-dom";
 import { enteredAtEnd, usePresentStops } from "./PresentMode";
 
 /* -----------------------------------------------------------------------------
@@ -197,15 +198,17 @@ export function BlocksProvider({
 
 export function BuildingBlocksSlide() {
   const { entries } = useBlocks();
-  const [selected, setSelected] = useState<BlockKey>("research");
+  // The open stage (its panel slides in from the right); null = none open.
+  const [selected, setSelected] = useState<BlockKey | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
   // Present mode: -1 = the page's opening view, then one stop per stage.
   const stop = useRef(-1);
 
-  const select = useCallback((k: BlockKey) => {
-    stop.current = BUILDING_BLOCKS.findIndex((b) => b.key === k);
+  const select = useCallback((k: BlockKey | null) => {
+    stop.current = k ? BUILDING_BLOCKS.findIndex((b) => b.key === k) : -1;
     setSelected(k);
   }, []);
+  const close = useCallback(() => select(null), [select]);
 
   const showStage = useCallback(
     (i: number, behavior: ScrollBehavior = "smooth") => {
@@ -219,7 +222,7 @@ export function BuildingBlocksSlide() {
     const next = stop.current + dir;
     if (next < -1 || next >= BUILDING_BLOCKS.length) return false;
     if (next === -1) {
-      stop.current = -1;
+      select(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       showStage(next);
@@ -242,14 +245,16 @@ export function BuildingBlocksSlide() {
   return (
     <div className="space-y-4">
       <p className="max-w-3xl text-sm text-muted">
-        The whole process, stage by stage. Pick your name, open a stage, and add what we already
-        built — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
-        {MAX_MISSING} by priority). Every item gets a category.
+        The whole process, stage by stage. Pick your name, click a stage to open it, and add
+        what we already built — and where it needs to connect, if it does — and what&apos;s
+        missing (your top {MAX_MISSING} by priority). Every item gets a category.
       </p>
       <div ref={flowRef} className="scroll-mt-20">
         <BlocksFlow byBlock={byBlock} selected={selected} onSelect={select} />
       </div>
-      <BlockEditor key={selected} block={selected} entries={byBlock.get(selected) ?? []} />
+      {selected && (
+        <StagePanel key={selected} block={selected} entries={byBlock.get(selected) ?? []} onClose={close} />
+      )}
     </div>
   );
 }
@@ -340,7 +345,7 @@ function BlocksFlow({
   onSelect,
 }: {
   byBlock: Map<BlockKey, BlockInput[]>;
-  selected: BlockKey;
+  selected: BlockKey | null;
   onSelect: (b: BlockKey) => void;
 }) {
   const flow = BUILDING_BLOCKS.filter((b) => !isFoundation(b.key));
@@ -517,7 +522,56 @@ function BlockCard({
 
 /* ---------- Editor for the selected block ---------- */
 
-function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[] }) {
+/** The open stage, as a panel that slides in from the right — apart from the cards,
+ *  so it doesn't read as part of the process. Esc, ✕ or a click outside closes it. */
+function StagePanel({
+  block,
+  entries,
+  onClose,
+}: {
+  block: BlockKey;
+  entries: BlockInput[];
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Portal: keeps the panel above the page whatever its containers do. Below the
+  // present-mode controls (z-40), so those stay usable while presenting.
+  return createPortal(
+    <div className="fixed inset-0 z-30 flex justify-end">
+      <div className="absolute inset-0 bg-black/25" onClick={onClose} aria-hidden />
+      <div
+        ref={ref}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${blockDef(block)!.label} — add input`}
+        className="relative h-full w-full max-w-[600px] overflow-y-auto border-l border-line bg-bg shadow-2xl outline-none"
+      >
+        <BlockEditor block={block} entries={entries} onClose={onClose} />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function BlockEditor({
+  block,
+  entries,
+  onClose,
+}: {
+  block: BlockKey;
+  entries: BlockInput[];
+  onClose: () => void;
+}) {
   const { member } = useBlocks();
   const b = blockDef(block)!;
   const people = [...new Set(entries.map((e) => e.member))];
@@ -538,91 +592,104 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
   const myMissing = entries.filter((e) => e.kind === "missing" && e.member === member).length;
 
   return (
-    <div
-      className="rounded-2xl border p-4 sm:p-5"
-      style={{ borderColor: `${b.hex}55`, background: `${b.hex}0a` }}
-    >
-      <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em]"
-          style={{ background: `${b.hex}1f`, color: b.hex }}
-        >
-          {b.label}
-        </span>
-        <span className="text-[12px] text-muted">
-          {b.owners.length > 1 ? "Owners" : "Owner"} ·{" "}
-          <OwnerNames owners={b.owners} member={member} />
-        </span>
-        <span className="text-[12px] text-muted" aria-hidden>
-          ·
-        </span>
-        <span className="text-[12px] text-muted">
-          {people.length
-            ? `${people.length} team member${people.length > 1 ? "s" : ""} added input · ${people.join(", ")}`
-            : "No input yet — be the first"}
-        </span>
-      </div>
-      {entries.length > 0 && (
-        <div className="-mt-2 mb-4 flex flex-wrap items-center gap-y-1">
-          <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
-            By category
-          </span>
-          {CATEGORIES.map((c) => (
-            <CategoryTag
-              key={c.key}
-              category={c.key}
-              count={entries.filter((e) => e.category === c.key).length}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Column
-          kind="have"
-          footer={
-            <AddForm block={block} kind="have" placeholder="e.g. Weekly competitor digest" where="optional" />
-          }
-        >
-          {have.length === 0 && <Empty />}
-          {have.map((e) => (
-            <EntryRow key={e.id} entry={e}>
-              <TargetList targets={e.targets} unsure={false} />
-            </EntryRow>
-          ))}
-        </Column>
-
-        <Column
-          kind="missing"
-          hint="Add your most important first — #1 is your top priority."
-          footer={
-            <AddForm
-              block={block}
-              kind="missing"
-              placeholder="e.g. One view of user feedback"
-              where="missing"
-              blockedNote={
-                myMissing >= MAX_MISSING
-                  ? `You've listed your top ${MAX_MISSING} — remove one to change it.`
-                  : undefined
-              }
-            />
-          }
-        >
-          {missingByMember.length === 0 && <Empty />}
-          {missingByMember.map(([who, list]) => (
-            <div key={who} className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                {who === member ? `${who} (you)` : who}
-              </div>
-              {list.map((e, i) => (
-                <EntryRow key={e.id} entry={e} rank={i + 1} hideMember>
-                  <TargetList targets={e.targets} unsure={e.unsure} />
-                </EntryRow>
-              ))}
+    <div>
+      <div
+        className="sticky top-0 z-10 border-b border-line bg-bg px-5 pb-4 pt-5"
+        style={{ boxShadow: `inset 0 4px 0 0 ${b.hex}` }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: b.hex }} aria-hidden />
+              <h3 className="text-xl font-semibold tracking-tight text-fg">{b.label}</h3>
             </div>
-          ))}
-        </Column>
+            <p className="mt-1 text-[12px] text-muted">
+              {b.owners.length > 1 ? "Owners" : "Owner"} ·{" "}
+              <OwnerNames owners={b.owners} member={member} />
+              {" · "}
+              {people.length
+                ? `${people.length} team member${people.length > 1 ? "s" : ""} added input · ${people.join(", ")}`
+                : "No input yet — be the first"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close (Esc)"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-line text-muted transition hover:bg-line/40 hover:text-fg"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="mt-3">
+          <MemberPicker />
+        </div>
+      </div>
+
+      <div className="px-5 py-4">
+        {entries.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-y-1">
+            <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+              By category
+            </span>
+            {CATEGORIES.map((c) => (
+              <CategoryTag
+                key={c.key}
+                category={c.key}
+                count={entries.filter((e) => e.category === c.key).length}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3">
+          <Column
+            kind="have"
+            footer={
+              <AddForm block={block} kind="have" placeholder="e.g. Weekly competitor digest" where="optional" />
+            }
+          >
+            {have.length === 0 && <Empty />}
+            {have.map((e) => (
+              <EntryRow key={e.id} entry={e}>
+                <TargetList targets={e.targets} unsure={false} />
+              </EntryRow>
+            ))}
+          </Column>
+
+          <Column
+            kind="missing"
+            hint="Add your most important first — #1 is your top priority."
+            footer={
+              <AddForm
+                block={block}
+                kind="missing"
+                placeholder="e.g. One view of user feedback"
+                where="missing"
+                blockedNote={
+                  myMissing >= MAX_MISSING
+                    ? `You've listed your top ${MAX_MISSING} — remove one to change it.`
+                    : undefined
+                }
+              />
+            }
+          >
+            {missingByMember.length === 0 && <Empty />}
+            {missingByMember.map(([who, list]) => (
+              <div key={who} className="space-y-1">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  {who === member ? `${who} (you)` : who}
+                </div>
+                {list.map((e, i) => (
+                  <EntryRow key={e.id} entry={e} rank={i + 1} hideMember>
+                    <TargetList targets={e.targets} unsure={e.unsure} />
+                  </EntryRow>
+                ))}
+              </div>
+            ))}
+          </Column>
+        </div>
       </div>
     </div>
   );
@@ -776,7 +843,7 @@ function AddForm({
   const [error, setError] = useState<string | null>(null);
 
   if (!member) {
-    return <p className="text-[11px] text-muted">Pick who you are (top right) to add input.</p>;
+    return <p className="text-[11px] text-muted">Pick who you are (above) to add input.</p>;
   }
   if (blockedNote) {
     return <p className="text-[11px] text-muted">{blockedNote}</p>;
