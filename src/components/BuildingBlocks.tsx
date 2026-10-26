@@ -27,9 +27,10 @@ import {
   type CategoryKey,
   type InputKind,
 } from "@/lib/buildingBlocks";
+import { enteredAtEnd, usePresentStops } from "./PresentMode";
 
 /* -----------------------------------------------------------------------------
- * Slide 00 — the process as building blocks. Each team member adds, per
+ * Gaps and Connections — the process as building blocks. Each team member adds, per
  * block: what we have now (and, if it needs one, where it should connect) and
  * what's missing (top 3). A "have" item with places to connect is saved as
  * kind "connect", so it lands in the backlog. Shared state lives in BlocksProvider so
@@ -197,6 +198,39 @@ export function BlocksProvider({
 export function BuildingBlocksSlide() {
   const { entries } = useBlocks();
   const [selected, setSelected] = useState<BlockKey>("research");
+  const flowRef = useRef<HTMLDivElement>(null);
+  // Present mode: -1 = the page's opening view, then one stop per stage.
+  const stop = useRef(-1);
+
+  const select = useCallback((k: BlockKey) => {
+    stop.current = BUILDING_BLOCKS.findIndex((b) => b.key === k);
+    setSelected(k);
+  }, []);
+
+  const showStage = useCallback(
+    (i: number, behavior: ScrollBehavior = "smooth") => {
+      select(BUILDING_BLOCKS[i].key);
+      flowRef.current?.scrollIntoView({ behavior, block: "start" });
+    },
+    [select]
+  );
+
+  usePresentStops((dir) => {
+    const next = stop.current + dir;
+    if (next < -1 || next >= BUILDING_BLOCKS.length) return false;
+    if (next === -1) {
+      stop.current = -1;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      showStage(next);
+    }
+    return true;
+  });
+
+  // Stepped back into from the next page: open at the last stage.
+  useEffect(() => {
+    if (enteredAtEnd()) showStage(BUILDING_BLOCKS.length - 1, "auto");
+  }, [showStage]);
 
   const byBlock = useMemo(() => {
     const m = new Map<BlockKey, BlockInput[]>();
@@ -221,7 +255,9 @@ export function BuildingBlocksSlide() {
         ))}
       </div>
       <MemberBar />
-      <BlocksFlow byBlock={byBlock} selected={selected} onSelect={setSelected} />
+      <div ref={flowRef} className="scroll-mt-20">
+        <BlocksFlow byBlock={byBlock} selected={selected} onSelect={select} />
+      </div>
       <BlockEditor key={selected} block={selected} entries={byBlock.get(selected) ?? []} />
     </div>
   );

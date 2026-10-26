@@ -7,6 +7,7 @@ import { getCurrentTheme } from "@/lib/theme";
 import ThemeToggle from "./ThemeToggle";
 import NavLink from "./NavLink";
 import DepartmentsDropdown from "./DepartmentsDropdown";
+import PresentMode from "./PresentMode";
 
 export type Stage = 1 | 2;
 
@@ -90,6 +91,7 @@ export default async function Topbar({ stage = 1 }: { stage?: Stage }) {
       <div className="flex items-center gap-2">
         {isStage2 ? (
           <>
+            <PresentMode />
             <HomeLink />
             <ThemeToggle initial={theme} />
           </>

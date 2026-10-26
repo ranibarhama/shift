@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   BUILD_OPERATING_MODEL,
   BUILD_STREAMS,
@@ -23,21 +23,20 @@ import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
  * "How good looks like — HL": the Transformation structure and Details tabs
- * of the Blueprint page, retold as a graphic slide deck. Scrolls as a page;
- * "Present" shows one slide at a time, full screen, keyboard-driven.
+ * of the Blueprint page, retold as graphic sections on one page (no slides —
+ * user request, 2026-10-26). Full screen is the site-wide present mode in the
+ * header (PresentMode), which walks the stages here with ← →.
  * -------------------------------------------------------------------------- */
 
 type Slide = {
   key: string;
-  /** Fixed slide number (its original position) — kept when slides are reordered or hidden. */
-  num: number;
   kicker: string;
   title: string;
   hero?: boolean;
   body: React.ReactNode;
 };
 
-/** Shown first, in this order (user request, 2026-10-25): 01 then 00. */
+/** Shown first, in this order (user request, 2026-10-25): the overview, then the stages. */
 const LEAD_SLIDES = ["title", "blocks"];
 
 /**
@@ -63,8 +62,8 @@ function layer(num: string): Layer {
 }
 
 function buildSlides(): Slide[] {
-  // Numbers come from this original order; display order = LEAD_SLIDES, then the rest.
-  const all: Slide[] = allSlides().map((s, i) => ({ ...s, num: i }));
+  // Display order = LEAD_SLIDES, then the rest in their original order.
+  const all = allSlides();
   const lead = LEAD_SLIDES.map((k) => all.find((s) => s.key === k)).filter(
     (s): s is Slide => !!s
   );
@@ -72,7 +71,7 @@ function buildSlides(): Slide[] {
   return [...lead, ...rest].filter((s) => !HIDDEN_SLIDES.has(s.key));
 }
 
-function allSlides(): Omit<Slide, "num">[] {
+function allSlides(): Slide[] {
   return [
     {
       key: "blocks",
@@ -112,244 +111,41 @@ function allSlides(): Omit<Slide, "num">[] {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/* ============================== Deck ============================== */
+/* ============================== Page ============================== */
 
 export default function HowGoodHL({ initialBlockInputs }: { initialBlockInputs: BlockInput[] }) {
+  const sections = useMemo(buildSlides, []);
   return (
     <BlocksProvider initial={initialBlockInputs}>
-      <Deck />
-    </BlocksProvider>
-  );
-}
-
-/** True when a key press is aimed at a form field — don't hijack it for navigation. */
-function isTyping(e: KeyboardEvent) {
-  const t = e.target;
-  return (
-    t instanceof HTMLElement &&
-    !!t.closest("input, textarea, select, [contenteditable='true']")
-  );
-}
-
-function Deck() {
-  const slides = useMemo(buildSlides, []);
-  const total = slides.length;
-  const [current, setCurrent] = useState<number | null>(null);
-  const presenting = current !== null;
-
-  const go = useCallback(
-    (delta: number) =>
-      setCurrent((i) => (i === null ? i : Math.min(total - 1, Math.max(0, i + delta)))),
-    [total]
-  );
-
-  function start(i: number) {
-    setCurrent(i);
-    void document.documentElement.requestFullscreen?.().catch(() => {});
-  }
-
-  const stop = useCallback(() => {
-    setCurrent(null);
-    if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!presenting) return;
-    function onKey(e: KeyboardEvent) {
-      if (isTyping(e)) return;
-      if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) {
-        e.preventDefault();
-        go(1);
-      } else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(e.key)) {
-        e.preventDefault();
-        go(-1);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        setCurrent(0);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        setCurrent(total - 1);
-      } else if (e.key === "Escape") {
-        stop();
-      }
-    }
-    // Leaving browser full screen (e.g. Esc) also ends the presentation.
-    function onFullscreen() {
-      if (!document.fullscreenElement) setCurrent(null);
-    }
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("fullscreenchange", onFullscreen);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("fullscreenchange", onFullscreen);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [presenting, go, stop, total]);
-
-  return (
-    <>
-      {/* Deck controls + contents */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card/50 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-            {total} slides
-          </span>
-          {slides.map((s, i) => (
-            <a
-              key={s.key}
-              href={`#${s.key}`}
-              title={s.title}
-              className="grid h-6 min-w-6 place-items-center rounded-full border border-line bg-bg px-1.5 text-[10px] font-semibold text-muted transition hover:border-accent/50 hover:text-fg"
-            >
-              {pad(s.num)}
-            </a>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => start(0)}
-          className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-ink shadow-card transition hover:brightness-110"
-        >
-          <PlayIcon /> Present
-        </button>
-      </div>
-
-      {/* Slides as a page */}
       <div className="space-y-6">
-        {slides.map((s, i) => (
+        {sections.map((s) => (
           <section
             key={s.key}
             id={s.key}
             className="scroll-mt-20 rounded-3xl border border-line bg-card/40 p-5 sm:p-8"
           >
-            <SlideHeader slide={s} n={s.num} onPresent={() => start(i)} />
+            {!s.hero && (
+              <div className="mb-6">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+                  {s.kicker}
+                </div>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+                  {s.title}
+                </h2>
+              </div>
+            )}
             {s.body}
           </section>
         ))}
       </div>
-
-      {/* Presenter */}
-      {presenting && current !== null && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Gaps and Connections presentation"
-          className="fixed inset-0 z-50 flex flex-col bg-bg"
-        >
-          <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-2.5">
-            <div className="truncate text-xs text-muted">
-              <span className="font-semibold text-fg">Gaps and Connections</span>
-              <span className="mx-2">·</span>
-              {slides[current].kicker}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs tabular-nums text-muted">
-                {current + 1} / {total}
-              </span>
-              <button
-                type="button"
-                onClick={stop}
-                className="rounded-full border border-line px-3 py-1 text-xs text-muted transition hover:border-accent/50 hover:text-fg"
-              >
-                Exit ✕
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-8 sm:px-10">
-              <SlideHeader slide={slides[current]} n={slides[current].num} big />
-              {slides[current].body}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              disabled={current === 0}
-              className="rounded-full border border-line px-4 py-1.5 text-xs font-semibold text-fg transition hover:border-accent/50 disabled:opacity-30"
-            >
-              ← Prev
-            </button>
-            <div className="flex flex-wrap items-center justify-center gap-1.5">
-              {slides.map((s, i) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setCurrent(i)}
-                  aria-label={`Go to slide ${pad(s.num)}: ${s.title}`}
-                  className={
-                    "h-2 rounded-full transition-all " +
-                    (i === current ? "w-6 bg-accent" : "w-2 bg-line hover:bg-muted")
-                  }
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => go(1)}
-              disabled={current === total - 1}
-              className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-ink transition hover:brightness-110 disabled:opacity-30"
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SlideHeader({
-  slide,
-  n,
-  onPresent,
-  big,
-}: {
-  slide: Slide;
-  n: number;
-  onPresent?: () => void;
-  big?: boolean;
-}) {
-  if (slide.hero && big) return null;
-  return (
-    <div className="mb-6 flex items-start justify-between gap-4">
-      <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-          {pad(n)} · {slide.kicker}
-        </div>
-        {!slide.hero && (
-          <h2
-            className={
-              "mt-1 font-semibold tracking-tight text-fg " +
-              (big ? "text-3xl sm:text-4xl" : "text-2xl sm:text-[28px]")
-            }
-          >
-            {slide.title}
-          </h2>
-        )}
-      </div>
-      {onPresent && (
-        <button
-          type="button"
-          onClick={onPresent}
-          title="Present from this slide"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-bg px-3 py-1 text-[11px] font-medium text-muted transition hover:border-accent/50 hover:text-fg"
-        >
-          <PlayIcon /> Present from here
-        </button>
-      )}
-    </div>
+    </BlocksProvider>
   );
 }
 
 /* ============================== Slides ============================== */
 
 function TitleSlide() {
-  // The same stages as the building-block cards on slide 00. OPS and the Organization
+  // The same stages as the building-block cards below. OPS and the Organization
   // brain span the whole process, so they're bands under the stages, not stages.
   const stages = BUILDING_BLOCKS.filter((b) => !isFoundation(b.key));
   const spanning = BUILDING_BLOCKS.filter((b) => isFoundation(b.key));
@@ -1182,14 +978,6 @@ function LoopIcon() {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M21 12a9 9 0 1 1-3-6.7" />
       <polyline points="21 3 21 9 15 9" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
     </svg>
   );
 }

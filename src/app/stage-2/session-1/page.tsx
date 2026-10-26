@@ -9,7 +9,7 @@ export const metadata = {
 };
 export const dynamic = "force-dynamic";
 
-/** Phase 2 · Step 1 — Gaps and Connections, then How good looks like (HL). */
+/** Phase 2 · Step 1 — Gaps and Connections: the HL overview, then the stages. */
 export default async function Stage2Session1Page() {
   let blockInputs: BlockInput[] = [];
   try {
@@ -44,13 +44,10 @@ export default async function Stage2Session1Page() {
             Gaps and Connections
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            <span className="font-semibold text-fg">Slide 01</span> shows the whole process at
-            a glance. On <span className="font-semibold text-fg">slide 00</span>{" "}
-            every team
-            member maps today&apos;s status stage by stage — what we have, what&apos;s
-            missing and what needs connecting. Hit{" "}
-            <span className="font-semibold text-fg">Present</span> to run it full screen
-            (← → to move, Esc to exit).
+            The whole process at a glance, then every team member maps today&apos;s status
+            stage by stage — what we have, what needs connecting and what&apos;s missing.
+            Hit <span className="font-semibold text-fg">Present</span> in the header to go
+            full screen: ← → move stage by stage and on through every step, Esc exits.
           </p>
         </header>
 
