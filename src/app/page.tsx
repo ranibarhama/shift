@@ -22,9 +22,6 @@ export default async function Home() {
           <span className="text-automate font-bold">Shift!</span>{" "}
           <span className="text-fg">Pick a phase</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-balance text-muted">
-          Phase 1 is everything we&apos;ve built so far. Phase 2 is where we go next.
-        </p>
       </div>
 
       <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-2">
