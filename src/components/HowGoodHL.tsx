@@ -385,7 +385,7 @@ function TitleSlide() {
       <div className="mt-2 text-lg font-semibold text-accent sm:text-2xl">HL working model components</div>
       <p className="mx-auto mt-4 max-w-2xl text-sm text-muted sm:text-base">
         Where B2C is heading — the transformation structure from today to target, and the
-        details behind it: seven shifts and eight layers.
+        details behind it.
       </p>
 
       {/* One line, never wrapped — the loop must run from the last stage back to the
