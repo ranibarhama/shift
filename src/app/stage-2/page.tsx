@@ -69,8 +69,6 @@ const DECISIONS = [
   { label: "Own", hex: "#38bdf8" },
 ];
 
-const SESSION_1_HREF = "/stage-2/session-1";
-
 export default function Stage2Page() {
   // Step numbers run continuously across the three parts (1–9).
   let n = 0;
@@ -115,33 +113,8 @@ export default function Stage2Page() {
           </div>
         </section>
 
-        {/* CTA */}
-        <Link
-          href={SESSION_1_HREF}
-          className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-automate/40 bg-automate/10 p-6 transition hover:-translate-y-0.5 hover:border-automate/70 hover:shadow-lg"
-        >
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-automate">
-              Up next
-            </div>
-            <div className="mt-1 text-xl font-semibold text-fg">
-              1 · Gaps and Connections
-            </div>
-            <div className="mt-0.5 text-xs text-muted">
-              Map what we have, what&apos;s missing and what needs connecting — stage by stage —
-              then see how good looks like.
-            </div>
-          </div>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white transition group-hover:brightness-110"
-            style={{ background: "#16a34a" }}
-          >
-            Open →
-          </span>
-        </Link>
-
         {/* Phase 2 — the same steps as the header menu */}
-        <section aria-label="Phase 2 steps diagram" className="mt-12">
+        <section aria-label="Phase 2 steps diagram">
           <SectionLabel>What we&apos;re doing next in Phase 2</SectionLabel>
           <ol className="mt-4 flex flex-col items-stretch lg:flex-row">
             {STAGE2_STEPS.map((s, i) => (
@@ -256,17 +229,29 @@ function StepCard({ step: s }: { step: Stage2Step }) {
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line bg-bg text-xs font-semibold text-fg">
           {s.n}
         </span>
-        <span
-          className={
-            "text-[10px] font-semibold uppercase tracking-[0.12em] " +
-            (s.ready ? "text-automate" : "text-muted")
-          }
-        >
-          {s.ready ? "Open →" : "Planned"}
-        </span>
+        {(s.n === 1 || !s.ready) && (
+          <span
+            className={
+              "text-[10px] font-semibold uppercase tracking-[0.12em] " +
+              (s.ready ? "text-automate" : "text-muted")
+            }
+          >
+            {s.ready ? "Up next" : "Planned"}
+          </span>
+        )}
       </div>
       <h3 className="text-[13.5px] font-semibold leading-tight text-fg">{s.title}</h3>
       <p className="mt-1.5 text-[11.5px] leading-snug text-muted">{s.summary}</p>
+      {s.ready && (
+        <span className="mt-auto pt-3">
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11.5px] font-semibold text-white transition group-hover:brightness-110"
+            style={{ background: "#16a34a" }}
+          >
+            Open →
+          </span>
+        </span>
+      )}
     </Link>
   );
 }
