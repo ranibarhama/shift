@@ -108,10 +108,9 @@ export default function Stage2Page() {
             {FLOW.map((node, i) => (
               <div key={node.key} className="flex flex-col lg:flex-1 lg:flex-row lg:min-w-0">
                 <FlowCard node={node} nums={numbered[i]} />
-                <FlowArrow />
+                {i < FLOW.length - 1 && <FlowArrow />}
               </div>
             ))}
-            <NextCard />
           </div>
         </section>
 
@@ -225,29 +224,6 @@ function FlowCard({ node, nums }: { node: FlowNode; nums: number[] }) {
     <div className={cls} style={style}>
       {body}
     </div>
-  );
-}
-
-function NextCard() {
-  return (
-    <Link
-      href={SESSION_1_HREF}
-      className="group flex w-full flex-col justify-center rounded-2xl border-2 border-dashed border-automate/60 bg-automate/5 p-4 text-center transition hover:border-automate hover:bg-automate/10 lg:w-auto lg:min-w-[170px] lg:flex-[0.8]"
-    >
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-automate">
-        Phase 2
-      </span>
-      <span className="mx-auto mt-1.5 grid h-7 w-7 place-items-center rounded-full border border-line bg-card text-sm font-semibold text-fg">
-        1
-      </span>
-      <span className="mt-1 text-[13px] font-semibold text-fg">
-        Gaps and Connections
-      </span>
-      <span className="mt-1 text-[11px] text-muted">Where we pick up next</span>
-      <span className="mt-3 text-xs font-semibold text-automate transition group-hover:translate-x-0.5">
-        Open →
-      </span>
-    </Link>
   );
 }
 
