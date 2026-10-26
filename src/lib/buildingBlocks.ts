@@ -79,13 +79,16 @@ export type BlockKey = (typeof BUILDING_BLOCKS)[number]["key"];
 export type InputKind = "have" | "missing" | "connect";
 
 /** Every item is categorized as one of these. Shown as neutral labels (no hue):
- *  the block palette owns color, and a second hued set would collide with it. */
+ *  the block palette owns color, and a second hued set would collide with it.
+ *  "process" is shown as Workflow (key kept so saved items stay attached). */
 export const CATEGORIES = [
   { key: "system", label: "System" },
-  { key: "tool", label: "Tool" },
-  { key: "process", label: "Process" },
+  { key: "process", label: "Workflow" },
   { key: "infrastructure", label: "Infrastructure" },
 ] as const;
+
+/** Retired keys and where their saved items now belong (Tool merged into System). */
+const MERGED_CATEGORIES: Record<string, CategoryKey> = { tool: "system" };
 
 export type CategoryKey = (typeof CATEGORIES)[number]["key"];
 
@@ -176,7 +179,9 @@ export function parseBlockInput(r: BlockInputRow): BlockInput {
     text: r.text,
     targets: parseTargets(r),
     unsure: Number(r.unsure ?? 0) === 1,
-    category: isCategoryKey(r.category) ? r.category : null,
+    category: isCategoryKey(r.category)
+      ? r.category
+      : (MERGED_CATEGORIES[r.category ?? ""] ?? null),
     createdAt: Number(r.created_at),
   };
 }
