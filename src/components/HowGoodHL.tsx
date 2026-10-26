@@ -382,7 +382,7 @@ function TitleSlide() {
         Phase 2 · Step 1
       </div>
       <h2 className="text-4xl font-bold tracking-tight text-fg sm:text-6xl">How good looks like</h2>
-      <div className="mt-2 text-lg font-semibold text-accent sm:text-2xl">HL · the high-level picture</div>
+      <div className="mt-2 text-lg font-semibold text-accent sm:text-2xl">HL working model components</div>
       <p className="mx-auto mt-4 max-w-2xl text-sm text-muted sm:text-base">
         Where B2C is heading — the transformation structure from today to target, and the
         details behind it: seven shifts and eight layers.
