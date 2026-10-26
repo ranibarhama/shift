@@ -37,7 +37,7 @@ export const BUILDING_BLOCKS = [
     label: "Development",
     mapLines: ["Development"],
     hex: "#199e70",
-    owners: ["Rani", "Oren", "Gal"],
+    owners: ["Oren"],
   },
   { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#c98500", owners: ["Ben", "Rani"] },
   { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#d55181", owners: ["Ben"] },

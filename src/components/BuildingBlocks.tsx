@@ -30,8 +30,9 @@ import {
 
 /* -----------------------------------------------------------------------------
  * Slide 00 — the process as building blocks. Each team member adds, per
- * block: what we have now, what's missing (top 3), and what we have that
- * needs a connection (and to where). Shared state lives in BlocksProvider so
+ * block: what we have now (and, if it needs one, where it should connect) and
+ * what's missing (top 3). A "have" item with places to connect is saved as
+ * kind "connect", so it lands in the backlog. Shared state lives in BlocksProvider so
  * the page and the presenter overlay stay in sync; it polls for teammates'
  * input while the session runs.
  * -------------------------------------------------------------------------- */
@@ -208,8 +209,8 @@ export function BuildingBlocksSlide() {
     <div className="space-y-4">
       <p className="max-w-3xl text-sm text-muted">
         The whole process, stage by stage. Pick your name, open a stage, and add what we have
-        today, what&apos;s missing (your top {MAX_MISSING}), and what we have that needs a
-        connection — and to where. Every item gets a category.
+        today — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
+        {MAX_MISSING}). Every item gets a category.
       </p>
       <div className="flex flex-wrap items-center gap-y-1">
         <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
@@ -222,7 +223,6 @@ export function BuildingBlocksSlide() {
       <MemberBar />
       <BlocksFlow byBlock={byBlock} selected={selected} onSelect={setSelected} />
       <BlockEditor key={selected} block={selected} entries={byBlock.get(selected) ?? []} />
-      <ConnectionsMap entries={entries} />
     </div>
   );
 }
@@ -392,7 +392,9 @@ function BlockCard({
   wide?: boolean;
 }) {
   const { member } = useBlocks();
-  const count = (k: InputKind) => list.filter((e) => e.kind === k).length;
+  // "have" counts everything we have, whether or not it needs a connection.
+  const count = (k: "have" | "missing") =>
+    list.filter((e) => e.kind === k || (k === "have" && e.kind === "connect")).length;
   const people = [...new Set(list.map((e) => e.member))];
   const owns = !!member && (b.owners as readonly string[]).includes(member);
 
@@ -417,7 +419,7 @@ function BlockCard({
       {b.owners.length > 1 ? "Owners" : "Owner"} · <OwnerNames owners={b.owners} member={member} />
     </span>
   );
-  const counts = (["have", "missing", "connect"] as const).map((k) => (
+  const counts = (["have", "missing"] as const).map((k) => (
     <span key={k} className="flex items-center gap-1.5 text-[11px] text-muted">
       <Glyph kind={k} small />
       <span className="tabular-nums font-semibold text-fg">{count(k)}</span>
@@ -503,7 +505,8 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
   const { member } = useBlocks();
   const b = blockDef(block)!;
   const people = [...new Set(entries.map((e) => e.member))];
-  const of = (k: InputKind) => entries.filter((e) => e.kind === k);
+  // What we have — with or without a connection — in the order it was added.
+  const have = entries.filter((e) => e.kind === "have" || e.kind === "connect");
 
   // Missing: grouped per member, mine first, each list numbered 1–3.
   const missingByMember = useMemo(() => {
@@ -558,11 +561,18 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <Column kind="have" footer={<AddForm block={block} kind="have" placeholder="e.g. Weekly competitor digest" />}>
-          {of("have").length === 0 && <Empty />}
-          {of("have").map((e) => (
-            <EntryRow key={e.id} entry={e} />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Column
+          kind="have"
+          footer={
+            <AddForm block={block} kind="have" placeholder="e.g. Weekly competitor digest" where="optional" />
+          }
+        >
+          {have.length === 0 && <Empty />}
+          {have.map((e) => (
+            <EntryRow key={e.id} entry={e}>
+              <TargetList targets={e.targets} unsure={false} />
+            </EntryRow>
           ))}
         </Column>
 
@@ -594,20 +604,6 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
                 </EntryRow>
               ))}
             </div>
-          ))}
-        </Column>
-
-        <Column
-          kind="connect"
-          footer={
-            <AddForm block={block} kind="connect" placeholder="e.g. Support tickets data" where="connect" />
-          }
-        >
-          {of("connect").length === 0 && <Empty />}
-          {of("connect").map((e) => (
-            <EntryRow key={e.id} entry={e}>
-              <TargetList targets={e.targets} unsure={false} />
-            </EntryRow>
           ))}
         </Column>
       </div>
@@ -735,8 +731,9 @@ function AddForm({
   block: BlockKey;
   kind: InputKind;
   placeholder: string;
-  /** Ask where it needs to connect: required ("connect") or places-or-not-sure ("missing"). */
-  where?: "connect" | "missing";
+  /** Ask where it needs to connect: optional (a "have" item; picking places saves it as
+   *  "connect") or places-or-not-sure ("missing"). */
+  where?: "optional" | "missing";
   blockedNote?: string;
 }) {
   const { member, add } = useBlocks();
@@ -779,18 +776,16 @@ function AddForm({
         ...BUILDING_BLOCKS.filter((b) => places.includes(b.key)).map((b) => b.key as string),
         ...others,
       ];
-      if (where === "connect" && targets.length === 0) {
-        setError("Choose where it needs to connect");
-        return;
-      }
       if (where === "missing" && targets.length === 0 && !unsure) {
         setError("Choose where it should connect — or “I'm not sure”");
         return;
       }
       target = { targets, unsure: where === "missing" && unsure };
     }
+    // Something we have that needs connecting is a "connect" item (a backlog item).
+    const saveAs: InputKind = kind === "have" && target?.targets.length ? "connect" : kind;
     setBusy(true);
-    const err = await add(block, kind, t, category, target);
+    const err = await add(block, saveAs, t, category, target);
     setBusy(false);
     if (err) {
       setError(err);
@@ -846,8 +841,8 @@ function AddForm({
       {where && (
         <div className="space-y-1 rounded-lg border border-line/70 bg-bg/40 p-2">
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-            {where === "connect"
-              ? "Needs to connect to — pick one or more"
+            {where === "optional"
+              ? "Needs to connect to? — optional, one or more"
               : "Should connect to, in your view — one or more"}
           </div>
           <div role="group" aria-label="Connect to" className="flex flex-wrap gap-1">
@@ -926,225 +921,6 @@ function AddForm({
         </button>
       </div>
     </form>
-  );
-}
-
-/* ---------- Connections map ---------- */
-
-type MapFilter = "all" | "connect" | "missing";
-
-const MAP_FILTERS: { key: MapFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "connect", label: "Needs a connection" },
-  { key: "missing", label: "Missing" },
-];
-
-function ConnectionsMap({ entries }: { entries: BlockInput[] }) {
-  const [filter, setFilter] = useState<MapFilter>("all");
-
-  const { links, outside, unsure } = useMemo(() => {
-    const blockLinks = new Map<string, { from: number; to: number; n: number }>();
-    const elsewhere = new Map<string, { from: BlockKey; to: string; n: number }>();
-    const idx = (k: string) => BUILDING_BLOCKS.findIndex((b) => b.key === k);
-    let notSure = 0;
-    for (const e of entries) {
-      if (e.kind === "have") continue;
-      if (filter !== "all" && e.kind !== filter) continue;
-      if (e.unsure) notSure += 1;
-      for (const t of e.targets) {
-        if (isBlockKey(t)) {
-          const key = `${e.block}>${t}`;
-          const cur = blockLinks.get(key);
-          if (cur) cur.n += 1;
-          else blockLinks.set(key, { from: idx(e.block), to: idx(t), n: 1 });
-        } else {
-          const key = `${e.block}>${t.toLowerCase()}`;
-          const cur = elsewhere.get(key);
-          if (cur) cur.n += 1;
-          else elsewhere.set(key, { from: e.block, to: t, n: 1 });
-        }
-      }
-    }
-    return {
-      links: [...blockLinks.values()],
-      outside: [...elsewhere.values()],
-      unsure: notSure,
-    };
-  }, [entries, filter]);
-
-  const BASE = 168;
-  const Y0 = BASE - 13;
-  const MAP_W = BUILDING_BLOCKS.length * 100; // one 100-unit slot per block
-  const x = (i: number) => 50 + i * 100;
-  const arcHeight = (from: number, to: number) =>
-    14 + Math.abs(to - from) * 12 + (to < from ? 9 : 0);
-  // Crop the canvas to the tallest arc actually drawn (plus room for its "×n").
-  const top = Math.min(
-    BASE - 50,
-    ...links.map((l) => Y0 - arcHeight(l.from, l.to) - 20)
-  );
-
-  return (
-    <div className="rounded-2xl border border-line bg-bg/40 p-4">
-      <div className="mb-1 flex flex-wrap items-center gap-2">
-        <Glyph kind="connect" />
-        <span className="text-[12.5px] font-semibold text-fg">Connections map</span>
-        <span className="text-[11px] text-muted">· where things need to connect</span>
-        <div role="radiogroup" aria-label="Show" className="ml-auto flex gap-1">
-          {MAP_FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              role="radio"
-              aria-checked={filter === f.key}
-              onClick={() => setFilter(f.key)}
-              className={
-                "rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold transition " +
-                (filter === f.key
-                  ? "border-accent bg-accent/15 text-fg"
-                  : "border-line text-muted hover:text-fg")
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {links.length === 0 && outside.length === 0 && unsure === 0 ? (
-        <p className="py-4 text-[12px] text-muted">
-          {filter === "all"
-            ? "Connections between stages will be drawn here as the team adds them."
-            : "Nothing to show for this filter yet."}
-        </p>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <svg
-              viewBox={`0 ${top} ${MAP_W} ${224 - top}`}
-              className="mx-auto w-full min-w-[640px] max-w-4xl"
-              role="img"
-              aria-label="Connections between the stages"
-            >
-              <defs>
-                {BUILDING_BLOCKS.map((b) => (
-                  <marker
-                    key={b.key}
-                    id={`bb-arrow-${b.key}`}
-                    viewBox="0 0 10 10"
-                    refX="8"
-                    refY="5"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M0 0 L10 5 L0 10 Z" fill={b.hex} />
-                  </marker>
-                ))}
-              </defs>
-              {links.map((l) => {
-                const from = BUILDING_BLOCKS[l.from];
-                const back = l.to < l.from;
-                const h = arcHeight(l.from, l.to);
-                const y0 = Y0;
-                const mid = (x(l.from) + x(l.to)) / 2;
-                return (
-                  <g key={`${l.from}-${l.to}`}>
-                    <path
-                      d={`M${x(l.from)} ${y0} Q${mid} ${y0 - 2 * h} ${x(l.to)} ${y0}`}
-                      fill="none"
-                      stroke={from.hex}
-                      strokeWidth={1.5 + Math.min(l.n, 5) * 0.7}
-                      strokeDasharray={back ? "5 4" : undefined}
-                      strokeLinecap="round"
-                      markerEnd={`url(#bb-arrow-${from.key})`}
-                      opacity={0.85}
-                    />
-                    {l.n > 1 && (
-                      <text
-                        x={mid}
-                        y={y0 - h - 5}
-                        textAnchor="middle"
-                        fontSize="11"
-                        fontWeight="700"
-                        fill={from.hex}
-                      >
-                        ×{l.n}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
-              {BUILDING_BLOCKS.map((b, i) => (
-                <g key={b.key}>
-                  <circle cx={x(i)} cy={BASE} r="10" fill={b.hex} />
-                  <text
-                    x={x(i)}
-                    y={BASE + 4}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fontWeight="700"
-                    fill="#ffffff"
-                  >
-                    {i + 1}
-                  </text>
-                  <text
-                    x={x(i)}
-                    y={BASE + 28}
-                    textAnchor="middle"
-                    fontSize="11"
-                    className="fill-current text-fg"
-                  >
-                    {b.mapLines.map((line, li) => (
-                      <tspan key={line} x={x(i)} dy={li === 0 ? 0 : 13}>
-                        {line}
-                      </tspan>
-                    ))}
-                  </text>
-                </g>
-              ))}
-            </svg>
-          </div>
-          {outside.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line/60 pt-3">
-              <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
-                Outside the stages
-              </span>
-              {outside.map((o) => {
-                const b = blockDef(o.from)!;
-                return (
-                  <span
-                    key={`${o.from}-${o.to}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-line bg-card px-2 py-0.5 text-[11px] text-fg"
-                  >
-                    <span className="font-semibold" style={{ color: b.hex }}>
-                      {b.label}
-                    </span>
-                    <span className="text-muted">→</span>
-                    {o.to}
-                    {o.n > 1 && <span className="text-muted">×{o.n}</span>}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-          {unsure > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line/60 pt-3">
-              <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
-                Still open
-              </span>
-              <span className="rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] italic text-muted">
-                {unsure} missing item{unsure > 1 ? "s" : ""} — not sure where to connect
-              </span>
-            </div>
-          )}
-          <p className="mt-2 text-[10.5px] text-muted">
-            Solid arcs point forward in the flow, dashed arcs point back. Thicker = more items
-            point there.
-          </p>
-        </>
-      )}
-    </div>
   );
 }
 
