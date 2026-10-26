@@ -37,6 +37,25 @@ const KIND_LABEL: Record<InputKind, string> = {
   have: "Have",
 };
 const KIND_GLYPH: Record<InputKind, string> = { missing: "!", connect: "⇄", have: "✓" };
+/** Same hues as the kind glyphs on the Gaps and Connections stages. */
+const KIND_HEX: Record<InputKind, string> = { missing: "#f59e0b", connect: "#7c5cff", have: "#22c55e" };
+
+/** The backlog Type column as a tag: glyph + label (+ the member's rank for missing items). */
+function KindTag({ kind, rank }: { kind: InputKind; rank?: number }) {
+  const hex = KIND_HEX[kind];
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold text-fg"
+      style={{ background: `${hex}1a`, borderColor: `${hex}66` }}
+    >
+      <span aria-hidden style={{ color: hex }}>
+        {KIND_GLYPH[kind]}
+      </span>
+      {KIND_LABEL[kind]}
+      {rank ? <span className="tabular-nums text-muted">#{rank}</span> : null}
+    </span>
+  );
+}
 
 function targetsOf(e: BlockInput): Target[] {
   if (e.kind === "have") return [];
@@ -409,14 +428,8 @@ function BacklogList({
                   <tbody>
                     {list.map((e) => (
                       <tr key={e.id} className="border-t border-line/50 align-top">
-                        <td className="whitespace-nowrap px-2 py-1.5 text-muted">
-                          <span className="mr-1" aria-hidden>
-                            {KIND_GLYPH[e.kind]}
-                          </span>
-                          {KIND_LABEL[e.kind]}
-                          {e.kind === "missing" && ranks.get(e.id) ? (
-                            <span className="ml-1 tabular-nums text-fg">#{ranks.get(e.id)}</span>
-                          ) : null}
+                        <td className="whitespace-nowrap px-2 py-1.5">
+                          <KindTag kind={e.kind} rank={e.kind === "missing" ? ranks.get(e.id) : undefined} />
                         </td>
                         <td className="px-2 py-1.5 text-fg">{e.text}</td>
                         <td className="px-2 py-1.5">
