@@ -6,6 +6,7 @@ import {
   CATEGORIES,
   blockDef,
   isBlockKey,
+  isFoundation,
   type BlockInput,
   type BlockKey,
   type CategoryKey,
@@ -16,7 +17,7 @@ import { CategoryTag } from "./BuildingBlocks";
 /* -----------------------------------------------------------------------------
  * Phase 2 · 2 · Backlog — the gaps the team mapped in 1 · Gaps and Connections:
  * headline numbers, the backlog itself, then where things need to connect —
- * a left-to-right flow (where a need comes from → where it needs to connect)
+ * the stages in one row — pick one to see its connections on their own —
  * and the from → to grid underneath to show where the focus is.
  * -------------------------------------------------------------------------- */
 
@@ -209,7 +210,7 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
 
       <BacklogList items={filtered} ranks={ranks} total={backlog.length} />
 
-      <Connections items={filtered} />
+      <Connections items={filtered} kind={kind} onKind={setKind} />
     </div>
   );
 }
@@ -450,27 +451,111 @@ function BacklogList({
 
 /* ============================== Where things need to connect ============================== */
 
-/** `key` / `to` are stage keys, or OUTSIDE / UNSURE on the "needs to connect to" side. */
+/** `key` / `to` are stage keys, or "outside" / "unsure" columns in the grid. */
 type Focus = { type: "node"; key: string } | { type: "pair"; from: BlockKey; to: string };
 
-const OUTSIDE = "outside";
 const UNSURE = "unsure";
 
-/** One band: the backlog items of one kind that run from a stage to one place. */
-type Link = { id: string; from: BlockKey; to: string; kind: BacklogKind; items: BlockInput[] };
+/** One line in the stage view: a place the selected stage connects with, and the items behind it. */
+type Conn = { key: string; label: string; hex: string | null; muted?: boolean; items: BlockInput[] };
+
+/** The selected stage's connections: what it needs to connect to, and who needs it. */
+function connectionsOf(sel: BlockKey, items: BlockInput[]) {
+  const out = new Map<string, Conn>();
+  const inc = new Map<string, Conn>();
+  const put = (m: Map<string, Conn>, c: Omit<Conn, "items">, e: BlockInput) => {
+    const cur = m.get(c.key);
+    if (cur) cur.items.push(e);
+    else m.set(c.key, { ...c, items: [e] });
+  };
+  for (const e of items) {
+    if (!isBacklogItem(e)) continue;
+    if (e.block === sel) {
+      if (e.unsure) put(out, { key: UNSURE, label: "Not sure yet", hex: null, muted: true }, e);
+      for (const t of new Set(e.targets)) {
+        const b = isBlockKey(t) ? blockDef(t)! : null;
+        put(out, b ? { key: b.key, label: b.label, hex: b.hex } : { key: `ext:${t.toLowerCase()}`, label: t, hex: null, muted: true }, e);
+      }
+    } else if (e.targets.includes(sel)) {
+      const b = blockDef(e.block)!;
+      put(inc, { key: b.key, label: b.label, hex: b.hex }, e);
+    }
+  }
+  // Stages in process order, then places outside the stages, then "not sure".
+  const rank = (c: Conn) => {
+    const i = BUILDING_BLOCKS.findIndex((b) => b.key === c.key);
+    return i >= 0 ? i : c.key === UNSURE ? 99 : 50;
+  };
+  const sort = (m: Map<string, Conn>) =>
+    [...m.values()].sort((a, b) => rank(a) - rank(b) || a.label.localeCompare(b.label));
+  return { out: sort(out), inc: sort(inc) };
+}
 
 /**
- * Where things need to connect, read left to right: the stage a need comes from →
- * where it needs to connect, with the from → to grid underneath to show where the
- * focus is. Hovering a stage, a band or a grid cell highlights the same thing in both.
+ * Where things need to connect: the stages in one row; pick one to see its
+ * connections on their own — what it needs to connect to, and which stages need
+ * it. Built / missing is a filter (shared with the page's type filter), not a
+ * line style. The from → to grid underneath shows where the focus is.
  */
-function Connections({ items }: { items: BlockInput[] }) {
-  const [hover, setHover] = useState<Focus | null>(null);
-  const [pinned, setPinned] = useState<Focus | null>(null);
-  const active = hover ?? pinned;
+function Connections({
+  items,
+  kind,
+  onKind,
+}: {
+  items: BlockInput[];
+  kind: KindFilter;
+  onKind: (k: KindFilter) => void;
+}) {
+  // Lines touching each stage (going out + coming in) — the same lines its view draws.
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    const bump = (k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+    for (const e of items) {
+      if (!isBacklogItem(e)) continue;
+      if (e.unsure) bump(e.block);
+      for (const t of new Set(e.targets)) {
+        bump(e.block);
+        if (isBlockKey(t)) bump(t);
+      }
+    }
+    return m;
+  }, [items]);
 
-  function toggle(f: Focus) {
-    setPinned((p) => (p && JSON.stringify(p) === JSON.stringify(f) ? null : f));
+  const busiest = useMemo(
+    () =>
+      [...BUILDING_BLOCKS].sort((a, b) => (counts.get(b.key) ?? 0) - (counts.get(a.key) ?? 0))[0]
+        .key as BlockKey,
+    [counts]
+  );
+  const [picked, setPicked] = useState<BlockKey | null>(null);
+  const selected = picked ?? busiest;
+  const [hover, setHover] = useState<Focus | null>(null);
+  const gridActive: Focus = hover ?? { type: "node", key: selected };
+
+  const flow = BUILDING_BLOCKS.filter((b) => !isFoundation(b.key));
+  const spanning = BUILDING_BLOCKS.filter((b) => isFoundation(b.key));
+
+  function chip(b: (typeof BUILDING_BLOCKS)[number]) {
+    const on = b.key === selected;
+    const n = counts.get(b.key) ?? 0;
+    return (
+      <button
+        key={b.key}
+        type="button"
+        aria-pressed={on}
+        onClick={() => setPicked(b.key)}
+        title={`${n} connection${n === 1 ? "" : "s"}`}
+        className={
+          "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-semibold transition " +
+          (on ? "text-fg" : n ? "border-line text-fg hover:border-fg/30" : "border-line text-muted")
+        }
+        style={on ? { borderColor: b.hex, background: `${b.hex}1f`, boxShadow: `0 0 0 1px ${b.hex}` } : undefined}
+      >
+        <span className="h-2 w-2 rounded-full" style={{ background: b.hex }} aria-hidden />
+        {b.label}
+        <span className="tabular-nums font-normal text-muted">{n}</span>
+      </button>
+    );
   }
 
   return (
@@ -479,353 +564,213 @@ function Connections({ items }: { items: BlockInput[] }) {
         <div>
           <h2 className="text-base font-semibold text-fg">Where things need to connect</h2>
           <p className="text-[12px] text-muted">
-            Read it left to right: where a need comes from → where it needs to connect. Hover a
-            stage or a band to see the items; click to keep it highlighted.
+            Pick a stage to see what it needs to connect to — and which stages need it.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <svg width="22" height="10" aria-hidden>
-              <rect width="22" height="10" rx="2" style={{ fill: "rgb(var(--muted))" }} fillOpacity="0.6" />
-            </svg>
-            Built — needs connecting
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <svg width="22" height="10" aria-hidden>
-              <defs>
-                <pattern id="fm-hatch-legend" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                  <rect width="6" height="6" style={{ fill: "rgb(var(--muted))" }} fillOpacity="0.12" />
-                  <rect width="2.5" height="6" style={{ fill: "rgb(var(--muted))" }} fillOpacity="0.7" />
-                </pattern>
-              </defs>
-              <rect width="22" height="10" rx="2" fill="url(#fm-hatch-legend)" />
-            </svg>
-            Missing — needed
-          </span>
-          <span>Thicker = more items</span>
-          {pinned && (
+        <div role="radiogroup" aria-label="Show" className="flex rounded-full border border-line bg-bg p-0.5">
+          {(["all", "connect", "missing"] as const).map((k) => (
             <button
+              key={k}
               type="button"
-              onClick={() => setPinned(null)}
-              className="rounded-full border border-line px-2 py-0.5 text-[11px] text-fg hover:border-accent/50"
+              role="radio"
+              aria-checked={kind === k}
+              onClick={() => onKind(k)}
+              className={
+                "rounded-full px-3 py-1 text-[11px] font-semibold transition " +
+                (kind === k ? "bg-accent text-ink" : "text-muted hover:text-fg")
+              }
             >
-              Clear highlight ✕
+              {k === "all" ? "All" : k === "connect" ? "Built" : "Missing"}
             </button>
-          )}
+          ))}
         </div>
       </div>
 
-      <FlowMap items={items} active={active} onHover={setHover} onToggle={toggle} />
-      <FocusGrid items={items} active={active} onHover={setHover} onToggle={toggle} />
+      {/* The stages, in one row */}
+      <div className="overflow-x-auto pb-1">
+        <div className="flex w-max items-center gap-1">
+          {flow.map((b, i) => (
+            <Fragment key={b.key}>
+              {chip(b)}
+              {i < flow.length - 1 && (
+                <span aria-hidden className="text-[11px] text-[#f97316]">
+                  →
+                </span>
+              )}
+            </Fragment>
+          ))}
+          <span aria-hidden className="mx-2 h-5 w-px bg-line" />
+          {spanning.map(chip)}
+        </div>
+      </div>
+
+      <StageConnections key={selected} stage={selected} items={items} />
+
+      <FocusGrid
+        items={items}
+        active={gridActive}
+        onHover={setHover}
+        onToggle={(f) => {
+          const k = f.type === "node" ? f.key : f.from;
+          if (isBlockKey(k)) setPicked(k);
+        }}
+      />
     </section>
   );
 }
 
-/* Flow geometry (viewBox units). */
-const F_W = 900;
-const F_LX = 228; // right edge of the "comes from" bars
-const F_RX = 672; // left edge of the "needs to connect to" bars
-const F_BAR = 8;
-const F_GAP = 14; // between stages in a column
-const F_TOP = 30; // room for the column headings
-const F_MAXH = 360; // tallest column before the per-item unit shrinks
+/* Stage view geometry (viewBox units). */
+const S_W = 900;
+const S_PW = 240; // side pill width — fits "Planning & Prioritisations" + its count
+const S_PH = 34;
+const S_ROW = 46;
+const S_CW = 230; // centre box width
+const S_CH = 58;
+const S_LX = 10; // left pills
+const S_RX = S_W - 10 - S_PW; // right pills
+const S_CX = (S_W - S_CW) / 2; // centre box
 
-/** Everything on the right-hand side, in process order. */
-const TARGET_ORDER = [...BUILDING_BLOCKS.map((b) => b.key as string), OUTSIDE, UNSURE];
-const tRank = (k: string) => TARGET_ORDER.indexOf(k);
-const kRank = (k: BacklogKind) => (k === "connect" ? 0 : 1);
-
-function targetLabel(k: string) {
-  if (isBlockKey(k)) return blockDef(k)!.label;
-  return k === OUTSIDE ? "Outside the stages" : "Not sure yet";
-}
-
-function linkMatches(l: Link, f: Focus) {
-  return f.type === "node" ? l.from === f.key || l.to === f.key : l.from === f.from && l.to === f.to;
-}
-
-function FlowMap({
-  items,
-  active,
-  onHover,
-  onToggle,
-}: {
-  items: BlockInput[];
-  active: Focus | null;
-  onHover: (f: Focus | null) => void;
-  onToggle: (f: Focus) => void;
-}) {
+function StageConnections({ stage, items }: { stage: BlockKey; items: BlockInput[] }) {
+  const b = blockDef(stage)!;
+  const { out, inc } = useMemo(() => connectionsOf(stage, items), [stage, items]);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [tip, setTip] = useState<{ x: number; y: number; link: Link } | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; conn: Conn; dir: "out" | "in" } | null>(null);
+  const [hot, setHot] = useState<string | null>(null);
 
-  const layout = useMemo(() => {
-    const m = new Map<string, Link>();
-    for (const e of items) {
-      if (!isBacklogItem(e)) continue;
-      const tos = e.unsure
-        ? [UNSURE]
-        : [...new Set(e.targets.map((t) => (isBlockKey(t) ? t : OUTSIDE)))];
-      for (const to of tos) {
-        const id = `${e.block}|${to}|${e.kind}`;
-        const cur = m.get(id);
-        if (cur) cur.items.push(e);
-        else m.set(id, { id, from: e.block, to, kind: e.kind as BacklogKind, items: [e] });
-      }
-    }
-    const links = [...m.values()];
-    const sum = (ls: Link[]) => ls.reduce((s, l) => s + l.items.length, 0);
-    const srcTotal = new Map<string, number>();
-    const tgtTotal = new Map<string, number>();
-    for (const l of links) {
-      srcTotal.set(l.from, (srcTotal.get(l.from) ?? 0) + l.items.length);
-      tgtTotal.set(l.to, (tgtTotal.get(l.to) ?? 0) + l.items.length);
-    }
-    const srcs = BUILDING_BLOCKS.map((b) => b.key as string).filter((k) => srcTotal.has(k));
-    const tgts = TARGET_ORDER.filter((k) => tgtTotal.has(k));
+  const rows = Math.max(out.length, inc.length, 2);
+  const H = rows * S_ROW + 40;
+  const cy = 20 + (rows * S_ROW) / 2;
+  const pillY = (n: number, i: number) => 20 + ((rows - n) * S_ROW) / 2 + i * S_ROW + (S_ROW - S_PH) / 2;
 
-    // Pixels per item: as thick as fits, never thinner than a hairline band.
-    const total = sum(links);
-    const most = Math.max(srcs.length, tgts.length);
-    const u = Math.min(24, Math.max(4, (F_MAXH - (most - 1) * F_GAP) / Math.max(1, total)));
-    const colH = (n: number) => total * u + (n - 1) * F_GAP;
-    const inner = Math.max(colH(srcs.length), colH(tgts.length));
-
-    function place(keys: string[], totals: Map<string, number>) {
-      const out = new Map<string, { y: number; h: number }>();
-      let y = F_TOP + (inner - colH(keys.length)) / 2;
-      for (const k of keys) {
-        const h = totals.get(k)! * u;
-        out.set(k, { y, h });
-        y += h + F_GAP;
-      }
-      return out;
-    }
-    const srcPos = place(srcs, srcTotal);
-    const tgtPos = place(tgts, tgtTotal);
-
-    // Stack each node's bands in the other side's order, so bands cross as little as possible.
-    const y0 = new Map<string, number>();
-    const y1 = new Map<string, number>();
-    for (const k of srcs) {
-      let y = srcPos.get(k)!.y;
-      for (const l of links
-        .filter((l) => l.from === k)
-        .sort((a, b) => tRank(a.to) - tRank(b.to) || kRank(a.kind) - kRank(b.kind))) {
-        y0.set(l.id, y);
-        y += l.items.length * u;
-      }
-    }
-    for (const k of tgts) {
-      let y = tgtPos.get(k)!.y;
-      for (const l of links
-        .filter((l) => l.to === k)
-        .sort((a, b) => tRank(a.from) - tRank(b.from) || kRank(a.kind) - kRank(b.kind))) {
-        y1.set(l.id, y);
-        y += l.items.length * u;
-      }
-    }
-
-    const bands = links.map((l) => {
-      const a = y0.get(l.id)!;
-      const b = y1.get(l.id)!;
-      const h = l.items.length * u;
-      const x0 = F_LX;
-      const x1 = F_RX;
-      const xm = (x0 + x1) / 2;
-      const d =
-        `M${x0},${a} C${xm},${a} ${xm},${b} ${x1},${b} ` +
-        `L${x1},${b + h} C${xm},${b + h} ${xm},${a + h} ${x0},${a + h} Z`;
-      return { link: l, d };
-    });
-
-    return { links, bands, srcs, tgts, srcPos, tgtPos, srcTotal, tgtTotal, H: F_TOP + inner + 10 };
-  }, [items]);
-
-  if (layout.links.length === 0) {
-    return (
-      <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[12px] text-muted">
-        Nothing to connect yet — the bands appear as the team adds backlog items.
-      </p>
-    );
-  }
-
-  const { links, bands, srcs, tgts, srcPos, tgtPos, srcTotal, tgtTotal, H } = layout;
-  const related = (l: Link) => (active ? linkMatches(l, active) : false);
-  const involved = (k: string) =>
-    !active ||
-    (active.type === "node"
-      ? active.key === k || links.some((l) => linkMatches(l, active) && (l.from === k || l.to === k))
-      : active.from === k || active.to === k);
-
-  function showTip(ev: React.PointerEvent, link: Link) {
+  function showTip(ev: React.PointerEvent, conn: Conn, dir: "out" | "in") {
     const r = wrapRef.current?.getBoundingClientRect();
     if (r)
       setTip({
-        // Keep the 280px tooltip inside the map's width.
+        // Keep the 280px tooltip inside the view's width.
         x: Math.min(ev.clientX - r.left + 14, r.width - 290),
         y: ev.clientY - r.top + 14,
-        link,
+        conn,
+        dir,
       });
   }
 
-  function nodeHandlers(f: Focus) {
-    return {
-      tabIndex: 0,
-      role: "button" as const,
-      className: "cursor-pointer outline-none",
-      onPointerEnter: () => onHover(f),
-      onPointerLeave: () => onHover(null),
-      onFocus: () => onHover(f),
-      onBlur: () => onHover(null),
-      onClick: () => onToggle(f),
-      onKeyDown: (ev: React.KeyboardEvent) => {
-        if (ev.key === "Enter" || ev.key === " ") {
-          ev.preventDefault();
-          onToggle(f);
-        }
-      },
-    };
+  function side(list: Conn[], dir: "out" | "in") {
+    return list.map((c, i) => {
+      const y = pillY(list.length, i);
+      const py = y + S_PH / 2;
+      const id = `${dir}:${c.key}`;
+      const dim = hot !== null && hot !== id;
+      // Lines run left → right: needed-by → stage → needs-to-connect-to.
+      const [x1, y1, x2, y2] =
+        dir === "out" ? [S_CX + S_CW, cy, S_RX - 4, py] : [S_LX + S_PW, py, S_CX - 4, cy];
+      const xm = (x1 + x2) / 2;
+      const px = dir === "out" ? S_RX : S_LX;
+      return (
+        <g
+          key={id}
+          className="cursor-default"
+          style={{ opacity: dim ? 0.25 : 1, transition: "opacity 120ms" }}
+          onPointerEnter={(ev) => {
+            setHot(id);
+            showTip(ev, c, dir);
+          }}
+          onPointerMove={(ev) => showTip(ev, c, dir)}
+          onPointerLeave={() => {
+            setHot(null);
+            setTip(null);
+          }}
+        >
+          <path
+            d={`M${x1},${y1} C${xm},${y1} ${xm},${y2} ${x2},${y2}`}
+            fill="none"
+            stroke={b.hex}
+            strokeWidth={2}
+            strokeLinecap="round"
+            markerEnd="url(#sc-arrow)"
+          />
+          <path d={`M${x1},${y1} C${xm},${y1} ${xm},${y2} ${x2},${y2}`} fill="none" stroke="transparent" strokeWidth={14} />
+          <rect
+            x={px}
+            y={y}
+            width={S_PW}
+            height={S_PH}
+            rx={S_PH / 2}
+            style={{
+              fill: c.hex ? `${c.hex}14` : "rgb(var(--bg))",
+              stroke: c.hex ? `${c.hex}88` : "rgb(var(--line))",
+            }}
+            strokeDasharray={c.muted ? "4 3" : undefined}
+          />
+          {c.hex && <circle cx={px + 16} cy={py} r={4.5} fill={c.hex} />}
+          <text x={px + (c.hex ? 28 : 14)} y={py + 4.5} fontSize="12.5">
+            <tspan
+              fontWeight="600"
+              fontStyle={c.muted ? "italic" : undefined}
+              style={{ fill: c.muted ? "rgb(var(--muted))" : "rgb(var(--fg))" }}
+            >
+              {c.label.length > 28 ? `${c.label.slice(0, 27)}…` : c.label}
+            </tspan>
+            <tspan dx="6" style={{ fill: "rgb(var(--muted))" }}>
+              {c.items.length}
+            </tspan>
+          </text>
+        </g>
+      );
+    });
   }
 
   const head = { fontSize: 10.5, fontWeight: 600, letterSpacing: "0.12em", style: { fill: "rgb(var(--muted))" } };
+  const none = (x: number) => (
+    <text x={x} y={cy + 4} textAnchor="middle" fontSize="12" fontStyle="italic" style={{ fill: "rgb(var(--muted))" }}>
+      Nothing yet
+    </text>
+  );
 
   return (
-    <div ref={wrapRef} className="relative" onPointerLeave={() => setTip(null)}>
+    <div
+      ref={wrapRef}
+      className="relative rounded-2xl border bg-card/60 p-3 sm:p-4"
+      style={{ borderColor: `${b.hex}55` }}
+      onPointerLeave={() => setTip(null)}
+    >
       <div className="overflow-x-auto">
         <svg
-          viewBox={`0 0 ${F_W} ${H}`}
+          viewBox={`0 0 ${S_W} ${H}`}
           className="mx-auto w-full min-w-[680px] max-w-[1000px]"
           role="img"
-          aria-label="Where things need to connect: stages on the left, where they need to connect on the right"
+          aria-label={`${b.label}: needs to connect to ${out.map((c) => c.label).join(", ") || "nothing yet"}; needed by ${inc.map((c) => c.label).join(", ") || "no stage yet"}`}
         >
           <defs>
-            {BUILDING_BLOCKS.map((b) => (
-              <pattern
-                key={b.key}
-                id={`fm-hatch-${b.key}`}
-                width="7"
-                height="7"
-                patternUnits="userSpaceOnUse"
-                patternTransform="rotate(45)"
-              >
-                <rect width="7" height="7" fill={b.hex} fillOpacity="0.12" />
-                <rect width="3" height="7" fill={b.hex} fillOpacity="0.6" />
-              </pattern>
-            ))}
+            <marker id="sc-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 Z" fill={b.hex} />
+            </marker>
           </defs>
 
-          <text x={F_LX} y={14} textAnchor="end" {...head}>
-            COMES FROM
+          <text x={S_LX + S_PW / 2} y={12} textAnchor="middle" {...head}>
+            NEEDED BY
           </text>
-          <text x={F_RX} y={14} {...head}>
+          <text x={S_RX + S_PW / 2} y={12} textAnchor="middle" {...head}>
             NEEDS TO CONNECT TO
           </text>
 
-          {/* Bands */}
-          {bands.map(({ link: l, d }) => {
-            const hex = blockDef(l.from)!.hex;
-            const rel = related(l);
-            const n = l.items.length;
-            const pair: Focus = { type: "pair", from: l.from, to: l.to };
-            return (
-              <path
-                key={l.id}
-                d={d}
-                tabIndex={0}
-                role="button"
-                aria-label={`${blockDef(l.from)!.label} to ${targetLabel(l.to)}: ${n} ${
-                  l.kind === "connect" ? "built, need connecting" : "missing"
-                }`}
-                className="cursor-pointer outline-none"
-                fill={l.kind === "connect" ? hex : `url(#fm-hatch-${l.from})`}
-                fillOpacity={l.kind === "connect" ? (rel ? 0.8 : 0.5) : 1}
-                style={{
-                  stroke: "rgb(var(--card))",
-                  opacity: active && !rel ? 0.12 : 1,
-                  transition: "opacity 120ms",
-                }}
-                strokeWidth={1}
-                onPointerEnter={(ev) => {
-                  onHover(pair);
-                  showTip(ev, l);
-                }}
-                onPointerMove={(ev) => showTip(ev, l)}
-                onPointerLeave={() => {
-                  onHover(null);
-                  setTip(null);
-                }}
-                onFocus={() => onHover(pair)}
-                onBlur={() => onHover(null)}
-                onClick={() => onToggle(pair)}
-                onKeyDown={(ev) => {
-                  if (ev.key === "Enter" || ev.key === " ") {
-                    ev.preventDefault();
-                    onToggle(pair);
-                  }
-                }}
-              />
-            );
-          })}
+          {inc.length ? side(inc, "in") : none(S_LX + S_PW / 2)}
+          {out.length ? side(out, "out") : none(S_RX + S_PW / 2)}
 
-          {/* Comes from */}
-          {srcs.map((k) => {
-            const b = blockDef(k)!;
-            const { y, h } = srcPos.get(k)!;
-            return (
-              <g
-                key={k}
-                aria-label={`${b.label}: ${srcTotal.get(k)} going out`}
-                style={{ opacity: involved(k) ? 1 : 0.3, transition: "opacity 120ms" }}
-                {...nodeHandlers({ type: "node", key: k })}
-              >
-                <rect x={F_LX - F_BAR} y={y} width={F_BAR} height={h} rx="2" fill={b.hex} />
-                <text x={F_LX - F_BAR - 10} y={y + h / 2 + 4} textAnchor="end" fontSize="12.5">
-                  <tspan fontWeight="600" style={{ fill: "rgb(var(--fg))" }}>
-                    {b.label}
-                  </tspan>
-                  <tspan dx="6" style={{ fill: "rgb(var(--muted))" }}>
-                    {srcTotal.get(k)}
-                  </tspan>
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Needs to connect to */}
-          {tgts.map((k) => {
-            const b = isBlockKey(k) ? blockDef(k)! : null;
-            const { y, h } = tgtPos.get(k)!;
-            return (
-              <g
-                key={k}
-                aria-label={`${targetLabel(k)}: ${tgtTotal.get(k)} coming in`}
-                style={{ opacity: involved(k) ? 1 : 0.3, transition: "opacity 120ms" }}
-                {...nodeHandlers({ type: "node", key: k })}
-              >
-                <rect
-                  x={F_RX}
-                  y={y}
-                  width={F_BAR}
-                  height={h}
-                  rx="2"
-                  style={{ fill: b ? b.hex : "rgb(var(--muted))" }}
-                  fillOpacity={b ? 1 : 0.5}
-                />
-                <text x={F_RX + F_BAR + 10} y={y + h / 2 + 4} fontSize="12.5">
-                  <tspan
-                    fontWeight="600"
-                    fontStyle={b ? undefined : "italic"}
-                    style={{ fill: b ? "rgb(var(--fg))" : "rgb(var(--muted))" }}
-                  >
-                    {targetLabel(k)}
-                  </tspan>
-                  <tspan dx="6" style={{ fill: "rgb(var(--muted))" }}>
-                    {tgtTotal.get(k)}
-                  </tspan>
-                </text>
-              </g>
-            );
-          })}
+          {/* The selected stage */}
+          <rect
+            x={S_CX}
+            y={cy - S_CH / 2}
+            width={S_CW}
+            height={S_CH}
+            rx="14"
+            fill={b.hex}
+            fillOpacity="0.14"
+            stroke={b.hex}
+            strokeWidth="2"
+          />
+          <text x={S_W / 2} y={cy + 5} textAnchor="middle" fontSize="15" fontWeight="700" style={{ fill: "rgb(var(--fg))" }}>
+            {b.label}
+          </text>
         </svg>
       </div>
 
@@ -836,27 +781,19 @@ function FlowMap({
           role="tooltip"
         >
           <div className="text-sm font-semibold text-fg">
-            {blockDef(tip.link.from)!.label} → {targetLabel(tip.link.to)}
+            {tip.dir === "out" ? `${b.label} → ${tip.conn.label}` : `${tip.conn.label} → ${b.label}`}
           </div>
           <div className="text-[11px] text-muted">
-            {tip.link.items.length}{" "}
-            {tip.link.kind === "connect" ? "built, need connecting" : "missing, needed"}
+            {tip.conn.items.length} item{tip.conn.items.length === 1 ? "" : "s"}
           </div>
           <ul className="mt-1.5 space-y-0.5 text-[12px] text-fg">
-            {tip.link.items.slice(0, 5).map((e) => {
-              const outside = e.targets.filter((t) => !isBlockKey(t));
-              return (
-                <li key={e.id} className="truncate">
-                  · {e.text}
-                  {tip.link.to === OUTSIDE && outside.length > 0 && (
-                    <span className="text-muted"> → {outside.join(", ")}</span>
-                  )}{" "}
-                  <span className="text-muted">({e.member})</span>
-                </li>
-              );
-            })}
-            {tip.link.items.length > 5 && (
-              <li className="text-muted">+{tip.link.items.length - 5} more</li>
+            {tip.conn.items.slice(0, 5).map((e) => (
+              <li key={e.id} className="truncate">
+                · {e.text} <span className="text-muted">({e.member})</span>
+              </li>
+            ))}
+            {tip.conn.items.length > 5 && (
+              <li className="text-muted">+{tip.conn.items.length - 5} more</li>
             )}
           </ul>
         </div>
