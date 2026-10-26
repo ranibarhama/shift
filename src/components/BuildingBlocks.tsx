@@ -246,7 +246,6 @@ export function BuildingBlocksSlide() {
         built — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
         {MAX_MISSING} by priority). Every item gets a category.
       </p>
-      <MemberBar />
       <div ref={flowRef} className="scroll-mt-20">
         <BlocksFlow byBlock={byBlock} selected={selected} onSelect={select} />
       </div>
@@ -257,88 +256,77 @@ export function BuildingBlocksSlide() {
 
 /* ---------- Who am I ---------- */
 
-function MemberBar() {
+const OTHER_MEMBER = "__other";
+
+/** Who's adding input: a dropdown at the top right of the stages section.
+ *  Reads "Who are you?" until picked, then "Adding as <name>". */
+export function MemberPicker() {
   const { member, setMember } = useBlocks();
   const [typing, setTyping] = useState(false);
   const [name, setName] = useState("");
-  const onRoster = TEAM_MEMBERS.includes(member);
+  const names = member && !TEAM_MEMBERS.includes(member) ? [...TEAM_MEMBERS, member] : TEAM_MEMBERS;
+
+  if (typing) {
+    return (
+      <form
+        className="flex items-center gap-1"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          setMember(name);
+          setName("");
+          setTyping(false);
+        }}
+      >
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={MAX_MEMBER}
+          placeholder="Your name"
+          aria-label="Your name"
+          className="w-36 rounded-full border border-accent bg-bg px-3 py-1.5 text-[12.5px] text-fg focus:outline-none"
+        />
+        <button type="submit" className="rounded-full px-2 py-1 text-xs font-semibold text-accent">
+          Use
+        </button>
+        <button
+          type="button"
+          onClick={() => setTyping(false)}
+          className="rounded-full px-1.5 py-1 text-xs text-muted"
+          aria-label="Cancel"
+        >
+          ✕
+        </button>
+      </form>
+    );
+  }
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-bg/50 px-4 py-3">
-      <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-        I am
-      </span>
-      {TEAM_MEMBERS.map((m) => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => setMember(m)}
-          aria-pressed={member === m}
-          className={
-            "rounded-full border px-3 py-1 text-xs font-medium transition " +
-            (member === m
-              ? "border-accent bg-accent text-ink"
-              : "border-line bg-card text-fg hover:border-accent/50")
-          }
-        >
-          {m}
-        </button>
-      ))}
-      {member && !onRoster && (
-        <span className="rounded-full border border-accent bg-accent px-3 py-1 text-xs font-medium text-ink">
-          {member}
-        </span>
-      )}
-      {typing ? (
-        <form
-          className="flex items-center gap-1"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim()) return;
-            setMember(name);
-            setName("");
-            setTyping(false);
-          }}
-        >
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={MAX_MEMBER}
-            placeholder="Your name"
-            className="w-32 rounded-full border border-line bg-card px-3 py-1 text-xs text-fg focus:border-accent focus:outline-none"
-          />
-          <button type="submit" className="rounded-full px-2 py-1 text-xs font-semibold text-accent">
-            Use
-          </button>
-          <button
-            type="button"
-            onClick={() => setTyping(false)}
-            className="rounded-full px-1.5 py-1 text-xs text-muted"
-            aria-label="Cancel"
-          >
-            ✕
-          </button>
-        </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setTyping(true)}
-          className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted transition hover:border-accent/50 hover:text-fg"
-        >
-          + Someone else
-        </button>
-      )}
-      <span className="ml-auto text-[11px] text-muted">
-        {member ? (
-          <>
-            Adding as <span className="font-semibold text-fg">{member}</span>
-          </>
-        ) : (
-          "Pick your name to add input"
-        )}
-      </span>
-    </div>
+    <label className="flex items-center gap-2 text-[12px] text-muted">
+      {member ? "Adding as" : "Who are you?"}
+      <select
+        value={member}
+        onChange={(e) => {
+          if (e.target.value === OTHER_MEMBER) setTyping(true);
+          else setMember(e.target.value);
+        }}
+        className={
+          "rounded-full border bg-bg px-3 py-1.5 text-[12.5px] font-semibold focus:outline-none " +
+          (member ? "border-line text-fg focus:border-accent" : "border-accent text-accent ring-2 ring-accent/20")
+        }
+      >
+        <option value="" disabled>
+          Pick your name…
+        </option>
+        {names.map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+        <option value={OTHER_MEMBER}>Someone else…</option>
+      </select>
+    </label>
   );
 }
 
@@ -788,7 +776,7 @@ function AddForm({
   const [error, setError] = useState<string | null>(null);
 
   if (!member) {
-    return <p className="text-[11px] text-muted">Pick your name above to add input.</p>;
+    return <p className="text-[11px] text-muted">Pick who you are (top right) to add input.</p>;
   }
   if (blockedNote) {
     return <p className="text-[11px] text-muted">{blockedNote}</p>;

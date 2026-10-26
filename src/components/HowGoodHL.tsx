@@ -19,7 +19,7 @@ import {
 } from "@/lib/blueprintData";
 import { BUILDING_BLOCKS, isFoundation, type BlockInput } from "@/lib/buildingBlocks";
 import { BotIcon, BrainIcon } from "./DecisionIcons";
-import { BlocksProvider, BuildingBlocksSlide } from "./BuildingBlocks";
+import { BlocksProvider, BuildingBlocksSlide, MemberPicker } from "./BuildingBlocks";
 
 /* -----------------------------------------------------------------------------
  * "How good looks like — HL": the Transformation structure and Details tabs
@@ -33,6 +33,8 @@ type Slide = {
   kicker: string;
   title: string;
   hero?: boolean;
+  /** Shown at the top right of the section header. */
+  aside?: React.ReactNode;
   body: React.ReactNode;
 };
 
@@ -77,6 +79,7 @@ function allSlides(): Slide[] {
       key: "blocks",
       kicker: "Start here · The stages",
       title: "Where we are today, stage by stage",
+      aside: <MemberPicker />,
       body: <BuildingBlocksSlide />,
     },
     { key: "title", kicker: "Phase 2 · Step 1", title: "How good looks like — HL", hero: true, body: <TitleSlide /> },
@@ -125,13 +128,16 @@ export default function HowGoodHL({ initialBlockInputs }: { initialBlockInputs: 
             className="scroll-mt-20 rounded-3xl border border-line bg-card/40 p-5 sm:p-8"
           >
             {!s.hero && (
-              <div className="mb-6">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                  {s.kicker}
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+                    {s.kicker}
+                  </div>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+                    {s.title}
+                  </h2>
                 </div>
-                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
-                  {s.title}
-                </h2>
+                {s.aside}
               </div>
             )}
             {s.body}
