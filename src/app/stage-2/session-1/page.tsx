@@ -45,7 +45,8 @@ export default async function Stage2Session1Page() {
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
             <span className="font-semibold text-fg">Slide 01</span> shows the whole process at
-            a glance. On <span className="font-semibold text-fg">slide 00</span> every team
+            a glance. On <span className="font-semibold text-fg">slide 00</span>{" "}
+            every team
             member maps today&apos;s status stage by stage — what we have, what&apos;s
             missing and what needs connecting. Hit{" "}
             <span className="font-semibold text-fg">Present</span> to run it full screen

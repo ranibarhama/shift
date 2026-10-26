@@ -41,7 +41,14 @@ export const BUILDING_BLOCKS = [
   },
   { key: "launch", label: "Launch", mapLines: ["Launch"], hex: "#c98500", owners: ["Ben", "Rani"] },
   { key: "growth", label: "Growth", mapLines: ["Growth"], hex: "#d55181", owners: ["Ben"] },
-  { key: "feedback", label: "Feedback", mapLines: ["Feedback"], hex: "#008300", owners: ["Yossi"] },
+  {
+    // Shown as "Measurement" (was "Feedback"); key kept so saved input stays attached.
+    key: "feedback",
+    label: "Measurement",
+    mapLines: ["Measurement"],
+    hex: "#008300",
+    owners: ["Yossi"],
+  },
   {
     // Shown as "OPS" (was "Continuous learning"); key kept so saved input stays attached.
     key: "learning",
