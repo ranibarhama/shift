@@ -42,7 +42,7 @@ const POLL_MS = 10_000;
 
 const KIND_META: Record<InputKind, { label: string; short: string; hex: string; glyph: string }> = {
   have: { label: "What we have now", short: "have", hex: "#22c55e", glyph: "✓" },
-  missing: { label: `What's missing — top ${MAX_MISSING}`, short: "missing", hex: "#f59e0b", glyph: "!" },
+  missing: { label: `What's missing — your top ${MAX_MISSING} by priority`, short: "missing", hex: "#f59e0b", glyph: "!" },
   connect: { label: "Have it — needs a connection", short: "to connect", hex: "#7c5cff", glyph: "⇄" },
 };
 
@@ -210,7 +210,7 @@ export function BuildingBlocksSlide() {
       <p className="max-w-3xl text-sm text-muted">
         The whole process, stage by stage. Pick your name, open a stage, and add what we have
         today — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
-        {MAX_MISSING}). Every item gets a category.
+        {MAX_MISSING} by priority). Every item gets a category.
       </p>
       <div className="flex flex-wrap items-center gap-y-1">
         <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
@@ -578,6 +578,7 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
 
         <Column
           kind="missing"
+          hint="Add your most important first — #1 is your top priority."
           footer={
             <AddForm
               block={block}
@@ -613,18 +614,23 @@ function BlockEditor({ block, entries }: { block: BlockKey; entries: BlockInput[
 
 function Column({
   kind,
+  hint,
   children,
   footer,
 }: {
   kind: InputKind;
+  hint?: string;
   children: React.ReactNode;
   footer: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-line bg-card/80 p-3">
-      <div className="mb-2.5 flex items-center gap-2">
-        <Glyph kind={kind} />
-        <span className="text-[12.5px] font-semibold text-fg">{KIND_META[kind].label}</span>
+      <div className="mb-2.5">
+        <div className="flex items-center gap-2">
+          <Glyph kind={kind} />
+          <span className="text-[12.5px] font-semibold text-fg">{KIND_META[kind].label}</span>
+        </div>
+        {hint && <p className="mt-0.5 pl-7 text-[11px] text-muted">{hint}</p>}
       </div>
       <div className="flex-1 space-y-1.5">{children}</div>
       <div className="mt-3 border-t border-line/60 pt-3">{footer}</div>
