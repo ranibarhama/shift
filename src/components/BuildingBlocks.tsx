@@ -42,7 +42,7 @@ const MEMBER_KEY = "shift_member";
 const POLL_MS = 10_000;
 
 const KIND_META: Record<InputKind, { label: string; short: string; hex: string; glyph: string }> = {
-  have: { label: "What we have now", short: "have", hex: "#22c55e", glyph: "✓" },
+  have: { label: "What we already built", short: "have", hex: "#22c55e", glyph: "✓" },
   missing: { label: `What's missing — your top ${MAX_MISSING} by priority`, short: "missing", hex: "#f59e0b", glyph: "!" },
   connect: { label: "Have it — needs a connection", short: "to connect", hex: "#7c5cff", glyph: "⇄" },
 };
@@ -242,8 +242,8 @@ export function BuildingBlocksSlide() {
   return (
     <div className="space-y-4">
       <p className="max-w-3xl text-sm text-muted">
-        The whole process, stage by stage. Pick your name, open a stage, and add what we have
-        today — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
+        The whole process, stage by stage. Pick your name, open a stage, and add what we already
+        built — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
         {MAX_MISSING} by priority). Every item gets a category.
       </p>
       <div className="flex flex-wrap items-center gap-y-1">
