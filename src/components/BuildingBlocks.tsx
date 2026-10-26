@@ -246,14 +246,6 @@ export function BuildingBlocksSlide() {
         built — and where it needs to connect, if it does — and what&apos;s missing (your top{" "}
         {MAX_MISSING} by priority). Every item gets a category.
       </p>
-      <div className="flex flex-wrap items-center gap-y-1">
-        <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-          Categories
-        </span>
-        {CATEGORIES.map((c) => (
-          <CategoryTag key={c.key} category={c.key} />
-        ))}
-      </div>
       <MemberBar />
       <div ref={flowRef} className="scroll-mt-20">
         <BlocksFlow byBlock={byBlock} selected={selected} onSelect={select} />
