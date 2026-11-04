@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   BUILDING_BLOCKS,
   CATEGORIES,
+  TEAM_MEMBERS,
   blockDef,
   isBlockKey,
   isFoundation,
@@ -112,8 +113,12 @@ export default function BacklogView({ initial }: { initial: BlockInput[] }) {
   }, []);
 
   const backlog = useMemo(() => entries.filter(isBacklogItem), [entries]);
+  // The whole team, even before they add anything, plus anyone else who added items.
   const people = useMemo(
-    () => [...new Set(backlog.map((e) => e.member))].sort((a, b) => a.localeCompare(b)),
+    () =>
+      [...new Set([...TEAM_MEMBERS, ...backlog.map((e) => e.member)])].sort((a, b) =>
+        a.localeCompare(b)
+      ),
     [backlog]
   );
   const ranks = useMemo(() => missingRanks(backlog), [backlog]);
