@@ -40,7 +40,7 @@ export default async function Home() {
           stage="Phase 2"
           status="Up next"
           title="Shift Phase 2"
-          desc="The next phase: map the gaps and connections, build the backlog, then define, architect, plan and run it."
+          desc="The next phase: map the gaps and connections, build the backlog, design the architecture, then plan the tasks and resources and run it."
           chips={["Process so far", ...STAGE2_STEPS.map((s) => `${s.n} · ${s.title}`)]}
           cta="Open Phase 2"
           hex="#16a34a"
