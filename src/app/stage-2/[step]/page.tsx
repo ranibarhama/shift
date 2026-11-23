@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props) {
 
 /**
  * Phase 2 steps that are planned but have no content yet (ready: false in
- * src/lib/stage2.ts). Steps with their own page (1, 2, 3) never reach here —
+ * src/lib/stage2.ts). Steps with their own page (1–4) never reach here —
  * their static routes take precedence.
  */
 export default async function Stage2PlannedStepPage({ params }: Props) {

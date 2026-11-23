@@ -41,8 +41,8 @@ export const STAGE2_STEPS: Stage2Step[] = [
     n: 4,
     slug: "tasks-resources",
     title: "Updated Backlog Tasks & Resources",
-    summary: "The backlog, updated after the architecture work: the tasks, their owners and the resources each one needs.",
-    ready: false,
+    summary: "Every task it takes to build the architecture — from the backlog and from the architecture itself — and what each one costs.",
+    ready: true,
   },
   {
     n: 5,

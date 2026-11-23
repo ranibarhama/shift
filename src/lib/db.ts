@@ -241,6 +241,17 @@ async function ensureSchema(db: Client) {
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_block_inputs_block ON block_inputs(block);
+
+    /* Phase 2 · Step 4 task plan — one row per task that has an estimate.
+     * task_id: an architecture task id (src/lib/taskPlan.ts) or a block_inputs id.
+     * data: JSON — person-days per role, what the task needs, notes, done, and
+     *   (backlog items) the layer it was moved to. */
+    CREATE TABLE IF NOT EXISTS task_estimates (
+      task_id TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updated_by TEXT,
+      updated_at INTEGER NOT NULL
+    );
   `);
 
   // One-time reset of the Iteration 2 canvas when the seed changes.

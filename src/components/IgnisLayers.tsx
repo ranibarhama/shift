@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
+import { IGNIS_FRAMES } from "@/lib/ignisFrames";
 import { enteredAtEnd, usePresentStops, usePresenting } from "./PresentMode";
 
 /* -----------------------------------------------------------------------------
@@ -11,29 +12,22 @@ import { enteredAtEnd, usePresentStops, usePresenting } from "./PresentMode";
  * are the page's stops.
  * -------------------------------------------------------------------------- */
 
-type Frame = {
-  /** Short name on the frame picker. */
-  tab: string;
-  title: string;
+/** What the page adds to each frame in IGNIS_FRAMES, in the same order. */
+type FrameView = {
   /** The diagram grows with each frame — this is the part of it in view. */
   viewBox: string;
   complexity: number;
   velocity: number;
   confidence: number;
-  /** The kind of task this frame unlocks. */
-  unlock: string;
   notes: React.ReactNode;
 };
 
-const FRAMES: Frame[] = [
+const FRAME_VIEWS: FrameView[] = [
   {
-    tab: "Implement ticket",
-    title: "Implement a Jira ticket",
     viewBox: "0 228 1040 340",
     complexity: 10,
     velocity: 10,
     confidence: 10,
-    unlock: "Simple UI tasks — not business logic",
     notes: (
       <>
         Engineers keep working in Jira. When a ticket is assigned to Ignis and moved to In
@@ -43,13 +37,10 @@ const FRAMES: Frame[] = [
     ),
   },
   {
-    tab: "+ Self-updating product brain",
-    title: "Self-updating <product>-ignis-context & backlog ideas",
     viewBox: "0 24 1040 686",
     complexity: 10,
     velocity: 10,
     confidence: 35,
-    unlock: "PM gets ideas from a self-updating system (learns from shipped tickets)",
     notes: (
       <>
         Each product keeps a self-updating <Code>&lt;product&gt;-ignis-context</Code> repo — the
@@ -62,13 +53,10 @@ const FRAMES: Frame[] = [
     ),
   },
   {
-    tab: "+ Live data sources",
-    title: "Add Philippe & store ratings, reviews, comments to product brain",
     viewBox: "0 -96 1040 806",
     complexity: 10,
     velocity: 10,
     confidence: 65,
-    unlock: "Higher confidence on shipped tasks (Philippe & store reviews)",
     notes: (
       <>
         A fast, low-effort data integration connects live user and business signals into{" "}
@@ -79,13 +67,10 @@ const FRAMES: Frame[] = [
     ),
   },
   {
-    tab: "+ R&D fast track",
-    title: "R&D fast track (risk checked in planning → PM vs R&D merge)",
     viewBox: "0 -96 1040 806",
     complexity: 10,
     velocity: 45,
     confidence: 65,
-    unlock: "Small tasks are shipped quicker (PM fast track)",
     notes: (
       <>
         With R&amp;D fast track, <b>risk is checked upfront during feature planning</b> — before
@@ -96,13 +81,10 @@ const FRAMES: Frame[] = [
     ),
   },
   {
-    tab: "+ 3rd-party agents (UGC)",
-    title: "3rd-party services (UGC → Release)",
     viewBox: "0 -96 1092 820",
     complexity: 10,
     velocity: 75,
     confidence: 65,
-    unlock: "3rd-party agents like UGC agent (provided by outside company)",
     notes: (
       <>
         Ignis runtime can also dispatch to external <b>3rd-party services</b> — for example an
@@ -112,13 +94,10 @@ const FRAMES: Frame[] = [
     ),
   },
   {
-    tab: "+ Planning skills & gates",
-    title: "Expand planning: Design, Analytics & Marketing skills + profession gates",
     viewBox: "0 -96 1092 1036",
     complexity: 55,
     velocity: 75,
     confidence: 80,
-    unlock: "More complex features requiring Design, Marketing & Analytics",
     notes: (
       <>
         Feature planning expands for complex cross-functional work: before a ticket enters Jira,
@@ -130,13 +109,10 @@ const FRAMES: Frame[] = [
     ),
   },
   {
-    tab: "Parallel in Ignis",
-    title: "In parallel inside Ignis: dynamic skills, Eval, code learning & alt harnesses",
     viewBox: "0 -96 1092 1080",
     complexity: 85,
     velocity: 85,
     confidence: 92,
-    unlock: "Support more complex features (dynamic skills, Eval, MR learning, alt harnesses)",
     notes: (
       <>
         In parallel, dedicated Ignis R&amp;D advances four platform multipliers across every
@@ -150,6 +126,13 @@ const FRAMES: Frame[] = [
     ),
   },
 ];
+
+const FRAMES = IGNIS_FRAMES.map((f, i) => ({
+  ...f,
+  ...FRAME_VIEWS[i],
+  /** Short name on the frame picker. */
+  tab: (f.plus ? "+ " : "") + f.name,
+}));
 
 const GAUGES = [
   { key: "complexity", label: "Task complexity" },
