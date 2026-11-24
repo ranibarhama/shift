@@ -38,7 +38,7 @@ export default function Stage2ArchitecturePage() {
             The detailed definition and the technical architecture, in one step. It starts with
             how Ignis is built: one graph, growing a layer at a time, with what each layer
             unlocks. Hit <span className="font-semibold text-fg">Present</span> in the header to
-            go full screen: ← → move frame by frame.
+            go full screen. ← → or 1–7 move frame by frame.
           </p>
         </header>
 

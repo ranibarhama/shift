@@ -184,21 +184,6 @@ export default function IgnisLayers() {
 
   return (
     <section aria-label="Ignis — layered overview" className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-            Management deck
-          </div>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
-            Ignis — layered overview
-          </h2>
-          <p className="mt-1 text-sm text-muted">Same graph, built layer by layer.</p>
-        </div>
-        <p className="text-[11px] text-muted">
-          <Kbd>←</Kbd> <Kbd>→</Kbd> or <Kbd>1</Kbd>–<Kbd>{FRAMES.length}</Kbd> to move between frames
-        </p>
-      </div>
-
       <nav
         aria-label="Frames"
         className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-card/40 p-2"
@@ -356,14 +341,6 @@ function Gauge({ label, value, gain }: { label: string; value: number; gain: num
         <span>100</span>
       </div>
     </div>
-  );
-}
-
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="rounded border border-line bg-bg px-1 font-sans text-[10px] font-semibold text-fg">
-      {children}
-    </kbd>
   );
 }
 
