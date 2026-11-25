@@ -42,7 +42,11 @@ export type ArchTask = {
   detail: string;
 };
 
-/** What each layer of the architecture needs built — one task per box or path on the diagram. */
+/**
+ * What each layer of the architecture needs built — one task per box or path on the
+ * diagram, and one per card of the platform track. Add a new task at the end of its
+ * layer: tasks are numbered by position, and people refer to them by number.
+ */
 export const ARCH_TASKS: ArchTask[] = [
   // 1 · Ticket → MR
   {
@@ -126,6 +130,12 @@ export const ARCH_TASKS: ArchTask[] = [
     layer: 3,
     title: "Store feed into the product brain",
     detail: "Ratings, reviews and user comments.",
+  },
+  {
+    id: "a3-abtests",
+    layer: 3,
+    title: "A/B tests & feature KPIs feed into the product brain",
+    detail: "A/B test results, funnels and conversion — the metrics a shipped change moves directly.",
   },
 
   // 4 · Risk-tiered review
@@ -216,7 +226,7 @@ export const ARCH_TASKS: ArchTask[] = [
   {
     id: "a7-learning",
     layer: 7,
-    title: "Code-writing learning",
+    title: "Code-writing learning loop",
     detail: "MR change requests and product comments are fed back into the coding loop.",
   },
   {
@@ -224,6 +234,24 @@ export const ARCH_TASKS: ArchTask[] = [
     layer: 7,
     title: "Alternative coding harnesses",
     detail: "Evaluate GitLab Actions and OpenCode alongside Newton.",
+  },
+  {
+    id: "a7-guardrails",
+    layer: 7,
+    title: "Guardrail enforcement",
+    detail: "Mandatory product, architectural, security and isolation guardrails, enforced in verification and before every release.",
+  },
+  {
+    id: "a7-runtime",
+    layer: 7,
+    title: "On-demand agent runtime",
+    detail: "Spin up custom or ad-hoc agents (audits, anomaly triage, release notes, research) with ready access to the product brain.",
+  },
+  {
+    id: "a7-regulation",
+    layer: 7,
+    title: "Industry regulation adoption",
+    detail: "Privacy, explicit user consent, minor protection, app-store rules and legal standards — adopted once at the platform level, applied to every product.",
   },
 ];
 
