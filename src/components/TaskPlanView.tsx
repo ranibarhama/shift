@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { blockDef, isBlockKey, type BlockInput } from "@/lib/buildingBlocks";
-import { IGNIS_FRAMES } from "@/lib/ignisFrames";
+import { IGNIS_LAYERS } from "@/lib/ignisFrames";
 import {
   MAX_DAYS,
   MAX_NEEDS,
@@ -41,7 +41,7 @@ const SOURCE_LABEL: Record<SourceFilter, string> = {
 };
 const STATE_LABEL: Record<StateFilter, string> = { all: "All", estimated: "Estimated", todo: "To estimate" };
 
-const layerName = (n: number) => IGNIS_FRAMES[n - 1].name;
+const layerName = (n: number) => IGNIS_LAYERS[n - 1].name;
 
 /** One layer's (or the whole plan's) numbers. Tasks marked done aren't counted as effort. */
 function summarize(tasks: PlanTask[], estimates: Estimates) {
@@ -433,7 +433,7 @@ function LayerGroup({
           <LayerBadge n={n} />
           {layerName(n)}
         </span>
-        <span className="text-[11px] text-muted">Unlocks: {IGNIS_FRAMES[n - 1].unlock}</span>
+        <span className="text-[11px] text-muted">Unlocks: {IGNIS_LAYERS[n - 1].unlock}</span>
         <span className="ml-auto text-[11px] tabular-nums text-muted">
           {`${s.tasks} task${s.tasks === 1 ? "" : "s"} · ${s.estimated} of ${s.open} estimated · ${fmtDays(s.days)} person-days`}
         </span>
@@ -559,7 +559,7 @@ function LooseItems({
               className="rounded-full border border-line bg-bg px-3 py-1 text-[11.5px] text-fg focus:border-accent focus:outline-none"
             >
               <option value={0}>Move to a layer…</option>
-              {IGNIS_FRAMES.map((f, i) => (
+              {IGNIS_LAYERS.map((f, i) => (
                 <option key={f.name} value={i + 1}>
                   {i + 1} · {f.name}
                 </option>
@@ -675,7 +675,7 @@ function EstimatePanel({
                   Layer
                 </label>
                 <select id="est-layer" value={layer} onChange={(ev) => setLayer(Number(ev.target.value))} className={field}>
-                  {IGNIS_FRAMES.map((f, i) => (
+                  {IGNIS_LAYERS.map((f, i) => (
                     <option key={f.name} value={i + 1}>
                       {i + 1} · {f.name}
                     </option>

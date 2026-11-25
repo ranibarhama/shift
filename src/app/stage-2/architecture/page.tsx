@@ -6,7 +6,10 @@ export const metadata = {
   title: "3 · Architecture · Shift",
 };
 
-/** Phase 2 · 3 · Architecture — the detailed definition and the technical architecture, in one step. */
+/**
+ * Phase 2 · 3 · Architecture — the detailed definition and the technical architecture,
+ * in one step: Ignis frame by frame, and the platform work that runs beside it.
+ */
 export default function Stage2ArchitecturePage() {
   return (
     <div className="flex flex-1 flex-col">
@@ -34,16 +37,28 @@ export default function Stage2ArchitecturePage() {
             </span>
             Architecture
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            The detailed definition and the technical architecture, in one step. It starts with
-            how Ignis is built: one graph, growing a layer at a time, with what each layer
-            unlocks. Hit <span className="font-semibold text-fg">Present</span> in the header to
-            go full screen. ← → or 1–7 move frame by frame.
+          <p className="mt-2 max-w-3xl text-base leading-relaxed text-fg">
+            Small product changes wait on engineering capacity. Ignis turns a Jira ticket into a
+            verified merge request, then adds context, measurement and review so we can trust it
+            with bigger work.
+          </p>
+          <p className="mt-2 max-w-3xl text-sm text-muted">
+            Hit <span className="font-semibold text-fg">Present</span> in the header to go full
+            screen. ← → or 1–6 move frame by frame, <Key>I</Key> switches to Platform &amp;
+            Infrastructure and back, <Key>N</Key> hides the presenter notes.
           </p>
         </header>
 
         <IgnisLayers />
       </main>
     </div>
+  );
+}
+
+function Key({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border border-line bg-card px-1.5 py-px font-sans text-[11px] font-semibold text-fg">
+      {children}
+    </kbd>
   );
 }

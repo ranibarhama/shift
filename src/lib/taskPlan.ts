@@ -1,7 +1,7 @@
 /**
  * Phase 2 · 4 · Updated Backlog Tasks & Resources — the task plan: everything it
  * takes to build the architecture from step 3. Two sources, grouped by the
- * architecture's layers (the Ignis frames):
+ * architecture's layers (the six Ignis frames, then the continuous platform track):
  *   - tasks that come out of the architecture itself (ARCH_TASKS, below);
  *   - items from the step 2 backlog that a layer answers (BACKLOG_LAYER).
  * Each task can carry an estimate: person-days per role, what it needs, notes.
@@ -9,7 +9,7 @@
  */
 
 import { BUILDING_BLOCKS, type BlockInput } from "./buildingBlocks";
-import { IGNIS_FRAMES } from "./ignisFrames";
+import { IGNIS_LAYERS } from "./ignisFrames";
 
 /** Who the work lands on. Effort is estimated in person-days per role. */
 export const ROLES = [
@@ -27,8 +27,8 @@ export const MAX_DAYS = 999;
 export const MAX_NEEDS = 400;
 export const MAX_NOTES = 600;
 
-/** A layer of the architecture, 1–7 (the Ignis frame numbers). 0 = not tied to a layer. */
-export const LAYER_COUNT = IGNIS_FRAMES.length;
+/** A layer of the architecture: 1–6 are the Ignis frames, 7 the platform track. 0 = not tied to a layer. */
+export const LAYER_COUNT = IGNIS_LAYERS.length;
 
 export function isLayer(v: unknown): v is number {
   return typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= LAYER_COUNT;
@@ -44,7 +44,7 @@ export type ArchTask = {
 
 /** What each layer of the architecture needs built — one task per box or path on the diagram. */
 export const ARCH_TASKS: ArchTask[] = [
-  // 1 · Implement ticket
+  // 1 · Ticket → MR
   {
     id: "a1-trigger",
     layer: 1,
@@ -82,7 +82,7 @@ export const ARCH_TASKS: ArchTask[] = [
     detail: "Status and outcome are written back to the ticket.",
   },
 
-  // 2 · Self-updating product brain
+  // 2 · Ideas from product memory
   {
     id: "a2-context",
     layer: 2,
@@ -98,8 +98,8 @@ export const ARCH_TASKS: ArchTask[] = [
   {
     id: "a2-controller",
     layer: 2,
-    title: "Ignis Controller backlog snapshot",
-    detail: "Title, rationale and copy for the PM to review and take to Jira — no auto-create.",
+    title: "Ignis Controller: ideas & ticket workspace",
+    detail: "The backlog snapshot the PM works in. Changes made there reflect on Jira; the PM can also work directly in Jira.",
   },
   {
     id: "a2-feedback",
@@ -114,12 +114,12 @@ export const ARCH_TASKS: ArchTask[] = [
     detail: "CI in the context repo diffs shipped code and updates product docs and CHANGELOGs after each release.",
   },
 
-  // 3 · Live data sources
+  // 3 · Proof it worked
   {
     id: "a3-philippe",
     layer: 3,
     title: "Philippe feed into the product brain",
-    detail: "DAU and product usage metrics.",
+    detail: "DAU and macro usage metrics — the baseline for A/B tests and feature KPIs.",
   },
   {
     id: "a3-stores",
@@ -128,12 +128,12 @@ export const ARCH_TASKS: ArchTask[] = [
     detail: "Ratings, reviews and user comments.",
   },
 
-  // 4 · R&D fast track
+  // 4 · Risk-tiered review
   {
     id: "a4-risk",
     layer: 4,
     title: "Risk check in feature planning",
-    detail: "Define low vs high risk, and classify every feature before a PR exists.",
+    detail: "Define low vs high risk, and classify every feature before an MR exists.",
   },
   {
     id: "a4-tag",
@@ -154,7 +154,7 @@ export const ARCH_TASKS: ArchTask[] = [
     detail: "An engineer reviews and merges before Release.",
   },
 
-  // 5 · 3rd-party agents (UGC)
+  // 5 · Non-code work (3rd-party)
   {
     id: "a5-dispatch",
     layer: 5,
@@ -174,7 +174,7 @@ export const ARCH_TASKS: ArchTask[] = [
     detail: "Created assets go to Release, outside the coding loop.",
   },
 
-  // 6 · Planning skills & gates
+  // 6 · Cross-functional planning
   {
     id: "a6-design",
     layer: 6,
@@ -200,7 +200,7 @@ export const ARCH_TASKS: ArchTask[] = [
     detail: "The three gates join, and the aligned plan reaches the ticket before implementation starts.",
   },
 
-  // 7 · Parallel in Ignis
+  // 7 · Platform & infrastructure (continuous)
   {
     id: "a7-skills",
     layer: 7,
@@ -240,11 +240,11 @@ export function isArchTaskId(id: string): boolean {
  * that choice is saved with its estimate and wins over this default.
  */
 export const BACKLOG_LAYER: Record<string, number> = {
-  // 2 · Self-updating product brain
+  // 2 · Ideas from product memory
   blk_nxyptahklnhj: 2, // Product brain — full scope based on Ignis' current product brain
   blk_kf6du2ugvy08: 2, // Product Brain which will know what we built, what to build next and why
   blk_dv9tuoexj9zc: 2, // Podpilot — where the PM reviews ideas and plans
-  // 3 · Live data sources
+  // 3 · Proof it worked
   blk_x0ncjuvakwmp: 3, // Philippe — Analytics Platform + Slack Agent
   blk_29lbcfpc8l53: 3, // Expanding Philippe brain to new topics
   blk_jmktbcrhcypb: 3, // Adding Mixpanel into Philippe
@@ -252,16 +252,16 @@ export const BACKLOG_LAYER: Record<string, number> = {
   blk_dic3gqm73ddu: 3, // All data we need to prioritise our backlog and support our RICE
   blk_di54tbkwfiic: 3, // Insights on demand
   blk_yqf1javp7hq5: 3, // Feedback loop from support
-  // 5 · 3rd-party agents (UGC)
+  // 5 · Non-code work (3rd-party)
   blk_3sx3960e0zvi: 5, // Creatives generator tool (from banner to UGC & video)
-  // 6 · Planning skills & gates
+  // 6 · Cross-functional planning
   blk_ohkry4u4q0s6: 6, // Design skills as part of Ignis
   blk_81wlqy4e1ruu: 6, // Skill shared library for marketing and product
   blk_h8aqn59z4401: 6, // Agentic Event Tracking Plan
   blk_2aqu5s75mdod: 6, // Self events implementation tool
   blk_xllpn912r2yl: 6, // Initial infra for marketing brain
   blk_0feo4xzf5rx4: 6, // Email design skill
-  // 7 · Parallel in Ignis
+  // 7 · Platform & infrastructure (continuous)
   blk_q3km3vtl1jte: 7, // AI first development KPIs dashboard
 };
 
@@ -337,7 +337,7 @@ export function buildPlan(inputs: BlockInput[], estimates: Estimates): Plan {
       };
     });
 
-  const layers = IGNIS_FRAMES.map((_, i) => {
+  const layers = IGNIS_LAYERS.map((_, i) => {
     const n = i + 1;
     const tasks: PlanTask[] = [
       ...ARCH_TASKS.filter((t) => t.layer === n).map((t) => ({ ...t, num: "", source: "architecture" as const })),

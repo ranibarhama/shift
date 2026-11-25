@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IGNIS_FRAMES } from "@/lib/ignisFrames";
+import { IGNIS_LAYERS } from "@/lib/ignisFrames";
 import {
   BODIES,
   CENTRAL_CAPABILITIES,
@@ -763,11 +763,11 @@ function Layers() {
       title="Who builds and who owns each layer"
       sub={
         <>
-          The seven layers of{" "}
+          The six frames of{" "}
           <Link href="/stage-2/architecture" className={link}>
             3 · Architecture
           </Link>
-          . The effort each one takes is in{" "}
+          , then its continuous platform track. The effort each one takes is in{" "}
           <Link href="/stage-2/tasks-resources" className={link}>
             4 · Updated Backlog Tasks &amp; Resources
           </Link>
@@ -793,7 +793,7 @@ function Layers() {
             </tr>
           </thead>
           <tbody>
-            {IGNIS_FRAMES.map((f, i) => (
+            {IGNIS_LAYERS.map((f, i) => (
               <tr key={f.name} className="border-b border-line/60 align-top last:border-b-0">
                 <th scope="row" className="px-4 py-3 text-[13px] font-semibold text-fg">
                   <span className="mr-2 tabular-nums font-normal text-muted">{i + 1}</span>

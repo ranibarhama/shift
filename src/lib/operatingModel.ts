@@ -304,7 +304,7 @@ export const ROUTES: { name: string; when: string; then: string }[] = [
 
 /* ---------- The architecture, by owner ---------- */
 
-/** One row per layer of the architecture, in the order of IGNIS_FRAMES. */
+/** One row per layer of the architecture, in the order of IGNIS_LAYERS. */
 export const LAYER_OWNERS: { central: string; pods: string; domains: string }[] = [
   {
     central: "Builds and runs the pipeline.",
@@ -312,14 +312,14 @@ export const LAYER_OWNERS: { central: string; pods: string; domains: string }[] 
     domains: "R&D: the verification standard and code review.",
   },
   {
-    central: "Builds the brain setup, the backlog agent and docs automation.",
+    central: "Builds the brain setup, the backlog agent, the Ignis Controller and docs automation.",
     pods: "Own their product's brain. The PM rates the ideas.",
     domains: "Product: what a good idea and a good plan look like.",
   },
   {
-    central: "Connects the feeds into every product brain.",
-    pods: "Use the signals to choose what to build.",
-    domains: "Data & Analytics: Philippe and the metric definitions.",
+    central: "Connects usage, A/B test and store signals into every product brain.",
+    pods: "Use the signals to choose what to build, and to see what a change moved.",
+    domains: "Data & Analytics: Philippe, the A/B tests and the metric definitions.",
   },
   {
     central: "Builds the risk check into planning.",
@@ -337,9 +337,9 @@ export const LAYER_OWNERS: { central: string; pods: string; domains: string }[] 
     domains: "Design, Data & Analytics, Marketing: each owns its skill and its gate.",
   },
   {
-    central: "Dedicated Ignis R&D: dynamic skills, Eval, code learning, harnesses.",
-    pods: "Feed back merge-request comments and results.",
-    domains: "R&D: the quality bar Eval measures against.",
+    central: "Runs it continuously: Eval, guardrails, code learning, skills, agent runtime, harnesses.",
+    pods: "Feed back merge-request comments and results. Inherit every improvement.",
+    domains: "R&D: the quality bar Eval measures against, and the guardrails.",
   },
 ];
 

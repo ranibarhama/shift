@@ -1,15 +1,22 @@
 "use client";
 
 import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
-import { IGNIS_FRAMES } from "@/lib/ignisFrames";
+import { IGNIS_FRAMES, IGNIS_PLATFORM, IGNIS_TERMS } from "@/lib/ignisFrames";
 import { enteredAtEnd, usePresentStops, usePresenting } from "./PresentMode";
 
 /* -----------------------------------------------------------------------------
- * Phase 2 · 3 · Architecture — Ignis, layer by layer. One graph that grows a
- * frame at a time: what's added in the current frame is green, everything from
- * earlier frames is greyed. Beside it, three gauges and the kinds of task each
- * frame unlocks. ← → (or 1–7) move between frames; in present mode the frames
- * are the page's stops.
+ * Phase 2 · 3 · Architecture — Ignis, layer by layer. Two sections:
+ *
+ *   Product Development — one graph that grows a frame at a time: what's added
+ *   in the current frame is green, everything from earlier frames is greyed.
+ *   Beside it, three gauges and the kinds of task each frame unlocks.
+ *
+ *   Platform & Infrastructure — the continuous work that runs beside every
+ *   frame: built once, inherited by every product.
+ *
+ * ← → (or 1–6) move between frames, I switches section, N hides the notes. In
+ * present mode the six frames and then the platform section are the page's stops.
+ * The place is kept in the link (#frame=3, #tab=platform), so it can be shared.
  * -------------------------------------------------------------------------- */
 
 /** What the page adds to each frame in IGNIS_FRAMES, in the same order. */
@@ -32,7 +39,8 @@ const FRAME_VIEWS: FrameView[] = [
       <>
         Engineers keep working in Jira. When a ticket is assigned to Ignis and moved to In
         Progress, the Windmill pipeline launches a Newton coding session, opens a merge request,
-        runs verification, and once reviewed, ships to <b>Release</b>.
+        runs verification, and once reviewed, ships to <b>Release</b>. Scope today: simple UI
+        tasks, not business logic.
       </>
     ),
   },
@@ -45,43 +53,46 @@ const FRAME_VIEWS: FrameView[] = [
       <>
         Each product keeps a self-updating <Code>&lt;product&gt;-ignis-context</Code> repo — the
         product brain. A Windmill backlog agent reads it (strategy, shipped changelogs, past PM
-        votes) and posts up to 5 ideas to the Ignis Controller for the PM to review and rate.
-        When MRs merge into <b>Release</b>, scheduled docs automation diffs the shipped code and
-        updates <Code>product/</Code> docs and CHANGELOGs, closing the loop so future suggestions
-        always build on what actually shipped.
+        votes) and surfaces ideas in the <b>Ignis Controller</b>. The PM can work{" "}
+        <b>either in the Ignis Controller or directly in Jira</b> — changes made in the Ignis
+        Controller reflect automatically on Jira. When MRs merge into <b>Release</b>, scheduled
+        docs automation diffs the shipped code and updates <Code>product/</Code> docs and
+        CHANGELOGs so future suggestions always build on what actually shipped.
       </>
     ),
   },
   {
-    viewBox: "0 -96 1040 806",
+    viewBox: "0 -196 1040 906",
     complexity: 10,
     velocity: 10,
     confidence: 65,
     notes: (
       <>
-        A fast, low-effort data integration connects live user and business signals into{" "}
-        <Code>&lt;product&gt;-ignis-context</Code>: <b>Philippe</b> (DAU &amp; product metrics)
-        alongside <b>store ratings, reviews, and user comments</b>. That sharply raises
-        confidence that suggested and planned tickets target real user pain and usage trends.
+        High-level usage in <b>Philippe</b> (DAU &amp; macro metrics) is the input to{" "}
+        <b>A/B tests and feature-level KPIs</b>: it supplies the usage baseline, and the A/B
+        tests and KPIs show what a specific change moved. Ignis ingests these{" "}
+        <b>directly measurable signals (A/B test results, funnel conversions, feature KPIs)</b>{" "}
+        — metrics directly impacted by shipped changes — alongside <b>store ratings</b> and{" "}
+        <b>store reviews &amp; user comments</b>.
       </>
     ),
   },
   {
-    viewBox: "0 -96 1040 806",
+    viewBox: "0 -196 1040 906",
     complexity: 10,
     velocity: 45,
     confidence: 65,
     notes: (
       <>
         With R&amp;D fast track, <b>risk is checked upfront during feature planning</b> — before
-        any PR is created — and tagged on the ticket. After verification, both paths lead to{" "}
+        any MR is created — and tagged on the ticket. After verification, both paths lead to{" "}
         <b>Release</b>: <b>low-risk</b> changes go straight to Release (PM can merge), while{" "}
         <b>high-risk</b> changes pass through <b>R&amp;D review</b> before Release.
       </>
     ),
   },
   {
-    viewBox: "0 -96 1092 820",
+    viewBox: "0 -196 1092 920",
     complexity: 10,
     velocity: 75,
     confidence: 65,
@@ -94,7 +105,7 @@ const FRAME_VIEWS: FrameView[] = [
     ),
   },
   {
-    viewBox: "0 -96 1092 1036",
+    viewBox: "0 -196 1092 1136",
     complexity: 55,
     velocity: 75,
     confidence: 80,
@@ -108,23 +119,6 @@ const FRAME_VIEWS: FrameView[] = [
       </>
     ),
   },
-  {
-    viewBox: "0 -96 1092 1080",
-    complexity: 85,
-    velocity: 85,
-    confidence: 92,
-    notes: (
-      <>
-        In parallel, dedicated Ignis R&amp;D advances four platform multipliers across every
-        product: <b>(1) Dynamic agent skills</b> — adding or changing skills per agent during
-        development; <b>(2) Continuous Eval</b> — continuously measuring the quality of results
-        Ignis delivers; <b>(3) Continuous code-writing improvement</b> — feeding MR requested
-        changes and product comments back into the coding loop; and{" "}
-        <b>(4) Alternative harnesses</b> — evaluating runners such as <b>GitLab Actions</b> and{" "}
-        <b>OpenCode</b> alongside Newton.
-      </>
-    ),
-  },
 ];
 
 const FRAMES = IGNIS_FRAMES.map((f, i) => ({
@@ -135,36 +129,80 @@ const FRAMES = IGNIS_FRAMES.map((f, i) => ({
 }));
 
 const GAUGES = [
-  { key: "complexity", label: "Task complexity" },
+  { key: "complexity", label: "Task complexity handled" },
   { key: "velocity", label: "Team velocity" },
   { key: "confidence", label: "Confidence level" },
 ] as const;
+
+type Tab = "product" | "platform";
+
+const TABS: { key: Tab; label: string; pill: string }[] = [
+  { key: "product", label: "Product Development", pill: `Frames 1–${FRAMES.length}` },
+  { key: "platform", label: "Platform & Infrastructure", pill: "Continuous" },
+];
 
 /** What's new in the frame on screen. Light and dark steps of the same green. */
 const NEW_STROKE = "stroke-green-600 dark:stroke-green-500";
 const NEW_BG = "bg-green-600 dark:bg-green-500";
 
+/** Keep the place in the link, so a frame or the platform section can be shared. */
+function link(hash: string) {
+  try {
+    window.history.replaceState(null, "", hash);
+  } catch {
+    /* a sandboxed frame may refuse — the page works the same without it */
+  }
+}
+
 export default function IgnisLayers() {
+  const [tab, setTab] = useState<Tab>("product");
   const [frame, setFrame] = useState(1);
+  const [notesOn, setNotesOn] = useState(true);
   const presenting = usePresenting();
   const stageRef = useRef<HTMLDivElement>(null);
   const f = FRAMES[frame - 1];
   const prev = FRAMES[Math.max(0, frame - 2)];
 
-  // Present mode: ← → walk the frames first, then move on to the next / previous page.
+  function goFrame(n: number) {
+    setTab("product");
+    setFrame(n);
+    link(`#frame=${n}`);
+  }
+
+  function goTab(t: Tab) {
+    setTab(t);
+    link(t === "platform" ? "#tab=platform" : `#frame=${frame}`);
+  }
+
+  // Present mode: ← → walk the six frames, then the platform section, then the next / previous page.
   usePresentStops((dir) => {
-    const next = frame + dir;
-    if (next < 1 || next > FRAMES.length) return false;
-    setFrame(next);
+    const next = (tab === "platform" ? FRAMES.length + 1 : frame) + dir;
+    if (next < 1 || next > FRAMES.length + 1) return false;
+    if (next > FRAMES.length) goTab("platform");
+    else goFrame(next);
     stageRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     return true;
   });
 
-  // Stepped back into from the next page: open at the last frame.
+  // Opened from a link to a frame or to the platform section — or stepped back
+  // into from the next page, which opens at the last stop.
   useEffect(() => {
-    if (!enteredAtEnd()) return;
-    setFrame(FRAMES.length);
-    stageRef.current?.scrollIntoView({ block: "start" });
+    function fromLink() {
+      const hash = window.location.hash;
+      const n = Number(/frame=(\d+)/.exec(hash)?.[1]);
+      if (n >= 1 && n <= FRAMES.length) {
+        setFrame(n);
+        setTab("product");
+      }
+      if (/tab=(platform|infra)/.test(hash)) setTab("platform");
+    }
+    if (enteredAtEnd()) {
+      setTab("platform");
+      stageRef.current?.scrollIntoView({ block: "start" });
+    } else fromLink();
+    // A link to another frame, opened while already on the page.
+    window.addEventListener("hashchange", fromLink);
+    return () => window.removeEventListener("hashchange", fromLink);
   }, []);
 
   useEffect(() => {
@@ -172,135 +210,247 @@ export default function IgnisLayers() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target;
       if (t instanceof HTMLElement && t.closest("input, textarea, select, [contenteditable='true']")) return;
+      const key = e.key.toLowerCase();
+      if (key === "n") return setNotesOn((on) => !on);
+      if (key === "i") return goTab(tab === "product" ? "platform" : "product");
+      if (tab !== "product") return;
       const n = Number(e.key);
-      if (n >= 1 && n <= FRAMES.length) setFrame(n);
+      if (n >= 1 && n <= FRAMES.length) goFrame(n);
       else if (presenting) return; // present mode owns the arrows
-      else if (e.key === "ArrowRight") setFrame((x) => Math.min(FRAMES.length, x + 1));
-      else if (e.key === "ArrowLeft") setFrame((x) => Math.max(1, x - 1));
+      else if (e.key === "ArrowRight" && frame < FRAMES.length) goFrame(frame + 1);
+      else if (e.key === "ArrowLeft" && frame > 1) goFrame(frame - 1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [presenting]);
+  });
 
   return (
     <section aria-label="Ignis — layered overview" className="space-y-4">
-      <nav
-        aria-label="Frames"
-        className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-card/40 p-2"
-      >
-        <span className="px-1.5 text-[10px] uppercase tracking-[0.18em] text-muted">Frame</span>
-        {FRAMES.map((x, i) => {
-          const on = i + 1 === frame;
+      <div className="flex items-baseline gap-x-4 text-[12px] leading-relaxed text-muted">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Terms</span>
+        <dl aria-label="Terms" className="flex flex-wrap gap-x-4 gap-y-0.5">
+          {IGNIS_TERMS.map((t) => (
+            <div key={t.term} className="flex gap-1.5">
+              <dt className="font-semibold text-fg">{t.term}</dt>
+              <dd>{t.means}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div role="group" aria-label="Section" className="inline-flex max-w-full flex-wrap rounded-3xl border border-line bg-card/40 p-1">
+        {TABS.map((t) => {
+          const on = t.key === tab;
           return (
             <button
-              key={x.tab}
+              key={t.key}
               type="button"
               aria-pressed={on}
-              onClick={() => setFrame(i + 1)}
+              onClick={() => goTab(t.key)}
               className={
-                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-semibold transition " +
-                (on
-                  ? "border-accent bg-accent/15 text-fg shadow-[0_0_0_1px_#7c5cff]"
-                  : "border-line text-muted hover:border-fg/30 hover:text-fg")
+                "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition " +
+                (on ? "bg-accent/15 text-fg shadow-[0_0_0_1px_#7c5cff]" : "text-muted hover:text-fg")
               }
             >
-              <span className="tabular-nums font-normal text-muted">{i + 1}</span>
-              {x.tab}
+              {t.label}
+              <span
+                className={
+                  "rounded-full border px-1.5 py-px text-[10px] font-medium " +
+                  (on ? "border-fg/30 text-fg" : "border-line text-muted")
+                }
+              >
+                {t.pill}
+              </span>
             </button>
           );
         })}
-      </nav>
-
-      <div ref={stageRef} className="grid scroll-mt-20 grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside
-          aria-label="Task scope and team metrics"
-          className="space-y-5 rounded-3xl border border-line bg-card/40 p-4 sm:p-5 lg:sticky lg:top-[4.5rem]"
-        >
-          <div>
-            <PanelTitle>Capability gauges (0–100)</PanelTitle>
-            <div className="space-y-3.5">
-              {GAUGES.map((g) => (
-                <Gauge key={g.key} label={g.label} value={f[g.key]} gain={frame === 1 ? 0 : f[g.key] - prev[g.key]} />
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-line/70 pt-4">
-            <PanelTitle>Types of tasks &amp; unlocked value</PanelTitle>
-            <ol className="space-y-1.5">
-              {FRAMES.slice(0, frame).map((x, i) => {
-                const on = i + 1 === frame;
-                return (
-                  <li key={x.tab}>
-                    <button
-                      type="button"
-                      onClick={() => setFrame(i + 1)}
-                      aria-current={on ? "step" : undefined}
-                      className={
-                        "flex w-full items-start gap-2 rounded-xl border px-2.5 py-2 text-left text-[12.5px] leading-snug transition " +
-                        (on
-                          ? "border-green-600 bg-green-500/10 text-fg shadow-[0_0_0_1px_#16a34a] dark:border-green-500 dark:shadow-[0_0_0_1px_#22c55e]"
-                          : "border-line bg-bg/60 text-muted hover:border-fg/30 hover:text-fg")
-                      }
-                    >
-                      <span
-                        className={
-                          "mt-px grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] font-semibold tabular-nums " +
-                          (on ? "border-green-600 bg-green-500/15 text-fg dark:border-green-500" : "border-line text-muted")
-                        }
-                      >
-                        {i + 1}
-                      </span>
-                      <span>{x.unlock}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        </aside>
-
-        <div className="min-w-0 rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
-            <h3 className="text-base font-semibold text-fg">
-              <span className="font-normal text-muted">Frame {frame} — </span>
-              {f.title}
-            </h3>
-            {frame > 1 && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-[3px] border border-muted/50 bg-line/30" aria-hidden />
-                  Existing graph
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-[3px] border-2 border-green-600 bg-green-500/10 dark:border-green-500" aria-hidden />
-                  Added in this frame
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <Diagram frame={frame} viewBox={f.viewBox} />
-          </div>
-        </div>
       </div>
 
-      <section aria-label={`Presenter notes, frame ${frame}`} className="rounded-2xl border border-line bg-card/40 px-5 py-4">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-          Presenter · Frame {frame}
-        </div>
-        <p className="mt-1.5 max-w-[74ch] text-sm leading-relaxed text-fg/90 [&_b]:font-semibold [&_b]:text-fg">
-          {f.notes}
-        </p>
-      </section>
+      {tab === "product" && (
+        <nav
+          aria-label="Frames"
+          className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-card/40 p-2"
+        >
+          <span className="px-1.5 text-[10px] uppercase tracking-[0.18em] text-muted">Frame</span>
+          {FRAMES.map((x, i) => {
+            const on = i + 1 === frame;
+            return (
+              <button
+                key={x.tab}
+                type="button"
+                aria-pressed={on}
+                onClick={() => goFrame(i + 1)}
+                className={
+                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-semibold transition " +
+                  (on
+                    ? "border-accent bg-accent/15 text-fg shadow-[0_0_0_1px_#7c5cff]"
+                    : "border-line text-muted hover:border-fg/30 hover:text-fg")
+                }
+              >
+                <span className="tabular-nums font-normal text-muted">{i + 1}</span>
+                {x.tab}
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      <div ref={stageRef} className="scroll-mt-20">
+        {tab === "platform" ? (
+          <Platform onBack={() => goTab("product")} />
+        ) : (
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <aside
+              aria-label="Task scope and team metrics"
+              className="space-y-5 rounded-3xl border border-line bg-card/40 p-4 sm:p-5 lg:sticky lg:top-[4.5rem]"
+            >
+              <div>
+                <PanelTitle note="Illustrative, not measured.">Capability gauges (0–100)</PanelTitle>
+                <div className="space-y-3.5">
+                  {GAUGES.map((g) => (
+                    <Gauge key={g.key} label={g.label} value={f[g.key]} gain={frame === 1 ? 0 : f[g.key] - prev[g.key]} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-line/70 pt-4">
+                <PanelTitle>Types of tasks &amp; unlocked value</PanelTitle>
+                <ol className="space-y-1.5">
+                  {FRAMES.slice(0, frame).map((x, i) => {
+                    const on = i + 1 === frame;
+                    return (
+                      <li key={x.tab}>
+                        <button
+                          type="button"
+                          onClick={() => goFrame(i + 1)}
+                          aria-current={on ? "step" : undefined}
+                          className={
+                            "flex w-full items-start gap-2 rounded-xl border px-2.5 py-2 text-left text-[12.5px] leading-snug transition " +
+                            (on
+                              ? "border-green-600 bg-green-500/10 text-fg shadow-[0_0_0_1px_#16a34a] dark:border-green-500 dark:shadow-[0_0_0_1px_#22c55e]"
+                              : "border-line bg-bg/60 text-muted hover:border-fg/30 hover:text-fg")
+                          }
+                        >
+                          <span
+                            className={
+                              "mt-px grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] font-semibold tabular-nums " +
+                              (on ? "border-green-600 bg-green-500/15 text-fg dark:border-green-500" : "border-line text-muted")
+                            }
+                          >
+                            {i + 1}
+                          </span>
+                          <span>{x.unlock}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+
+              <p className="rounded-xl border border-dashed border-line px-3 py-2.5 text-[12px] leading-relaxed text-muted">
+                {`In parallel throughout all ${FRAMES.length} frames, continuous platform & infrastructure work compounds complexity, velocity, guardrails & compliance. `}
+                <button
+                  type="button"
+                  onClick={() => goTab("platform")}
+                  className="font-semibold text-fg underline decoration-fg/30 underline-offset-2 transition hover:decoration-fg"
+                >
+                  Open Platform &amp; Infrastructure →
+                </button>
+              </p>
+            </aside>
+
+            <div className="min-w-0 rounded-3xl border border-line bg-card/40 p-4 sm:p-5">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
+                <h3 className="text-base font-semibold text-fg" aria-live="polite">
+                  <span className="font-normal text-muted">Frame {frame} — </span>
+                  {f.title}
+                </h3>
+                {frame > 1 && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-[3px] border border-muted/50 bg-line/30" aria-hidden />
+                      Existing graph
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-[3px] border-2 border-green-600 bg-green-500/10 dark:border-green-500" aria-hidden />
+                      Added in this frame
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <Diagram frame={frame} viewBox={f.viewBox} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {tab === "product" && notesOn && (
+        <section aria-label={`Presenter notes, frame ${frame}`} className="rounded-2xl border border-line bg-card/40 px-5 py-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+            Presenter · Frame {frame}
+          </div>
+          <p className="mt-1.5 max-w-[74ch] text-sm leading-relaxed text-fg/90 [&_b]:font-semibold [&_b]:text-fg">
+            {f.notes}
+          </p>
+        </section>
+      )}
     </section>
+  );
+}
+
+/* ---------- Platform & Infrastructure ---------- */
+
+const CONTEXT_REPO = "<product>-ignis-context";
+
+/** The continuous track: no graph, one card per kind of work. */
+function Platform({ onBack }: { onBack: () => void }) {
+  return (
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <li className="flex flex-col p-1 sm:p-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">Continuous</div>
+        <h3 className="mt-1 text-xl font-semibold tracking-tight text-fg">Platform &amp; Infrastructure</h3>
+        <p className="mt-2 text-[13px] leading-relaxed text-muted">{IGNIS_PLATFORM.intro}</p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mt-3 self-start rounded-full border border-line px-3 py-1.5 text-[12px] font-semibold text-muted transition hover:border-fg/30 hover:text-fg sm:mt-auto"
+        >
+          ← Product Development frames
+        </button>
+      </li>
+      {IGNIS_PLATFORM.items.map((it) => {
+        const [before, after] = it.text.split(CONTEXT_REPO);
+        return (
+          <li key={it.name} className="rounded-2xl border border-line bg-card/60 p-4 shadow-card">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{it.tag}</div>
+            <h3 className="mt-1 text-[15px] font-semibold text-fg">{it.name}</h3>
+            <p className="mt-2 text-[13px] leading-relaxed text-fg/90">
+              {before}
+              {after !== undefined && (
+                <>
+                  <Code>{CONTEXT_REPO}</Code>
+                  {after}
+                </>
+              )}
+            </p>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
 /* ---------- Side panel ---------- */
 
-function PanelTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-2.5 text-[10px] uppercase tracking-[0.18em] text-muted">{children}</h3>;
+function PanelTitle({ children, note }: { children: React.ReactNode; note?: string }) {
+  return (
+    <div className="mb-2.5">
+      <h3 className="text-[10px] uppercase tracking-[0.18em] text-muted">{children}</h3>
+      {note && <p className="mt-0.5 text-[11.5px] text-muted">{note}</p>}
+    </div>
+  );
 }
 
 /** A 0–100 meter. `gain` is how much this frame added — it turns the bar green. */
@@ -426,10 +576,10 @@ function Node({
   );
 }
 
-type EdgeKind = "main" | "return" | "add" | "dashed";
+type EdgeKind = "main" | "return" | "add" | "dashed" | "bi";
 
-/** An arrow. `main` and `return` belong to the base graph; `add` and `dashed`
- *  (a softer, feedback-style link) to later frames. */
+/** An arrow. `main` and `return` belong to the base graph; `add`, `dashed`
+ *  (a softer, feedback-style link) and `bi` (it goes both ways) to later frames. */
 function Edge({ kind, d, arrow = true }: { kind: EdgeKind; d: string; arrow?: boolean }) {
   const { state, id } = useContext(LayerCtx);
   const dash = kind === "return" || kind === "dashed" ? "6 4" : undefined;
@@ -448,6 +598,7 @@ function Edge({ kind, d, arrow = true }: { kind: EdgeKind; d: string; arrow?: bo
       className={look.className}
       strokeWidth={look.strokeWidth}
       strokeDasharray={dash}
+      markerStart={kind === "bi" ? `url(#${id}-${look.marker}-start)` : undefined}
       markerEnd={arrow ? `url(#${id}-${look.marker})` : undefined}
       vectorEffect="non-scaling-stroke"
     />
@@ -477,10 +628,11 @@ function Label({
   );
 }
 
-function Arrowhead({ id, className }: { id: string; className: string }) {
+/** `start` is the head at the beginning of a two-way edge, pointing back along it. */
+function Arrowhead({ id, className, start }: { id: string; className: string; start?: boolean }) {
   return (
-    <marker id={id} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0,1 L8,4 L0,7 Z" className={className} />
+    <marker id={id} markerWidth="8" markerHeight="8" refX={start ? 1 : 7} refY="4" orient="auto">
+      <path d={start ? "M8,1 L0,4 L8,7 Z" : "M0,1 L8,4 L0,7 Z"} className={className} />
     </marker>
   );
 }
@@ -488,7 +640,7 @@ function Arrowhead({ id, className }: { id: string; className: string }) {
 function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   // From frame 6 the planning skills take the middle band, so the delivery row moves down.
-  const dy = frame >= 7 ? 260 : frame >= 6 ? 216 : 0;
+  const dy = frame >= 6 ? 216 : 0;
   const lower = dy ? `translate(0, ${dy})` : undefined;
   // From frame 4 the risk check decides who merges, so the MR is no longer "for human review".
   const fastTrack = frame >= 4;
@@ -498,18 +650,20 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
     <svg viewBox={viewBox} role="img" aria-labelledby={`${id}-title ${id}-desc`} className="block h-auto w-full min-w-[640px]">
       <title id={`${id}-title`}>Ignis layered architecture</title>
       <desc id={`${id}-desc`}>
-        Unified Ignis graph starting with Jira ticket implementation, then adding one capability
-        per frame: the product brain and backlog ideas, live data sources, the R&amp;D fast track,
-        3rd-party services, planning skills with profession gates, and the parallel Ignis tracks.
+        Ignis graph built in six product frames: Jira ticket to merge request, product-memory
+        ideas, measurable signals, risk-tiered review, third-party non-code work, and
+        cross-functional planning gates.
       </desc>
       <defs>
         <Arrowhead id={`${id}-main`} className="fill-muted" />
         <Arrowhead id={`${id}-return`} className="fill-accent" />
         <Arrowhead id={`${id}-prior`} className="fill-muted/50" />
+        <Arrowhead id={`${id}-prior-start`} className="fill-muted/50" start />
         <Arrowhead id={`${id}-new`} className="fill-green-600 dark:fill-green-500" />
+        <Arrowhead id={`${id}-new-start`} className="fill-green-600 dark:fill-green-500" start />
       </defs>
 
-      {/* 1 · Base graph: implement a Jira ticket */}
+      {/* 1 · Base graph: a Jira ticket becomes a merge request */}
       <Layer {...layer(1)}>
         <Node kind="people" x={84} y={256} w={156} h={72} title={["PM / Engineer", 287]} sub={["creates & assigns", 307]} />
         <Node kind="neutral" x={296} y={256} w={164} h={72} title={["Jira ticket", 287]} sub={["In Progress → Ignis", 307]} />
@@ -549,7 +703,7 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
         <Label x={458} y={402}>&amp; outcome</Label>
       </Layer>
 
-      {/* 2 · Self-updating product brain, backlog ideas and docs automation */}
+      {/* 2 · Ideas from product memory: the product brain, backlog ideas and docs automation */}
       <Layer {...layer(2)}>
         <Node
           kind="add"
@@ -578,15 +732,19 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
           w={220}
           h={78}
           title={["Ignis Controller", 75]}
-          role={["backlog snapshot", 94]}
-          sub={["title · rationale · copy", 112]}
+          role={["ideas & ticket workspace", 94]}
+          sub={["backlog snapshot · syncs to Jira", 112]}
         />
         <Edge kind="add" d={ln(316, 87, 382, 87)} />
         <Edge kind="add" d={ln(604, 87, 670, 87)} />
 
-        {/* Controller → the PM / Engineer already on the graph */}
-        <Edge kind="add" d="M 782 126 L 782 186 L 200 186 L 200 254" />
-        <Label x={492} y={176} anchor="middle">PM reviews &amp; takes to Jira (no auto-create)</Label>
+        {/* Both ways: the PM works in the Controller — or directly in Jira */}
+        <Edge kind="bi" d="M 196 254 L 196 160 L 736 160 L 736 128" />
+        <Label x={466} y={150} anchor="middle">PM talks with Ignis Controller (or directly with Jira)</Label>
+
+        {/* Controller → Jira ticket: what changes in the Controller shows up in Jira */}
+        <Edge kind="add" d="M 790 126 L 790 210 L 378 210 L 378 254" />
+        <Label x={584} y={200} anchor="middle">changes in Controller reflect on Jira</Label>
 
         {/* PM / Engineer → feedback back to the brain */}
         <Edge kind="dashed" d={ln(118, 256, 118, 128)} />
@@ -612,25 +770,31 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
         <Edge kind="add" d={`M 200 ${664 + dy} L 200 ${690 + dy} L 36 ${690 + dy} L 36 87 L 82 87`} />
       </Layer>
 
-      {/* 3 · Live data sources feeding the product brain */}
+      {/* 3 · Proof it worked: usage, A/B tests & KPIs, store ratings and reviews feed the product brain */}
       <Layer {...layer(3)}>
-        <Node kind="add" x={24} y={-76} w={168} h={72} title={["Philippe", -49]} role={["DAU & metrics", -31]} sub={["product usage data", -15]} />
+        <Node kind="add" x={198} y={-176} w={244} h={66} title={["Philippe", -148]} role={["DAU & macro metrics", -130]} />
+        {/* Philippe is the baseline for the A/B tests and feature KPIs */}
+        <Edge kind="add" d={ln(320, -110, 320, -84)} />
         <Node
           kind="add"
-          x={208}
-          y={-76}
-          w={236}
+          x={198}
+          y={-82}
+          w={244}
           h={72}
-          title={["Store ratings & reviews", -49]}
-          role={["ratings · reviews · comments", -31]}
-          sub={["user feedback signals", -15]}
+          title={["A/B tests & feature KPIs", -55]}
+          role={["e.g. A/B tests · funnels · conversion", -37]}
+          sub={["measurable · directly moved by changes", -21]}
         />
-        <Edge kind="add" d={ln(144, -4, 144, 46)} />
-        <Edge kind="add" d={ln(256, -4, 256, 46)} />
-        <Label x={270} y={25}>feeds product brain</Label>
+        <Node kind="add" x={456} y={-82} w={150} h={72} title={["Store ratings", -55]} role={["star ratings", -37]} sub={["user feedback signals", -21]} />
+        <Node kind="add" x={620} y={-82} w={150} h={72} title={["Store reviews", -55]} role={["reviews · comments", -37]} sub={["user feedback signals", -21]} />
+
+        {/* All three feed the product brain, without crossing */}
+        <Edge kind="add" d={ln(212, -10, 212, 46)} />
+        <Edge kind="add" d="M 531 -10 L 531 22 L 254 22 L 254 46" />
+        <Edge kind="add" d="M 695 -10 L 695 34 L 296 34 L 296 46" />
       </Layer>
 
-      {/* 4 · R&D fast track: risk checked in planning, both paths end in Release */}
+      {/* 4 · Risk-tiered review: risk checked in planning, both paths end in Release */}
       <Layer {...layer(4)}>
         <Node
           kind="add"
@@ -639,7 +803,7 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
           w={216}
           h={70}
           title={["Feature planning", 389]}
-          role={["risk check (before PR)", 407]}
+          role={["risk check (before MR)", 407]}
           sub={["classifies low vs high risk", 423]}
         />
         <Edge kind="add" d={ln(196, 328, 196, 362)} />
@@ -689,7 +853,7 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
         <Label x={700} y={689 + dy} anchor="middle">created UGC → straight to Release</Label>
       </Layer>
 
-      {/* 6 · Planning skills (Design, Analytics, Marketing), each with a human gate */}
+      {/* 6 · Cross-functional planning: Design, Analytics and Marketing skills, each with a human gate */}
       <Layer {...layer(6)}>
         <Edge kind="add" d="M 140 399 L 56 399 L 56 484 L 74 484" />
         <Edge kind="add" d="M 56 484 L 56 556 L 74 556" />
@@ -713,65 +877,6 @@ function Diagram({ frame, viewBox }: { frame: number; viewBox: string }) {
         <Edge kind="add" d="M 410 628 L 424 628 L 424 330" />
         <Label x={416} y={392} anchor="end">validated</Label>
         <Label x={416} y={407} anchor="end">&amp; aligned</Label>
-      </Layer>
-
-      {/* 7 · Parallel R&D tracks inside Ignis itself */}
-      <Layer {...layer(7)}>
-        <Node
-          kind="add"
-          x={484}
-          y={502}
-          w={200}
-          h={70}
-          title={["Dynamic agent skills", 527]}
-          role={["add / change skills per agent", 545]}
-          sub={["configurable during dev", 561]}
-        />
-        <Edge kind="add" d={ln(584, 502, 584, 344)} />
-
-        <Node
-          kind="add"
-          x={484}
-          y={612}
-          w={204}
-          h={70}
-          title={["Continuous Eval", 637]}
-          role={["measures Ignis results", 655]}
-          sub={["ongoing quality & pass rates", 671]}
-        />
-        <Edge kind="add" d={ln(536, 736, 536, 684)} />
-        <Edge kind="add" d="M 736 736 L 736 647 L 690 647" />
-
-        <Node
-          kind="add"
-          x={664}
-          y={852}
-          w={240}
-          h={72}
-          title={["Code-writing learning", 878]}
-          role={["MR changes & product comments", 896]}
-          sub={["continuously sharpens coding", 912]}
-        />
-        <Edge kind="add" d={ln(804, 808, 804, 850)} />
-        <Label x={814} y={834}>MR changes</Label>
-        <Edge kind="add" d={ln(608, 888, 662, 888)} />
-        <Label x={635} y={878} anchor="middle">comments</Label>
-        <Edge kind="dashed" d="M 904 888 L 968 888 L 968 330" />
-        <Label x={976} y={610}>improves</Label>
-        <Label x={976} y={625}>code writing</Label>
-
-        <Node
-          kind="add"
-          x={700}
-          y={502}
-          w={202}
-          h={70}
-          title={["Alt coding harnesses", 527]}
-          role={["GitLab Actions · OpenCode", 545]}
-          sub={["evaluated alongside Newton", 561]}
-        />
-        <Edge kind="dashed" d={ln(808, 292, 808, 500)} />
-        <Edge kind="dashed" d={ln(868, 572, 868, 734)} />
       </Layer>
     </svg>
   );
