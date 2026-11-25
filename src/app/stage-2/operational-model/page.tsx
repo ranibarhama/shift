@@ -6,8 +6,14 @@ export const metadata = {
   title: "5 · Operational model · Shift",
 };
 
-/** Phase 2 · 5 · Operational model — a proposal for how we run the architecture day to day. */
-export default function Stage2OperationalModelPage() {
+type Props = { searchParams: Promise<{ view?: string | string[] }> };
+
+/**
+ * Phase 2 · 5 · Operational model — a proposal for how we run the architecture day
+ * to day. Two views of the same model: Simple (default) and Detailed (?view=detailed).
+ */
+export default async function Stage2OperationalModelPage({ searchParams }: Props) {
+  const view = (await searchParams).view === "detailed" ? "detailed" : "simple";
   return (
     <div className="flex flex-1 flex-col">
       <Topbar stage={2} />
@@ -24,7 +30,7 @@ export default function Stage2OperationalModelPage() {
           <span className="text-fg">5 · Operational model</span>
         </nav>
 
-        <header className="mb-8">
+        <header className="mb-6">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-automate">
             Shift · Phase 2
           </div>
@@ -45,7 +51,7 @@ export default function Stage2OperationalModelPage() {
           </p>
         </header>
 
-        <OperatingModel />
+        <OperatingModel view={view} />
       </main>
     </div>
   );

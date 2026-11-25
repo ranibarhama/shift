@@ -19,6 +19,8 @@ export type Body = {
   role: string;
   /** Who sits in it. */
   who: string;
+  /** What it does, in one plain sentence (the simple view). */
+  brief: string;
   /** Identity color: borders, dots and tints only. Text stays in ink. */
   hex: string;
   owns: string[];
@@ -33,6 +35,7 @@ export const BODIES: Body[] = [
     name: "B2C AI steering",
     role: "Sets direction",
     who: "The GM, the domain owners and the central AI team lead",
+    brief: "Sets the priorities and the budget.",
     hex: "#6250d6",
     owns: ["Priorities across the pods", "The budget", "B2C's AI policy"],
     decides: [
@@ -48,6 +51,7 @@ export const BODIES: Body[] = [
     name: "Central AI team",
     role: "Builds the platform",
     who: "AI platform lead, AI engineers, data engineer, AI product manager, AI ops and enablement",
+    brief: "Builds the platform once, for every pod.",
     hex: "#2a78d6",
     owns: [
       "The Ignis platform",
@@ -71,6 +75,7 @@ export const BODIES: Body[] = [
     name: "Product pods",
     role: "Own outcomes",
     who: "A PM who owns the pod, engineers and an AI builder",
+    brief: "Own their product and its results.",
     hex: "#199e70",
     owns: [
       "Their product's workflows",
@@ -90,6 +95,7 @@ export const BODIES: Body[] = [
     name: "Domain owners",
     role: "Hold the bar",
     who: "The stakeholders of each profession: one owner per domain",
+    brief: "Keep the standard the same in every pod.",
     hex: "#c98500",
     owns: [
       "Their profession's skill and gate in Ignis",
@@ -137,11 +143,11 @@ export const PRINCIPLES: { title: string; text: string }[] = [
 /* ---------- The model: pods × domains ---------- */
 
 /** Placeholder names: replace with the real products. `next` = a pod not onboarded yet. */
-export const PODS: { name: string; next?: boolean }[] = [
-  { name: "Product pod 1" },
-  { name: "Product pod 2" },
-  { name: "Product pod 3" },
-  { name: "Next pod", next: true },
+export const PODS: { name: string; short: string; next?: boolean }[] = [
+  { name: "Product pod 1", short: "Pod 1" },
+  { name: "Product pod 2", short: "Pod 2" },
+  { name: "Product pod 3", short: "Pod 3" },
+  { name: "Next pod", short: "Next", next: true },
 ];
 
 /** The domains are the same six roles the effort template in step 4 uses. */
@@ -435,4 +441,28 @@ export const DECISIONS: { question: string; suggested: string }[] = [
     suggested:
       "Size it from the estimates in step 4: layers 1, 2, 3 and 7 of the architecture are platform work.",
   },
+];
+
+/* ---------- The simple view ---------- */
+
+/** Who builds a new capability: the routing decision, in three rules. */
+export const SIMPLE_RULES: { when: string; then: string; who: BodyKey }[] = [
+  { when: "One product needs it", then: "The pod builds it, on the platform.", who: "pods" },
+  {
+    when: "Two or more pods need it",
+    then: "The central AI team builds it once.",
+    who: "central",
+  },
+  {
+    when: "It is a professional standard",
+    then: "The domain owner sets it. The central AI team wires it in.",
+    who: "domains",
+  },
+];
+
+export const SIMPLE_RHYTHM: { when: string; what: string }[] = [
+  { when: "Every day", what: "Pods ship through Ignis." },
+  { when: "Every week", what: "New requests are scored and routed." },
+  { when: "Every month", what: "Steering sets priorities: scale or stop." },
+  { when: "Every quarter", what: "Planathon sets the next bets." },
 ];

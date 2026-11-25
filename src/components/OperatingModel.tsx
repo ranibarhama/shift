@@ -14,6 +14,8 @@ import {
   PRINCIPLES,
   RHYTHM,
   ROUTES,
+  SIMPLE_RHYTHM,
+  SIMPLE_RULES,
   body,
   type Body,
   type BodyKey,
@@ -21,9 +23,15 @@ import {
 } from "@/lib/operatingModel";
 import PresentSections from "./PresentSections";
 
-/* Phase 2 · 5 · Operational model — the proposal. Static: all content is in
+/* Phase 2 · 5 · Operational model — the proposal, in two views: Simple (the
+ * model on one page) and Detailed (everything). All content is in
  * src/lib/operatingModel.ts. Color marks the four bodies (borders, dots, tints);
  * text stays in ink. */
+
+export type ModelView = "simple" | "detailed";
+
+const PATH = "/stage-2/operational-model";
+const DETAILED = `${PATH}?view=detailed`;
 
 const SECTIONS = [
   { id: "principles", label: "Principles" },
@@ -41,7 +49,220 @@ const link = "font-semibold text-fg underline-offset-4 hover:underline";
 /** Width of the diagram's left column: the row labels of the matrix, and the funnel under them. */
 const LABEL_COL = 220;
 
-export default function OperatingModel() {
+export default function OperatingModel({ view }: { view: ModelView }) {
+  return (
+    <>
+      <ViewToggle view={view} />
+      {view === "detailed" ? <Detailed /> : <Simple />}
+    </>
+  );
+}
+
+function ViewToggle({ view }: { view: ModelView }) {
+  const views: { key: ModelView; label: string; href: string }[] = [
+    { key: "simple", label: "Simple", href: PATH },
+    { key: "detailed", label: "Detailed", href: DETAILED },
+  ];
+  return (
+    <nav aria-label="View" className="mb-8 flex items-center gap-2.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">View</span>
+      <div className="inline-flex rounded-full border border-line bg-card/40 p-1">
+        {views.map((v) => {
+          const on = v.key === view;
+          return (
+            <Link
+              key={v.key}
+              href={v.href}
+              aria-current={on ? "page" : undefined}
+              className={
+                "rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition " +
+                (on ? "bg-accent/15 text-fg shadow-[0_0_0_1px_#7c5cff]" : "text-muted hover:text-fg")
+              }
+            >
+              {v.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+/* ---------- The simple view ---------- */
+
+const SIMPLE_SECTIONS = ["simple-model", "simple-how"];
+
+function Simple() {
+  const steering = body("steering");
+  const central = body("central");
+  const pods = body("pods");
+  const domains = body("domains");
+
+  return (
+    <div className="space-y-12">
+      <PresentSections ids={SIMPLE_SECTIONS} />
+
+      <Section id="simple-model" eyebrow="The model" title="Four roles, one platform">
+        <div className="rounded-2xl border border-line bg-card/40 p-4 sm:p-6">
+          <SimpleBand body={steering} sub={`${steering.who}.`} />
+
+          <Exchange down="priorities" up="results" />
+
+          <div className="rounded-xl border border-line bg-bg/50 p-4 sm:p-5">
+            <Overline hex={pods.hex}>{pods.name}</Overline>
+            <div className="mt-1.5 text-lg font-semibold leading-snug tracking-tight text-fg sm:text-xl">
+              {pods.brief}
+            </div>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">
+              One pod per product: a PM who owns it, engineers and an AI builder.
+            </p>
+
+            {/* Pods run down (lanes); the domain owners run across all of them. */}
+            <div
+              className="mt-4 grid gap-x-2 px-2 sm:gap-x-2.5 sm:px-3"
+              style={{
+                gridTemplateColumns: `repeat(${PODS.length}, minmax(0, 1fr))`,
+                gridTemplateRows: "auto auto 14px",
+              }}
+            >
+              {PODS.map((p, i) => (
+                <div
+                  key={p.name}
+                  aria-hidden
+                  className={"rounded-xl border " + (p.next ? "border-dashed" : "")}
+                  style={{
+                    gridColumn: i + 1,
+                    gridRow: "1 / -1",
+                    borderColor: p.next ? `${pods.hex}66` : `${pods.hex}80`,
+                    background: p.next ? "transparent" : `${pods.hex}12`,
+                  }}
+                />
+              ))}
+              {PODS.map((p, i) => (
+                <div
+                  key={p.name}
+                  className={
+                    "px-2 pb-4 pt-3 text-[13px] font-semibold sm:px-3.5 sm:text-[15px] " +
+                    (p.next ? "text-muted" : "text-fg")
+                  }
+                  style={{ gridColumn: i + 1, gridRow: 1 }}
+                >
+                  {p.short}
+                </div>
+              ))}
+              <div
+                className="-mx-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2.5 rounded-xl border px-4 py-3 sm:-mx-3"
+                style={{
+                  gridColumn: "1 / -1",
+                  gridRow: 2,
+                  borderColor: domains.hex,
+                  backgroundColor: "rgb(var(--card))",
+                  backgroundImage: `linear-gradient(${domains.hex}1a, ${domains.hex}1a)`,
+                }}
+              >
+                <div>
+                  <Overline hex={domains.hex}>{domains.name}</Overline>
+                  <div className="mt-1 text-[15px] font-semibold leading-snug text-fg sm:text-base">
+                    {domains.brief}
+                  </div>
+                </div>
+                <ul className="flex flex-wrap gap-1.5">
+                  {DOMAINS.map((d) => (
+                    <li
+                      key={d.key}
+                      className="rounded-full border border-line bg-card px-2.5 py-1 text-[11.5px] font-medium text-fg"
+                    >
+                      {d.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <Exchange up="platform" down="requests" />
+
+          <SimpleBand
+            body={central}
+            sub="Ignis · the product brain · data feeds · skills · guardrails"
+          />
+        </div>
+      </Section>
+
+      <Section id="simple-how" eyebrow="How it works" title="Who builds a new capability">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {SIMPLE_RULES.map((r) => (
+            <li key={r.when} className="rounded-2xl border border-line bg-card/60 p-4 shadow-card">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+                When
+              </div>
+              <div className="mt-1 text-[16px] font-semibold leading-snug text-fg">{r.when}</div>
+              <p className="mt-2 flex gap-2 text-[13.5px] leading-relaxed text-fg">
+                <span className="mt-[7px] flex shrink-0">
+                  <Dot hex={body(r.who).hex} />
+                </span>
+                {r.then}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[13px] leading-relaxed text-muted">
+          Whatever ships has a named owner, and is checked at 90 days: scale, fix or stop.
+        </p>
+
+        <h3 className="mb-3 mt-8 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+          The rhythm
+        </h3>
+        <ol className="grid grid-cols-2 overflow-hidden rounded-2xl border border-line bg-card/60 shadow-card md:grid-cols-4">
+          {SIMPLE_RHYTHM.map((r) => (
+            <li
+              key={r.when}
+              className="-mb-px -mr-px border-b border-r border-line px-4 py-3.5"
+            >
+              <div className="text-[13px] font-semibold text-fg">{r.when}</div>
+              <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{r.what}</p>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card/40 px-4 py-3.5">
+          <p className="max-w-2xl text-[13px] leading-relaxed text-muted">
+            The detailed view has the rest: who owns and decides what, both flows step by step, the
+            owner of each architecture layer, the fit with the company model and the open
+            decisions.
+          </p>
+          <Link
+            href={DETAILED}
+            className="inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition hover:brightness-110"
+            style={{ background: "#16a34a" }}
+          >
+            Detailed view →
+          </Link>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+/** One level of the simple picture: who, and what they do in one sentence. */
+function SimpleBand({ body: b, sub }: { body: Body; sub: string }) {
+  return (
+    <div
+      className="rounded-xl border px-4 py-3.5 sm:px-5"
+      style={{ borderColor: `${b.hex}80`, background: `${b.hex}14` }}
+    >
+      <Overline hex={b.hex}>{b.name}</Overline>
+      <div className="mt-1.5 text-lg font-semibold leading-snug tracking-tight text-fg sm:text-xl">
+        {b.brief}
+      </div>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted">{sub}</p>
+    </div>
+  );
+}
+
+/* ---------- The detailed view ---------- */
+
+function Detailed() {
   return (
     <div className="space-y-14">
       <PresentSections ids={SECTIONS.map((s) => s.id)} />
