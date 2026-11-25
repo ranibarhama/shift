@@ -48,8 +48,8 @@ export const STAGE2_STEPS: Stage2Step[] = [
     n: 5,
     slug: "operational-model",
     title: "Operational model",
-    summary: "How we run it day to day: roles, rhythm and ownership.",
-    ready: false,
+    summary: "How we run it day to day: a central AI team, product pods and domain owners — roles, rhythm and ownership.",
+    ready: true,
   },
 ];
 
